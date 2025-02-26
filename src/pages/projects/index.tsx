@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
 import { Project, projectStore } from '../../utils/projectStore';
 import { Brief, briefStore } from '../../utils/briefStore';
+import { featureStore } from '../../utils/featureStore';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -51,6 +52,7 @@ export default function Projects() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectBriefs, setProjectBriefs] = useState<Record<string, Brief[]>>({});
+  const [projectFeatureSets, setProjectFeatureSets] = useState<Record<string, any[]>>({});
 
   const loadProjects = () => {
     const loadedProjects = projectStore.getProjects();
@@ -58,10 +60,27 @@ export default function Projects() {
     
     // Load briefs for each project
     const briefsByProject: Record<string, Brief[]> = {};
+    const featureSetsByProject: Record<string, any[]> = {};
+    
     loadedProjects.forEach(project => {
       briefsByProject[project.id] = briefStore.getBriefs(project.id);
+      
+      // Load feature sets for each project
+      const briefs = briefStore.getBriefs(project.id);
+      let allFeatureSets: any[] = [];
+      
+      briefs.forEach(brief => {
+        const briefFeatureSet = featureStore.getFeatureSetByBriefId(brief.id);
+        if (briefFeatureSet) {
+          allFeatureSets.push(briefFeatureSet);
+        }
+      });
+      
+      featureSetsByProject[project.id] = allFeatureSets;
     });
+    
     setProjectBriefs(briefsByProject);
+    setProjectFeatureSets(featureSetsByProject);
   };
 
   useEffect(() => {
@@ -283,19 +302,33 @@ export default function Projects() {
                         <div>
                           <h4 className="text-sm font-medium text-[#4b5563]">Next Step</h4>
                           <p className="text-xs text-[#6b7280] mt-1">
-                            {currentStage === 0 ? 'Create a Brief to get started' : 
-                             `Move to ${PROJECT_STAGES[nextStage].name} stage`}
+                            {!briefs.length ? 'Create a Brief to get started' : 
+                             (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) ? 
+                             'Draft PRD (Coming Soon)' : 
+                             'Generate features for your product'}
                           </p>
                         </div>
                         <Link
-                          href={currentStage === 0 ? `/brief/new?projectId=${project.id}` : `/project/${project.id}`}
+                          href={!briefs.length ? 
+                                `/brief/new?projectId=${project.id}` : 
+                                (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) ? 
+                                `/project/${project.id}` : 
+                                briefs.length > 0 ? `/brief/${briefs[0].id}/ideate` : `/project/${project.id}`}
                           className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-medium transition-colors"
                           style={{ 
                             backgroundColor: COLORS.project.light,
                             color: COLORS.project.primary
                           }}
+                          onClick={(e) => {
+                            if (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) {
+                              e.preventDefault();
+                            }
+                          }}
                         >
-                          {currentStage === 0 ? 'Create Brief' : 'Continue'}
+                          {!briefs.length ? 'Create Brief' : 
+                           (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) ? 
+                           'Draft PRD (Coming Soon)' : 
+                           'Ideate Features'}
                           <svg className="w-3 h-3 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>

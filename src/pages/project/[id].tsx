@@ -8,6 +8,7 @@ import BriefList from '../../components/BriefList';
 import { Project, projectStore } from '../../utils/projectStore';
 import { PRD, prdStore } from '../../utils/prdStore';
 import { Brief, briefStore } from '../../utils/briefStore';
+import { FeatureSet, featureStore } from '../../utils/featureStore';
 
 export default function ProjectDetail() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [prds, setPrds] = useState<PRD[]>([]);
   const [briefs, setBriefs] = useState<Brief[]>([]);
+  const [featureSets, setFeatureSets] = useState<FeatureSet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -29,6 +31,15 @@ export default function ProjectDetail() {
         
         const projectBriefs = briefStore.getBriefs(foundProject.id);
         setBriefs(projectBriefs);
+        
+        // Get feature sets for each brief
+        if (projectBriefs.length > 0) {
+          const briefFeatureSets = projectBriefs.map(brief => 
+            featureStore.getFeatureSetByBriefId(brief.id)
+          ).filter(fs => fs !== null) as FeatureSet[];
+          
+          setFeatureSets(briefFeatureSets);
+        }
       }
       
       setIsLoading(false);
@@ -139,14 +150,20 @@ export default function ProjectDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <h2 className="text-xl font-semibold text-[#111827]">Project Progress</h2>
               <div className="bg-[#e6f0eb] text-[#0F533A] text-sm px-3 py-1 rounded-full font-medium">
-                {briefs.length ? '1' : '0'}/6 steps completed
+                {!briefs.length ? '0' : featureSets.length > 0 ? '2' : '1'}/6 steps completed
               </div>
             </div>
             
             <div className="relative mt-8">
               {/* Progress bar */}
               <div className="h-2 bg-[#e5e7eb] rounded-full mb-5">
-                <div className="h-2 bg-[#0F533A] rounded-full" style={{ width: briefs.length ? '16.67%' : '0%' }}></div>
+                <div 
+                  className="h-2 bg-[#0F533A] rounded-full" 
+                  style={{ 
+                    width: !briefs.length ? '0%' : 
+                           featureSets.length > 0 ? '33.33%' : '16.67%' 
+                  }}
+                ></div>
               </div>
               
               {/* Project Timeline */}
@@ -159,8 +176,9 @@ export default function ProjectDetail() {
                   { id: 'docs', name: 'Docs' },
                   { id: 'screens', name: 'Screens' }
                 ].map((stage, index) => {
-                  // Determine status based on briefs
+                  // Determine status based on briefs and feature sets
                   const status = index === 0 && briefs.length ? 'completed' : 
+                                index === 1 && featureSets.length > 0 ? 'completed' :
                                 index === 1 && briefs.length ? 'active' : 
                                 'upcoming';
                   
@@ -209,24 +227,26 @@ export default function ProjectDetail() {
               </div>
               
               {/* Next Action Section */}
-              <div className="mt-6 pt-6 border-t border-[#e5e7eb] flex justify-between items-center">
-                <div>
+              <div className="mt-6 pt-6 border-t border-[#e5e7eb] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="sm:max-w-[60%]">
                   <h4 className="text-sm font-medium text-[#4b5563]">Next Step</h4>
                   <p className="text-xs text-[#6b7280] mt-1">
-                    {!briefs.length ? 'Create a Brief to get started' : 'Move to Ideation stage'}
+                    {!briefs.length ? 'Create a Brief to get started' : 
+                     featureSets.length > 0 ? 'Move to Draft PRD stage (Coming Soon)' : 
+                     'Generate features for your product'}
                   </p>
                 </div>
                 <Link
-                  href={!briefs.length ? `/brief/new?projectId=${project.id}` : `#`}
-                  className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-medium transition-colors ${briefs.length ? 'cursor-not-allowed opacity-70' : ''}`}
-                  style={{ 
-                    backgroundColor: '#e6f0eb',
-                    color: '#0F533A'
-                  }}
-                  onClick={briefs.length ? (e) => e.preventDefault() : undefined}
+                  href={!briefs.length ? `/brief/new?projectId=${project.id}` : 
+                        briefs.length > 0 && featureSets.length === 0 ? `/brief/${briefs[0].id}/ideate` : 
+                        '#'}
+                  className={`inline-flex items-center justify-center px-6 py-3.5 rounded-lg text-base font-medium transition-colors shadow-md ${featureSets.length > 0 ? 'cursor-not-allowed opacity-70 bg-gray-100 text-gray-500' : 'bg-[#0F533A] text-white hover:bg-[#0a3f2c]'}`}
+                  onClick={featureSets.length > 0 ? (e) => e.preventDefault() : undefined}
                 >
-                  {!briefs.length ? 'Create Brief' : 'Continue (Coming Soon)'}
-                  <svg className="w-3 h-3 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {!briefs.length ? 'Create Brief' : 
+                   featureSets.length > 0 ? 'Draft PRD (Coming Soon)' : 
+                   'Ideate Features'}
+                  <svg className="w-5 h-5 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </Link>
@@ -267,6 +287,80 @@ export default function ProjectDetail() {
             ) : (
               <div className="space-y-4">
                 <BriefList briefs={briefs} projectId={project.id} />
+              </div>
+            )}
+          </div>
+
+          {/* Ideation section */}
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full ${briefs.length ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'} mr-2`}></div>
+                <h2 className="text-xl font-semibold text-[#111827]">Feature Ideation</h2>
+              </div>
+              <div className={`${
+                !briefs.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
+                featureSets.length > 0 ? 'bg-[#e6f0eb] text-[#0F533A]' : 
+                'bg-[#e6f0eb] text-[#0F533A]'
+              } px-3 py-1 rounded-full text-xs font-medium`}>
+                {!briefs.length ? 'Locked' : featureSets.length > 0 ? 'Completed' : 'Active'}
+              </div>
+            </div>
+            
+            {briefs.length === 0 ? (
+              <div className="bg-[#f0f2f5] rounded-lg p-8 text-center opacity-70">
+                <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <svg className="w-7 h-7 text-[#9ca3af]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-[#111827] mb-2">Complete a Brief first</h3>
+                <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Create a Brief to unlock Feature Ideation</p>
+              </div>
+            ) : featureSets.length > 0 ? (
+              <div className="bg-[#f8f9fa] rounded-lg p-8">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-16 h-16 bg-[#e6f0eb] rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-8 h-8 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M7.75 12L10.58 14.83L16.25 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">Features Generated</h3>
+                    <p className="text-[#6b7280] mb-4">You've successfully generated features for your product using the MoSCoW framework.</p>
+                    <Link
+                      href={`/brief/${briefs[0].id}/ideate`}
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                    >
+                      View Features
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-[#f8f9fa] rounded-lg p-8">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-16 h-16 bg-[#e6f0eb] rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-8 h-8 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">Generate Features with AI</h3>
+                    <p className="text-[#6b7280] mb-4">Use AI to generate a prioritized list of features for your product using the MoSCoW framework based on your brief.</p>
+                    <Link
+                      href={`/brief/${briefs[0].id}/ideate`}
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                    >
+                      Ideate Features
+                    </Link>
+                  </div>
+                </div>
               </div>
             )}
           </div>
