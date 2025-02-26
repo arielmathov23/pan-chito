@@ -16,6 +16,13 @@ export default function IdeateFeatures() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [featureSet, setFeatureSet] = useState<FeatureSet | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
+  const [isAddingFeature, setIsAddingFeature] = useState(false);
+  const [newFeature, setNewFeature] = useState<Partial<Feature>>({
+    name: '',
+    description: '',
+    priority: 'must'
+  });
 
   useEffect(() => {
     if (id) {
@@ -66,6 +73,168 @@ export default function IdeateFeatures() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleEditFeature = (feature: Feature) => {
+    setEditingFeature(feature);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingFeature || !featureSet) return;
+
+    const success = featureStore.updateFeature(featureSet.id, editingFeature.id, editingFeature);
+    if (success) {
+      const updatedFeatureSet = featureStore.getFeatureSetByBriefId(brief!.id);
+      setFeatureSet(updatedFeatureSet);
+      setEditingFeature(null);
+    }
+  };
+
+  const handleDeleteFeature = (featureId: string) => {
+    if (!featureSet) return;
+
+    const success = featureStore.deleteFeature(featureSet.id, featureId);
+    if (success) {
+      const updatedFeatureSet = featureStore.getFeatureSetByBriefId(brief!.id);
+      setFeatureSet(updatedFeatureSet);
+    }
+  };
+
+  const handleAddFeature = () => {
+    if (!featureSet || !brief || !newFeature.name || !newFeature.description || !newFeature.priority) return;
+
+    const feature = featureStore.addFeature(featureSet.id, {
+      briefId: brief.id,
+      name: newFeature.name,
+      description: newFeature.description,
+      priority: newFeature.priority as 'must' | 'should' | 'could' | 'wont'
+    });
+
+    if (feature) {
+      const updatedFeatureSet = featureStore.getFeatureSetByBriefId(brief.id);
+      setFeatureSet(updatedFeatureSet);
+      setIsAddingFeature(false);
+      setNewFeature({ name: '', description: '', priority: 'must' });
+    }
+  };
+
+  const renderFeatureCard = (feature: Feature) => {
+    const isEditing = editingFeature?.id === feature.id;
+
+    return (
+      <div key={feature.id} className="bg-[#f8f9fa] p-4 rounded-lg group relative">
+        {isEditing ? (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={editingFeature.name}
+              onChange={(e) => setEditingFeature({ ...editingFeature, name: e.target.value })}
+              className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+            />
+            <textarea
+              value={editingFeature.description}
+              onChange={(e) => setEditingFeature({ ...editingFeature, description: e.target.value })}
+              className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+              rows={2}
+            />
+            <select
+              value={editingFeature.priority}
+              onChange={(e) => setEditingFeature({ ...editingFeature, priority: e.target.value as 'must' | 'should' | 'could' | 'wont' })}
+              className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+            >
+              <option value="must">Must Have</option>
+              <option value="should">Should Have</option>
+              <option value="could">Could Have</option>
+              <option value="wont">Won't Have</option>
+            </select>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setEditingFeature(null)}
+                className="px-3 py-1 text-sm text-[#4b5563] hover:text-[#111827]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-3 py-1 text-sm bg-[#0F533A] text-white rounded-md hover:bg-[#0a3f2c]"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h4 className="font-medium text-[#111827] mb-1">{feature.name}</h4>
+            <p className="text-[#4b5563] text-sm">{feature.description}</p>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+              <button
+                onClick={() => handleEditFeature(feature)}
+                className="p-1 text-[#6b7280] hover:text-[#111827]"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M16.04 3.02L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96C22.34 6.6 22.98 5.02 20.98 3.02C18.98 1.02 17.4 1.66 16.04 3.02Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <button
+                onClick={() => handleDeleteFeature(feature.id)}
+                className="p-1 text-[#6b7280] hover:text-red-600"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderFeatureSection = (priority: 'must' | 'should' | 'could' | 'wont') => {
+    if (!featureSet) return null;
+
+    const features = featureSet.features.filter(f => f.priority === priority);
+    const titles = {
+      must: 'Must Have',
+      should: 'Should Have',
+      could: 'Could Have',
+      wont: "Won't Have"
+    };
+    const colors = {
+      must: 'bg-red-500',
+      should: 'bg-orange-500',
+      could: 'bg-blue-500',
+      wont: 'bg-gray-500'
+    };
+
+    return (
+      <div className="border-b border-[#e5e7eb] pb-6 last:border-b-0">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <div className={`w-3 h-3 rounded-full ${colors[priority]} mr-2`}></div>
+            <h3 className="text-lg font-semibold text-[#111827]">{titles[priority]}</h3>
+          </div>
+          <button
+            onClick={() => {
+              setIsAddingFeature(true);
+              setNewFeature(prev => ({ ...prev, priority }));
+            }}
+            className="text-sm text-[#0F533A] hover:text-[#0a3f2c] font-medium"
+          >
+            + Add Feature
+          </button>
+        </div>
+        <div className="space-y-4">
+          {features.map(renderFeatureCard)}
+          {features.length === 0 && (
+            <p className="text-[#6b7280] italic">No {titles[priority].toLowerCase()} features identified</p>
+          )}
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -227,87 +396,60 @@ export default function IdeateFeatures() {
                     <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
                     <h2 className="text-xl font-semibold text-[#111827]">Feature Prioritization</h2>
                   </div>
-                  <div className="bg-[#e6f0eb] text-[#0F533A] text-sm px-3 py-1 rounded-full font-medium">
-                    Generated
-                  </div>
                 </div>
+
+                {isAddingFeature && (
+                  <div className="mb-8 bg-[#f8f9fa] p-4 rounded-lg">
+                    <h3 className="font-medium text-[#111827] mb-4">Add New Feature</h3>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Feature name"
+                        value={newFeature.name}
+                        onChange={(e) => setNewFeature({ ...newFeature, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+                      />
+                      <textarea
+                        placeholder="Feature description"
+                        value={newFeature.description}
+                        onChange={(e) => setNewFeature({ ...newFeature, description: e.target.value })}
+                        className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+                        rows={2}
+                      />
+                      <select
+                        value={newFeature.priority}
+                        onChange={(e) => setNewFeature({ ...newFeature, priority: e.target.value as 'must' | 'should' | 'could' | 'wont' })}
+                        className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+                      >
+                        <option value="must">Must Have</option>
+                        <option value="should">Should Have</option>
+                        <option value="could">Could Have</option>
+                        <option value="wont">Won't Have</option>
+                      </select>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => setIsAddingFeature(false)}
+                          className="px-3 py-1 text-sm text-[#4b5563] hover:text-[#111827]"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleAddFeature}
+                          disabled={!newFeature.name || !newFeature.description}
+                          className="px-3 py-1 text-sm bg-[#0F533A] text-white rounded-md hover:bg-[#0a3f2c] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Add Feature
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="space-y-8 mt-6">
-                  {/* Must Have Features */}
-                  <div className="border-b border-[#e5e7eb] pb-6">
-                    <div className="flex items-center mb-4">
-                      <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                      <h3 className="text-lg font-semibold text-[#111827]">Must Have</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {featureSet.features.filter(f => f.priority === 'must').map(feature => (
-                        <div key={feature.id} className="bg-[#f8f9fa] p-4 rounded-lg">
-                          <h4 className="font-medium text-[#111827] mb-1">{feature.name}</h4>
-                          <p className="text-[#4b5563] text-sm">{feature.description}</p>
-                        </div>
-                      ))}
-                      {featureSet.features.filter(f => f.priority === 'must').length === 0 && (
-                        <p className="text-[#6b7280] italic">No must-have features identified</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Should Have Features */}
-                  <div className="border-b border-[#e5e7eb] pb-6">
-                    <div className="flex items-center mb-4">
-                      <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
-                      <h3 className="text-lg font-semibold text-[#111827]">Should Have</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {featureSet.features.filter(f => f.priority === 'should').map(feature => (
-                        <div key={feature.id} className="bg-[#f8f9fa] p-4 rounded-lg">
-                          <h4 className="font-medium text-[#111827] mb-1">{feature.name}</h4>
-                          <p className="text-[#4b5563] text-sm">{feature.description}</p>
-                        </div>
-                      ))}
-                      {featureSet.features.filter(f => f.priority === 'should').length === 0 && (
-                        <p className="text-[#6b7280] italic">No should-have features identified</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Could Have Features */}
-                  <div className="border-b border-[#e5e7eb] pb-6">
-                    <div className="flex items-center mb-4">
-                      <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-                      <h3 className="text-lg font-semibold text-[#111827]">Could Have</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {featureSet.features.filter(f => f.priority === 'could').map(feature => (
-                        <div key={feature.id} className="bg-[#f8f9fa] p-4 rounded-lg">
-                          <h4 className="font-medium text-[#111827] mb-1">{feature.name}</h4>
-                          <p className="text-[#4b5563] text-sm">{feature.description}</p>
-                        </div>
-                      ))}
-                      {featureSet.features.filter(f => f.priority === 'could').length === 0 && (
-                        <p className="text-[#6b7280] italic">No could-have features identified</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Won't Have Features */}
-                  <div>
-                    <div className="flex items-center mb-4">
-                      <div className="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
-                      <h3 className="text-lg font-semibold text-[#111827]">Won't Have (for this release)</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {featureSet.features.filter(f => f.priority === 'wont').map(feature => (
-                        <div key={feature.id} className="bg-[#f8f9fa] p-4 rounded-lg">
-                          <h4 className="font-medium text-[#111827] mb-1">{feature.name}</h4>
-                          <p className="text-[#4b5563] text-sm">{feature.description}</p>
-                        </div>
-                      ))}
-                      {featureSet.features.filter(f => f.priority === 'wont').length === 0 && (
-                        <p className="text-[#6b7280] italic">No won't-have features identified</p>
-                      )}
-                    </div>
-                  </div>
+                  {renderFeatureSection('must')}
+                  {renderFeatureSection('should')}
+                  {renderFeatureSection('could')}
+                  {renderFeatureSection('wont')}
                 </div>
               </div>
               
