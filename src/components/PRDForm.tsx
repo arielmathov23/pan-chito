@@ -1,254 +1,211 @@
-import React from 'react';
-import { useState } from 'react';
-import { ProductIdea } from '../types/types';
+import React, { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 
 interface PRDFormProps {
-  onComplete: (content: string) => void;
-  onSubmit: () => void;
+  projectId: string;
+  onSubmit: (data: PRDFormData) => void;
+  isGenerating?: boolean;
+  error?: string | null;
 }
 
-const questions = [
-  {
-    id: 'productName',
-    question: "¿Cuál es el nombre de tu producto?",
-    placeholder: "Escribe el nombre de tu producto...",
-    helper: "Un nombre claro y memorable que refleje la esencia de tu producto"
-  },
-  {
-    id: 'problemStatement',
-    question: "¿Qué problema resuelve tu producto?",
-    placeholder: "Describe el problema o necesidad que tu producto busca resolver...",
-    helper: "¿A quién afecta este problema y cuál es el impacto que tiene?"
-  },
-  {
-    id: 'targetUser',
-    question: "¿Quién es tu usuario?",
-    placeholder: "Describe a tu usuario ideal...",
-    helper: "Considera demografía, comportamientos y necesidades específicas"
-  },
-  {
-    id: 'proposedSolution',
-    question: "¿Cuál es la solución propuesta por tu producto?",
-    placeholder: "Describe cómo tu producto resuelve el problema...",
-    helper: "Explica la solución de manera clara y concisa"
-  },
-  {
-    id: 'productObjectives',
-    question: "¿Cuáles son los objetivos del producto?",
-    placeholder: "Define los objetivos principales...",
-    helper: "¿Qué quieres lograr con este producto?"
-  },
-  {
-    id: 'detailedFunctionality',
-    question: "¿Qué funcionalidades querés detallar?",
-    placeholder: "Describe las funcionalidades específicas...",
-    helper: "Explica cada funcionalidad que necesita ser analizada en profundidad"
-  }
-];
+export interface PRDFormData {
+  title: string;
+  description: string;
+  targetAudience: string;
+  problemStatement: string;
+  proposedSolution: string;
+  keyFeatures: string;
+  successMetrics: string;
+}
 
-const PRDForm = ({ onComplete, onSubmit }: PRDFormProps) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [formData, setFormData] = useState<ProductIdea>({
-    productName: '',
+export default function PRDForm({ projectId, onSubmit, isGenerating = false, error = null }: PRDFormProps) {
+  const [formData, setFormData] = useState<PRDFormData>({
+    title: '',
+    description: '',
+    targetAudience: '',
     problemStatement: '',
-    targetUser: '',
     proposedSolution: '',
-    productObjectives: '',
-    detailedFunctionality: ''
+    keyFeatures: '',
+    successMetrics: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof PRDFormData, string>>>({});
 
-  const currentQuestion = questions[currentQuestionIndex];
+  const validateForm = (): boolean => {
+    const errors: Partial<Record<keyof PRDFormData, string>> = {};
+    let isValid = true;
 
-  const validateCurrentField = () => {
-    const currentField = currentQuestion.id;
-    const value = formData[currentField as keyof ProductIdea] || '';
-
-    if (!value.trim()) {
-      setFieldErrors(prev => ({
-        ...prev,
-        [currentField]: 'Este campo es requerido'
-      }));
-      return false;
-    }
-    
-    setFieldErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[currentField];
-      return newErrors;
+    // Check for required fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (!value.trim()) {
+        errors[key as keyof PRDFormData] = 'This field is required';
+        isValid = false;
+      }
     });
-    return true;
-  };
 
-  const handleNext = () => {
-    if (!validateCurrentField()) return;
-
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error when user starts typing
-    if (fieldErrors[name]) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
+    setFormErrors(errors);
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateCurrentField()) return;
     
-    onSubmit(); // Trigger loading state
-    setIsSubmitting(true);
-
+    if (!validateForm()) {
+      return;
+    }
+    
     try {
-      // Use absolute URL to ensure we're hitting the right endpoint
-      const response = await fetch('/api/generate-prd', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      // Log everything for debugging
-      console.log('API Response:', response);
-      const data = await response.json();
-      console.log('API Data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to generate PRD');
-      }
-
-      if (data.prd) {
-        onComplete(data.prd);
-      } else {
-        throw new Error('No PRD content received');
-      }
+      await onSubmit(formData);
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      setFieldErrors(prev => ({
-        ...prev,
-        submit: error instanceof Error ? error.message : 'An error occurred'
-      }));
-      onComplete('');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Failed to submit PRD:', error);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (currentQuestionIndex === questions.length - 1) {
-        handleSubmit(e as unknown as React.FormEvent);
-      } else {
-        handleNext();
-      }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error for this field when user types
+    if (formErrors[name as keyof PRDFormData]) {
+      setFormErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-8">
-        <div className="w-full bg-gray-200 h-2 rounded-full">
-          <div 
-            className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+          <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Error generating PRD</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        </div>
+      )}
+      
+      <div className="space-y-6">
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium text-foreground mb-2">
+            PRD Title
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-lg border ${formErrors.title ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
+            placeholder="Enter PRD title"
+            disabled={isGenerating}
           />
+          {formErrors.title && <p className="mt-1 text-sm text-red-500">{formErrors.title}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-foreground mb-2">
+            Brief Description
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-lg border ${formErrors.description ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors min-h-[100px]`}
+            placeholder="Provide a brief overview of the product"
+            disabled={isGenerating}
+          />
+          {formErrors.description && <p className="mt-1 text-sm text-red-500">{formErrors.description}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="targetAudience" className="block text-sm font-medium text-foreground mb-2">
+            Target Audience
+          </label>
+          <textarea
+            id="targetAudience"
+            name="targetAudience"
+            value={formData.targetAudience}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-lg border ${formErrors.targetAudience ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
+            placeholder="Who is this product for?"
+            disabled={isGenerating}
+          />
+          {formErrors.targetAudience && <p className="mt-1 text-sm text-red-500">{formErrors.targetAudience}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="problemStatement" className="block text-sm font-medium text-foreground mb-2">
+            Problem Statement
+          </label>
+          <textarea
+            id="problemStatement"
+            name="problemStatement"
+            value={formData.problemStatement}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-lg border ${formErrors.problemStatement ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors min-h-[100px]`}
+            placeholder="What problem does this product solve?"
+            disabled={isGenerating}
+          />
+          {formErrors.problemStatement && <p className="mt-1 text-sm text-red-500">{formErrors.problemStatement}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="proposedSolution" className="block text-sm font-medium text-foreground mb-2">
+            Proposed Solution
+          </label>
+          <textarea
+            id="proposedSolution"
+            name="proposedSolution"
+            value={formData.proposedSolution}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-lg border ${formErrors.proposedSolution ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors min-h-[100px]`}
+            placeholder="How does your product solve this problem?"
+            disabled={isGenerating}
+          />
+          {formErrors.proposedSolution && <p className="mt-1 text-sm text-red-500">{formErrors.proposedSolution}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="keyFeatures" className="block text-sm font-medium text-foreground mb-2">
+            Key Features
+          </label>
+          <textarea
+            id="keyFeatures"
+            name="keyFeatures"
+            value={formData.keyFeatures}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-lg border ${formErrors.keyFeatures ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors min-h-[100px]`}
+            placeholder="List the main features of your product"
+            disabled={isGenerating}
+          />
+          {formErrors.keyFeatures && <p className="mt-1 text-sm text-red-500">{formErrors.keyFeatures}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="successMetrics" className="block text-sm font-medium text-foreground mb-2">
+            Success Metrics
+          </label>
+          <textarea
+            id="successMetrics"
+            name="successMetrics"
+            value={formData.successMetrics}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-lg border ${formErrors.successMetrics ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
+            placeholder="How will you measure success?"
+            disabled={isGenerating}
+          />
+          {formErrors.successMetrics && <p className="mt-1 text-sm text-red-500">{formErrors.successMetrics}</p>}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="min-h-[300px] flex flex-col">
-          <h2 className="text-2xl font-semibold mb-3 text-gray-800 transition-opacity duration-300">
-            {currentQuestion.question}
-          </h2>
-          
-          <p className="text-sm text-gray-500 mb-4">
-            {currentQuestion.helper}
-          </p>
-
-          <div className="flex-1 flex flex-col">
-            <textarea
-              id={currentQuestion.id}
-              name={currentQuestion.id}
-              value={formData[currentQuestion.id as keyof ProductIdea]}
-              onChange={handleChange}
-              onKeyPress={handleKeyPress}
-              className={`flex-1 p-4 rounded-lg border-2 ${
-                fieldErrors[currentQuestion.id] 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                  : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-200'
-              } transition-all duration-200 resize-none`}
-              placeholder={currentQuestion.placeholder}
-              rows={6}
-            />
-            {fieldErrors[currentQuestion.id] && (
-              <p className="mt-2 text-sm text-red-600">
-                {fieldErrors[currentQuestion.id]}
-              </p>
-            )}
-            <p className="mt-2 text-sm text-gray-500">
-              Presiona Enter para continuar, Shift + Enter para nueva línea
-            </p>
-          </div>
-        </div>
-
-        {fieldErrors.submit && (
-          <div className="p-4 bg-red-50 text-red-700 rounded-md">
-            {fieldErrors.submit}
-          </div>
-        )}
-
-        <div className="flex justify-between items-center">
-          <button
-            type="button"
-            onClick={handlePrevious}
-            disabled={currentQuestionIndex === 0}
-            className="px-6 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-
-          {currentQuestionIndex === questions.length - 1 ? (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Generating...' : 'Generate PRD'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Next
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
+      <div className="flex items-center justify-end space-x-4 pt-4">
+        <button
+          type="submit"
+          disabled={isGenerating}
+          className="inline-flex items-center justify-center bg-primary text-primary-foreground px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGenerating ? 'Generating PRD...' : 'Generate PRD'}
+        </button>
+      </div>
+    </form>
   );
-};
-
-export default PRDForm; 
+} 

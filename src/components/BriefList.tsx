@@ -1,74 +1,77 @@
 import React from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { PRD } from '../utils/prdStore';
+import { Brief } from '../utils/briefStore';
 
-interface PRDListProps {
-  prds: PRD[];
+interface BriefListProps {
+  briefs: Brief[];
   onDelete?: (id: string) => void;
   projectId?: string;
 }
 
-export default function PRDList({ prds, onDelete, projectId }: PRDListProps) {
+export default function BriefList({ briefs, onDelete, projectId }: BriefListProps) {
   const handleDelete = (id: string, title: string) => {
-    if (onDelete && window.confirm(`Are you sure you want to delete the PRD "${title}"?\n\nThis action cannot be undone.`)) {
+    if (onDelete && window.confirm(`Are you sure you want to delete the Brief "${title}"?\n\nThis action cannot be undone.`)) {
       onDelete(id);
     }
   };
 
   return (
     <div className="w-full">
-      {prds.length === 0 ? (
+      {briefs.length === 0 ? (
         <div className="text-center py-8">
-          <div className="bg-[#f0f2f5] rounded-xl p-8 max-w-2xl mx-auto">
-            <div className="rounded-full bg-[#0F533A]/10 w-16 h-16 flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="bg-[#f0f2f5] rounded-lg p-8 max-w-2xl mx-auto">
+            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <svg className="w-7 h-7 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-[#111827] mb-3">
-              No PRDs yet
+            <h3 className="text-lg font-medium text-[#111827] mb-2">
+              No Briefs yet
             </h3>
-            <p className="text-[#6b7280] mb-8 max-w-md mx-auto">
-              Start creating your Product Requirements Documents to document and share your product ideas.
+            <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
+              Start creating your Product Briefs to document and share your product ideas.
             </p>
             <Link 
-              href={projectId ? `/prd/new?projectId=${projectId}` : "/prd/new"}
-              className="inline-flex items-center px-6 py-3 rounded-lg text-white bg-[#0F533A] hover:bg-[#0F533A]/90 transition-colors"
+              href={projectId ? `/brief/new?projectId=${projectId}` : "/brief/new"}
+              className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
             >
-              Create my first PRD
-              <svg className="ml-2 -mr-1 h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
+              Create Brief
             </Link>
           </div>
         </div>
       ) : (
         <ul className="divide-y divide-[#e5e7eb]">
-          {prds.map((prd) => (
-            <li key={prd.id} className="py-4">
+          {briefs.map((brief) => (
+            <li key={brief.id} className="py-4 first:pt-0 last:pb-0">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <Link 
-                    href={`/prd/${prd.id}`}
+                    href={`/brief/${brief.id}`}
                     className="block hover:bg-[#f0f2f5] transition-colors duration-150 p-4 rounded-lg -m-4"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-xl font-semibold text-[#111827] mb-1">
-                          {prd.title}
+                        <h2 className="text-lg font-medium text-[#111827] mb-1">
+                          {brief.productName}
                         </h2>
-                        <p className="text-sm text-[#6b7280]">
-                          Created on {format(new Date(prd.createdAt), 'MMM d, yyyy')}
-                        </p>
+                        <div className="flex items-center text-xs text-[#6b7280]">
+                          <svg className="w-3.5 h-3.5 mr-1.5 text-[#9ca3af]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          Created on {format(new Date(brief.createdAt), 'MMM d, yyyy')}
+                        </div>
                       </div>
-                      <div className="ml-4 hidden sm:block">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#0F533A]/10 text-[#0F533A]">
-                          PRD
-                        </span>
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </div>
                     </div>
                   </Link>
@@ -76,9 +79,9 @@ export default function PRDList({ prds, onDelete, projectId }: PRDListProps) {
                 {onDelete && (
                   <div className="ml-4">
                     <button
-                      onClick={() => handleDelete(prd.id, prd.title)}
-                      className="p-2 text-[#6b7280] hover:text-[#ef4444] transition-colors duration-150 rounded-full hover:bg-[#f0f2f5]"
-                      aria-label="Delete PRD"
+                      onClick={() => handleDelete(brief.id, brief.productName)}
+                      className="p-2 text-[#6b7280] hover:text-red-500 transition-colors duration-150 rounded-full hover:bg-[#f0f2f5]"
+                      aria-label="Delete brief"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
