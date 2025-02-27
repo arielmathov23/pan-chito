@@ -36,7 +36,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects }) => {
       
       {projects.length === 0 ? (
         <EmptyState
-          title="No projects yet"
+          title="No projects yet!"
           description="Create your first project to start organizing your product documentation"
           icon="project"
           action={{
