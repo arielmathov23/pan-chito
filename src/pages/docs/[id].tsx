@@ -8,6 +8,8 @@ import { Brief, briefStore } from '../../utils/briefStore';
 import { PRD, prdStore } from '../../utils/prdStore';
 import { TechDoc, techDocStore } from '../../utils/techDocStore';
 import { generateTechDocumentation, parseTechDoc } from '../../utils/techDocGenerator';
+import MockNotification from '../../components/MockNotification';
+import { isMockData } from '../../utils/mockDetector';
 
 export default function TechDocPage() {
   const router = useRouter();
@@ -19,8 +21,11 @@ export default function TechDocPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   useEffect(() => {
+    setUsingMockData(isMockData());
+    
     if (id) {
       // First, try to find a PRD with this ID
       const foundPRD = prdStore.getPRD(id as string);
@@ -170,6 +175,8 @@ export default function TechDocPage() {
             <span>/</span>
             <span className="text-[#111827]">Technical Documentation</span>
           </div>
+          
+          {usingMockData && <MockNotification stage="tech-docs" />}
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>

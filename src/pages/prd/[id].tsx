@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import MockNotification from '../../components/MockNotification';
 import { Project, projectStore } from '../../utils/projectStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
@@ -9,6 +10,7 @@ import { PRD, prdStore } from '../../utils/prdStore';
 import { generatePRD, parsePRD } from '../../utils/prdGenerator';
 import PRDViewer from '../../components/PRDViewer';
 import { techDocStore } from '../../utils/techDocStore';
+import isMockData from '../../utils/mockDetector';
 
 export default function PRDPage() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function PRDPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -53,7 +56,7 @@ export default function PRDPage() {
           const existingFeatureSet = featureStore.getFeatureSetByBriefId(foundBrief.id);
           setFeatureSet(existingFeatureSet);
           
-          // Check if a PRD already exists for this brief
+          // Check if a PRD exists for this brief
           const existingPRD = prdStore.getPRDByBriefId(foundBrief.id);
           if (existingPRD) {
             setPRD(existingPRD);
@@ -62,6 +65,9 @@ export default function PRDPage() {
       }
       
       setIsLoading(false);
+      
+      // Check if mock data is being used
+      setUsingMockData(isMockData());
     }
   }, [id]);
 
@@ -193,6 +199,7 @@ export default function PRDPage() {
             <span>/</span>
             <span className="text-[#111827]">PRD</span>
           </div>
+          {usingMockData && <MockNotification stage="prd" />}
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>

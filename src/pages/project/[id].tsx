@@ -40,7 +40,7 @@ const COLORS = {
     border: '#8b5cf6'
   },
   status: {
-    completed: '#10b981',
+    completed: '#3b82f6',
     active: '#3b82f6',
     upcoming: '#9ca3af'
   },
@@ -107,10 +107,10 @@ export default function ProjectDetail() {
 
   // Helper function to get stage color based on stage ID and status
   const getStageColor = (stageId: string, status: string) => {
-    // Colors for all stages based on status
-    if (status === 'completed') return { bg: '#e6f0eb', text: '#0F533A', border: '#0F533A' };
-    if (status === 'active') return { bg: '#eff6ff', text: '#3b82f6', border: '#3b82f6' };
-    return { bg: '#f0f2f5', text: '#6b7280', border: 'transparent' };
+    // Use blue color scheme for all stages
+    if (status === 'completed') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
+    if (status === 'active') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
+    return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
   };
 
   if (isLoading) {
@@ -180,24 +180,13 @@ export default function ProjectDetail() {
             <div className="flex items-center space-x-3 self-start">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex items-center justify-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-sm"
+                className="inline-flex items-center justify-center text-[#6b7280] hover:text-red-600 transition-colors text-sm"
               >
                 <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14M10.33 16.5H13.66M9.5 12.5H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Delete Project
+                Delete
               </button>
-              {briefs.length === 0 && (
-                <Link
-                  href={`/brief/new?projectId=${project.id}`}
-                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                >
-                  <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Create Brief
-                </Link>
-              )}
             </div>
           </div>
         </div>

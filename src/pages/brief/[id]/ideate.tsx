@@ -8,6 +8,8 @@ import { Brief, briefStore } from '../../../utils/briefStore';
 import { Feature, FeatureSet, featureStore } from '../../../utils/featureStore';
 import { generateFeatures, parseGeneratedFeatures } from '../../../utils/featureGenerator';
 import { prdStore } from '../../../utils/prdStore';
+import MockNotification from '../../../components/MockNotification';
+import { isMockData } from '../../../utils/mockDetector';
 
 export default function IdeateFeatures() {
   const router = useRouter();
@@ -21,6 +23,7 @@ export default function IdeateFeatures() {
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [isAddingFeature, setIsAddingFeature] = useState(false);
   const [hasPRDs, setHasPRDs] = useState(false);
+  const [usingMockData, setUsingMockData] = useState(false);
   const [newFeature, setNewFeature] = useState<Partial<Feature>>({
     name: '',
     description: '',
@@ -28,6 +31,8 @@ export default function IdeateFeatures() {
   });
 
   useEffect(() => {
+    setUsingMockData(isMockData());
+    
     if (id) {
       const foundBrief = briefStore.getBrief(id as string);
       setBrief(foundBrief);
@@ -399,6 +404,8 @@ export default function IdeateFeatures() {
             <span>/</span>
             <span className="text-[#111827]">Ideate Features</span>
           </div>
+          
+          {usingMockData && <MockNotification stage="feature-ideation" />}
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>

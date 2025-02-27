@@ -7,6 +7,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
+        <title>021 - From Zero to One</title>
         <link rel="icon" href="data:," />
       </Head>
       <Component {...pageProps} />

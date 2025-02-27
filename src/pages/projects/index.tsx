@@ -42,7 +42,7 @@ const COLORS = {
   },
   // Status colors
   status: {
-    completed: '#10b981', // Green
+    completed: '#3b82f6', // Blue (changed from green)
     active: '#3b82f6', // Blue
     upcoming: '#9ca3af', // Gray
   },
@@ -146,9 +146,9 @@ export default function Projects() {
 
   // Helper function to get stage color based on stage ID and status
   const getStageColor = (stageId: string, status: string) => {
-    // Default color scheme for all stages
-    if (status === 'completed') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
-    if (status === 'active') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
+    // Use blue color scheme for all stages
+    if (status === 'completed') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
+    if (status === 'active') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
     return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
   };
 
@@ -163,8 +163,7 @@ export default function Projects() {
           </div>
           <Link
             href="/project/new"
-            className="inline-flex items-center justify-center text-white px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-colors shadow-sm"
-            style={{ backgroundColor: COLORS.project.primary }}
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-medium hover:bg-[#f0f2f5] transition-colors border border-[#0F533A] text-[#0F533A] bg-white"
           >
             <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -187,8 +186,7 @@ export default function Projects() {
             <p className="text-[#4b5563] mb-8 max-w-md mx-auto">Create your first project to get started with product documentation</p>
             <Link
               href="/project/new"
-              className="inline-flex items-center justify-center text-white px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-colors shadow-sm"
-              style={{ backgroundColor: COLORS.project.primary }}
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm text-white bg-[#0F533A]"
             >
               Create project
             </Link>
@@ -204,7 +202,8 @@ export default function Projects() {
               return (
                 <div
                   key={project.id}
-                  className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+                  className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+                  onClick={() => router.push(`/project/${project.id}`)}
                 >
                   <div className="p-6 sm:p-8">
                     {/* Project Header Section */}
@@ -215,8 +214,8 @@ export default function Projects() {
                           {currentStage > 0 && (
                             <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
                               style={{ 
-                                backgroundColor: COLORS.project.light, 
-                                color: COLORS.project.primary 
+                                backgroundColor: COLORS.task.light, 
+                                color: COLORS.task.primary 
                               }}>
                               {currentStage} / {PROJECT_STAGES.length} completed
                             </span>
@@ -234,8 +233,11 @@ export default function Projects() {
                       </div>
                       <div className="flex space-x-3 sm:self-start">
                         {briefs.length > 0 && (
-                          <Link
-                            href={`/brief/${briefs[0].id}`}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/brief/${briefs[0].id}`);
+                            }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             style={{ 
                               borderColor: COLORS.task.border,
@@ -247,11 +249,14 @@ export default function Projects() {
                             <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                          </Link>
+                          </button>
                         )}
                         {briefs.length > 0 && briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) && (
-                          <Link
-                            href={`/prd/${briefs.find(brief => prdStore.getPRDs(brief.id).length > 0)?.id}`}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/prd/${briefs.find(brief => prdStore.getPRDs(brief.id).length > 0)?.id}`);
+                            }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             style={{ 
                               borderColor: COLORS.project.border,
@@ -263,15 +268,16 @@ export default function Projects() {
                             <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                          </Link>
+                          </button>
                         )}
                         {/* Add Screens Link */}
                         {briefs.length > 0 && briefs.some(brief => {
                           const prd = prdStore.getPRDs(brief.id)[0];
                           return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                         }) && (
-                          <Link
-                            href={`/screens/${(() => {
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
                               const brief = briefs.find(brief => {
                                 const prd = prdStore.getPRDs(brief.id)[0];
                                 return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
@@ -279,11 +285,10 @@ export default function Projects() {
                               if (brief) {
                                 const prds = prdStore.getPRDs(brief.id);
                                 if (prds.length > 0) {
-                                  return prds[0].id;
+                                  router.push(`/screens/${prds[0].id}`);
                                 }
                               }
-                              return '';
-                            })()}`}
+                            }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             style={{ 
                               borderColor: COLORS.docs.border,
@@ -295,21 +300,20 @@ export default function Projects() {
                             <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                          </Link>
+                          </button>
                         )}
-                        <Link
-                          href={`/project/${project.id}`}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-90"
-                          style={{ 
-                            backgroundColor: COLORS.project.primary,
-                            color: 'white'
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/project/${project.id}`);
                           }}
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-[#e5e7eb] text-[#6b7280] hover:text-[#4b5563] hover:bg-[#f0f2f5]"
                         >
                           View Details
                           <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
-                        </Link>
+                        </button>
                       </div>
                     </div>
                     
@@ -328,7 +332,7 @@ export default function Projects() {
                           className="h-2 rounded-full transition-all duration-300 ease-in-out"
                           style={{ 
                             width: `${progress}%`, 
-                            backgroundColor: COLORS.project.primary 
+                            backgroundColor: COLORS.task.primary 
                           }}
                         ></div>
                       </div>
@@ -382,30 +386,34 @@ export default function Projects() {
                                'All steps completed'}
                             </p>
                           </div>
-                          <Link
-                            href={!briefs.length ? 
-                                  `/brief/new?projectId=${project.id}` : 
-                                  !projectFeatureSets[project.id]?.length ? 
-                                  `/brief/${briefs[0].id}/ideate` :
-                                  !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ?
-                                  `/prd/${briefs[0].id}` :
-                                  !briefs.some(brief => {
-                                    const prd = prdStore.getPRDs(brief.id)[0];
-                                    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                                  }) ?
-                                  `/screens/${(() => {
-                                    const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
-                                    return brief ? prdStore.getPRDs(brief.id)[0].id : '';
-                                  })()}` :
-                                  !briefs.some(brief => {
-                                    const prd = prdStore.getPRDs(brief.id)[0];
-                                    return prd && techDocStore.getTechDocByPrdId(prd.id);
-                                  }) ?
-                                  `/docs/${(() => {
-                                    const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
-                                    return brief ? prdStore.getPRDs(brief.id)[0].id : '';
-                                  })()}` :
-                                  `/project/${project.id}`}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const url = !briefs.length ? 
+                                `/brief/new?projectId=${project.id}` : 
+                                !projectFeatureSets[project.id]?.length ? 
+                                `/brief/${briefs[0].id}/ideate` :
+                                !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ?
+                                `/prd/${briefs[0].id}` :
+                                !briefs.some(brief => {
+                                  const prd = prdStore.getPRDs(brief.id)[0];
+                                  return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                                }) ?
+                                `/screens/${(() => {
+                                  const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
+                                  return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                                })()}` :
+                                !briefs.some(brief => {
+                                  const prd = prdStore.getPRDs(brief.id)[0];
+                                  return prd && techDocStore.getTechDocByPrdId(prd.id);
+                                }) ?
+                                `/docs/${(() => {
+                                  const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
+                                  return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                                })()}` :
+                                `/project/${project.id}`;
+                              router.push(url);
+                            }}
                             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm text-white hover:opacity-90"
                             style={{ 
                               backgroundColor: !briefs.length ? '#0F533A' : 
@@ -438,7 +446,7 @@ export default function Projects() {
                             <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                          </Link>
+                          </button>
                         </div>
                       </div>
                     )}

@@ -9,6 +9,8 @@ import { Brief, briefStore } from '../../utils/briefStore';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { prdStore } from '../../utils/prdStore';
 import { generatePRD, parsePRD } from '../../utils/prdGenerator';
+import MockNotification from '../../components/MockNotification';
+import { isMockData } from '../../utils/mockDetector';
 
 export default function NewPRD() {
   const router = useRouter();
@@ -21,8 +23,11 @@ export default function NewPRD() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPRD, setGeneratedPRD] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   useEffect(() => {
+    setUsingMockData(isMockData());
+    
     if (!projectId) {
       router.push('/projects');
       return;
@@ -170,6 +175,8 @@ export default function NewPRD() {
             </div>
             <h1 className="text-3xl font-bold text-foreground">Create New PRD</h1>
             <p className="text-muted-foreground mt-2">Document the requirements for your product</p>
+            
+            {usingMockData && <MockNotification stage="prd" />}
           </div>
 
           {generatedPRD ? (

@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import MockNotification from '../../components/MockNotification';
 import { Project, projectStore } from '../../utils/projectStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { featureStore } from '../../utils/featureStore';
 import { GeneratedBrief } from '../../utils/briefGenerator';
+import isMockData from '../../utils/mockDetector';
 
 // Helper function to safely render potentially stringified JSON
 function RenderField({ 
@@ -64,6 +66,7 @@ export default function BriefDetail() {
   const [editedBriefData, setEditedBriefData] = useState<GeneratedBrief | null>(null);
   const [hasFeatures, setHasFeatures] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -83,6 +86,9 @@ export default function BriefDetail() {
       }
       
       setIsLoading(false);
+      
+      // Check if mock data is being used
+      setUsingMockData(isMockData());
     }
   }, [id]);
 
@@ -179,6 +185,8 @@ export default function BriefDetail() {
             <span>/</span>
             <span className="text-[#111827]">Brief</span>
           </div>
+
+          {usingMockData && <MockNotification stage="brief" />}
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>

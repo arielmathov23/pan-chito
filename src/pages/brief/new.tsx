@@ -6,6 +6,8 @@ import BriefForm, { BriefFormData } from '../../components/BriefForm';
 import { Project, projectStore } from '../../utils/projectStore';
 import { briefStore } from '../../utils/briefStore';
 import { generateBrief, GeneratedBrief } from '../../utils/briefGenerator';
+import MockNotification from '../../components/MockNotification';
+import { isMockData } from '../../utils/mockDetector';
 
 // Helper function to safely render potentially stringified JSON
 function RenderField({ content }: { content: string }) {
@@ -43,8 +45,11 @@ export default function NewBrief() {
   const [parsedBrief, setParsedBrief] = useState<GeneratedBrief | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentFormData, setCurrentFormData] = useState<BriefFormData | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   useEffect(() => {
+    setUsingMockData(isMockData());
+    
     if (!projectId) {
       router.push('/projects');
       return;
@@ -140,6 +145,8 @@ export default function NewBrief() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <Navbar />
+      
+      {usingMockData && <div className="container mx-auto px-6 pt-6"><MockNotification stage="brief" /></div>}
       
       {generatedBrief && parsedBrief ? (
         <div className="container mx-auto px-6 py-10 max-w-4xl">
