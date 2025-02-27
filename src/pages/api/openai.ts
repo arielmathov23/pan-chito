@@ -25,6 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
+    // Set response timeout to 2 minutes
+    res.setTimeout(120000, () => {
+      res.status(504).json({ error: 'Request timeout' });
+    });
+
     const completion = await openai.chat.completions.create({
       messages: [
         {
@@ -36,10 +41,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           content: prompt
         }
       ],
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       temperature,
       max_tokens,
       response_format: { type: "json_object" }
+    }, {
+      timeout: 90000 // 90 seconds timeout for OpenAI API call
     });
 
     return res.status(200).json(completion);

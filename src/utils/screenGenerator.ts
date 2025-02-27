@@ -6,53 +6,39 @@ import { AppFlow, Screen, ScreenElement, FlowStep } from './screenStore';
 // Function to generate screens using OpenAI
 export async function generateScreens(brief: Brief, prd: PRD): Promise<{ screens: Screen[], appFlow: AppFlow }> {
   try {
-    // Prepare the prompt for OpenAI
+    // Prepare a more concise prompt for OpenAI
     const prompt = `
 Based on the following product brief and PRD, please generate:
 1. A comprehensive app flow explanation in steps
 2. All main screens needed for the application
-3. All necessary features for login/signup and other core functionality
+3. All necessary features like login/signup and other core functionality
 
-PRODUCT BRIEF:
-${brief.productName}
-${brief.briefData.problemStatement}
-${brief.briefData.targetUsers}
-${brief.briefData.productObjectives}
-${brief.briefData.keyFeatures}
+Product: ${brief.productName}
+Problem: ${brief.briefData.problemStatement}
+Users: ${brief.briefData.targetUsers}
+Key Features: ${brief.briefData.keyFeatures}
 
-PRD:
-${JSON.stringify(prd.content, null, 2)}
+Core PRD Content:
+${JSON.stringify(prd.content).slice(0, 1500)}... // Limit PRD content size
 
-Please format your response as a JSON object with the following structure:
+Generate:
+1. App flow steps with screen references
+2. Main screens with elements
+3. Core functionality (login/signup)
+
+Response format:
 {
   "appFlow": {
-    "steps": [
-      {
-        "description": "Step description",
-        "screenReference": "Screen name (if applicable)"
-      }
-    ]
+    "steps": [{"description": "...", "screenReference": "..."}]
   },
-  "screens": [
-    {
-      "name": "Screen name",
-      "description": "Detailed description of the screen",
-      "elements": [
-        {
-          "type": "button/input/text/etc",
-          "properties": {
-            "label": "Label text",
-            "action": "Action description",
-            "other properties as needed": "value"
-          }
-        }
-      ]
-    }
-  ]
-}
-`;
+  "screens": [{
+    "name": "...",
+    "description": "...",
+    "elements": [{"type": "...", "properties": {...}}]
+  }]
+}`;
 
-    // Call OpenAI API
+    // Call OpenAI API with optimized parameters
     const response = await fetch('/api/openai', {
       method: 'POST',
       headers: {
@@ -60,24 +46,24 @@ Please format your response as a JSON object with the following structure:
       },
       body: JSON.stringify({
         prompt,
-        max_tokens: 3000,
+        max_tokens: 2000, // Reduced from 3000
         temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
     }
 
     const data = await response.json();
     
-    // The OpenAI API returns the content in choices[0].message.content
-    if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-      return parseScreenResponse(data.choices[0].message.content, prd.id);
-    } else {
+    if (!data.choices?.[0]?.message?.content) {
       console.error('Unexpected API response structure:', data);
       throw new Error('Invalid API response format');
     }
+
+    return parseScreenResponse(data.choices[0].message.content, prd.id);
   } catch (error) {
     console.error('Error generating screens:', error);
     throw error;

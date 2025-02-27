@@ -197,15 +197,6 @@ export default function ScreensPage() {
                   Delete Screens
                 </button>
               )}
-              <Link
-                href={`/prd/${prd.id}`}
-                className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#4b5563] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-              >
-                <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Back to PRD
-              </Link>
             </div>
           </div>
         </div>
@@ -213,14 +204,14 @@ export default function ScreensPage() {
         <div className="grid gap-8 grid-cols-1">
           {!screenSet ? (
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex flex-col items-center justify-center gap-4 mb-6">
                 <div className="flex items-center">
                   <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
                   <h2 className="text-xl font-semibold text-[#111827]">Generate Screens</h2>
                 </div>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-6 text-center">
                 <p className="text-[#4b5563]">
                   Generate app screens and user flow based on your PRD. This will help you visualize the application structure and design.
                 </p>
@@ -242,7 +233,7 @@ export default function ScreensPage() {
                   </div>
                 )}
                 
-                <div className="flex justify-end">
+                <div className="flex justify-center">
                   <button
                     onClick={handleGenerateScreens}
                     disabled={isGenerating}
