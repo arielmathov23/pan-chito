@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           content: prompt
         }
       ],
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       temperature,
       max_tokens,
       response_format: { type: "json_object" }
@@ -49,7 +49,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       timeout: 90000 // 90 seconds timeout for OpenAI API call
     });
 
-    return res.status(200).json(completion);
+    // Validate the response format
+    try {
+      const content = completion.choices[0].message.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+      
+      // Ensure the content is valid JSON
+      JSON.parse(content);
+      
+      return res.status(200).json(completion);
+    } catch (error) {
+      console.error('Error validating OpenAI response:', error);
+      return res.status(500).json({ error: 'Invalid response format from OpenAI' });
+    }
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
     return res.status(500).json({ error: 'Failed to generate content' });
