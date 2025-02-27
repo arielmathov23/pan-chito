@@ -60,7 +60,7 @@ function generateMockBrief(formData: BriefFormData): string {
     problemStatement: formData.problemStatement,
     targetUsers: formData.targetUsers,
     existingSolutions: formData.existingSolutions || `Current alternatives have limitations in terms of usability and effectiveness. Existing products don't fully address the core user needs. Our solution improves upon these by offering a more comprehensive approach.`,
-    proposedSolution: formData.proposedSolution,
+    proposedSolution: `${formData.proposedSolution}\n\n**Platform Recommendation:** Based on the target users and use cases, we recommend developing this as a mobile app with a complementary web application. The mobile app will provide on-the-go access which is essential for the target users, while the web application will support more complex administrative tasks and data visualization.`,
     productObjectives: formData.productObjectives,
     keyFeatures: `Based on the ideas provided, we recommend prioritizing the following features for the MVP:\n\n${formData.keyFeatures}\n\nThese features align with the product objectives and address the core user needs.`,
     marketAnalysis: formData.marketAnalysis || `Market Size: Growing market with significant potential. Competition: Some existing solutions but with clear differentiation opportunities. Trends: Increasing demand for efficient solutions in this space.`,
@@ -124,7 +124,7 @@ Please provide your response as a JSON object with the following structure:
   "problemStatement": "Detailed problem statement with data if possible",
   "targetUsers": "Clear segmentation and user profiles as a string, not an object",
   "existingSolutions": "Analysis of current alternatives and their limitations",
-  "proposedSolution": "Detailed explanation of how the product solves the problem",
+  "proposedSolution": "Detailed explanation of how the product solves the problem. IMPORTANT: Include a clear recommendation on the optimal platform type (mobile app, web app, responsive web app, desktop app, etc.) with justification based on the target users and use cases",
   "productObjectives": "Specific, measurable, achievable, relevant, and time-bound objectives",
   "keyFeatures": "Recommended features and functionality based on the ideas provided",
   "marketAnalysis": "Size, competitors, trends, opportunities",
@@ -136,6 +136,8 @@ Please provide your response as a JSON object with the following structure:
 
 IMPORTANT: All values in the JSON must be strings, not nested objects or arrays. If you need to provide structured information, format it as a string with line breaks and bullet points.
 
+IMPORTANT: In the proposedSolution field, you MUST include a clear recommendation on the optimal platform type (mobile app, web app, responsive web app, desktop app, etc.) with justification based on the target users and use cases.
+
 Ensure the brief is actionable, specific, and provides clear guidance for the development and design team.`;
 
   try {
@@ -143,7 +145,7 @@ Ensure the brief is actionable, specific, and provides clear guidance for the de
       messages: [
         {
           role: "system",
-          content: "You are a professional product strategist who creates clear, concise, and actionable product briefs. You have extensive experience in digital product management and know industry best practices. Your goal is to provide documentation that effectively guides development and design teams. You're skilled at taking exploratory ideas and turning them into concrete, prioritized feature recommendations. You excel at identifying potential technical and business risks even with limited information. You always respond with valid JSON where all values are strings, not nested objects or arrays."
+          content: "You are a professional product strategist who creates clear, concise, and actionable product briefs. You have extensive experience in digital product management and know industry best practices. Your goal is to provide documentation that effectively guides development and design teams. You're skilled at taking exploratory ideas and turning them into concrete, prioritized feature recommendations. You excel at identifying potential technical and business risks even with limited information. You always respond with valid JSON where all values are strings, not nested objects or arrays. You always include platform recommendations (mobile app, web app, etc.) in your proposed solutions."
         },
         {
           role: "user",

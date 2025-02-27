@@ -10,6 +10,48 @@ import { PRD, prdStore } from '../../utils/prdStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 
+// Define stages and their display info
+const PROJECT_STAGES = [
+  { id: 'brief', name: 'Brief' },
+  { id: 'ideation', name: 'Ideation' },
+  { id: 'prd', name: 'PRD' },
+  { id: 'screens', name: 'Screens' },
+  { id: 'docs', name: 'Tech Docs' }
+];
+
+// Color scheme for the application
+const COLORS = {
+  project: {
+    primary: '#0F533A',
+    secondary: '#10b981',
+    light: '#e6f0eb',
+    border: '#0F533A'
+  },
+  task: {
+    primary: '#3b82f6',
+    secondary: '#60a5fa',
+    light: '#eff6ff',
+    border: '#3b82f6'
+  },
+  docs: {
+    primary: '#8b5cf6',
+    secondary: '#a78bfa',
+    light: '#f5f3ff',
+    border: '#8b5cf6'
+  },
+  status: {
+    completed: '#10b981',
+    active: '#3b82f6',
+    upcoming: '#9ca3af'
+  },
+  neutral: {
+    lighter: '#f0f2f5',
+    light: '#e5e7eb',
+    medium: '#6b7280',
+    dark: '#4b5563'
+  }
+};
+
 export default function ProjectDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -26,11 +68,12 @@ export default function ProjectDetail() {
       setProject(foundProject);
       
       if (foundProject) {
-        const projectPRDs = prdStore.getPRDs(foundProject.id);
-        setPrds(projectPRDs);
-        
         const projectBriefs = briefStore.getBriefs(foundProject.id);
         setBriefs(projectBriefs);
+        
+        // Get all PRDs for all briefs
+        const allPRDs = projectBriefs.flatMap(brief => prdStore.getPRDs(brief.id));
+        setPrds(allPRDs);
         
         // Get feature sets for each brief
         if (projectBriefs.length > 0) {
@@ -53,6 +96,21 @@ export default function ProjectDetail() {
         router.push('/projects');
       }
     }
+  };
+
+  const handleDeletePRD = (prdId: string) => {
+    const deleted = prdStore.deletePRD(prdId);
+    if (deleted) {
+      setPrds(currentPrds => currentPrds.filter(p => p.id !== prdId));
+    }
+  };
+
+  // Helper function to get stage color based on stage ID and status
+  const getStageColor = (stageId: string, status: string) => {
+    // Colors for all stages based on status
+    if (status === 'completed') return { bg: '#e6f0eb', text: '#0F533A', border: '#0F533A' };
+    if (status === 'active') return { bg: '#eff6ff', text: '#3b82f6', border: '#3b82f6' };
+    return { bg: '#f0f2f5', text: '#6b7280', border: 'transparent' };
   };
 
   if (isLoading) {
@@ -150,7 +208,17 @@ export default function ProjectDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <h2 className="text-xl font-semibold text-[#111827]">Project Progress</h2>
               <div className="bg-[#e6f0eb] text-[#0F533A] text-sm px-3 py-1 rounded-full font-medium">
-                {!briefs.length ? '0' : featureSets.length > 0 ? '2' : '1'}/6 steps completed
+                {!briefs.length ? '0' : 
+                 !featureSets.length ? '1' : 
+                 !prds.length ? '2' : 
+                 !briefs.some(brief => {
+                   const prd = prdStore.getPRDs(brief.id)[0];
+                   return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                 }) ? '3' : 
+                 !briefs.some(brief => {
+                   const prd = prdStore.getPRDs(brief.id)[0];
+                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                 }) ? '4' : '5'}/5 steps completed
               </div>
             </div>
             
@@ -158,69 +226,76 @@ export default function ProjectDetail() {
               {/* Progress bar */}
               <div className="h-2 bg-[#e5e7eb] rounded-full mb-5">
                 <div 
-                  className="h-2 bg-[#0F533A] rounded-full" 
+                  className="h-2 rounded-full transition-all duration-300 ease-in-out" 
                   style={{ 
                     width: !briefs.length ? '0%' : 
-                           featureSets.length > 0 ? '33.33%' : '16.67%' 
+                           !featureSets.length ? '20%' :
+                           !prds.length ? '40%' :
+                           !briefs.some(brief => {
+                             const prd = prdStore.getPRDs(brief.id)[0];
+                             return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                           }) ? '60%' : 
+                           !briefs.some(brief => {
+                             const prd = prdStore.getPRDs(brief.id)[0];
+                             return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                           }) ? '80%' : '100%',
+                    backgroundColor: COLORS.project.primary
                   }}
                 ></div>
               </div>
               
               {/* Project Timeline */}
-              <div className="grid grid-cols-6 gap-2">
-                {[
-                  { id: 'brief', name: 'Brief' },
-                  { id: 'ideation', name: 'Ideation' },
-                  { id: 'draftPrd', name: 'Draft PRD' },
-                  { id: 'finalPrd', name: 'Final PRD' },
-                  { id: 'docs', name: 'Docs' },
-                  { id: 'screens', name: 'Screens' }
-                ].map((stage, index) => {
-                  // Determine status based on briefs and feature sets
-                  const status = index === 0 && briefs.length ? 'completed' : 
-                                index === 1 && featureSets.length > 0 ? 'completed' :
-                                index === 1 && briefs.length ? 'active' : 
-                                'upcoming';
+              <div className="grid grid-cols-5 gap-2 relative">
+                {PROJECT_STAGES.map((stage, index) => {
+                  // Determine status based on briefs, feature sets, and PRDs
+                  let status;
+                  if (index === 0) {
+                    status = briefs.length ? 'completed' : 'active';
+                  } else if (index === 1) {
+                    status = featureSets.length > 0 ? 'completed' : 
+                             briefs.length ? 'active' : 'upcoming';
+                  } else if (index === 2) {
+                    status = prds.length > 0 ? 'completed' : 
+                             featureSets.length > 0 ? 'active' : 'upcoming';
+                  } else if (index === 3) {
+                    const hasScreens = briefs.some(brief => {
+                      const prd = prdStore.getPRDs(brief.id)[0];
+                      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                    });
+                    
+                    status = hasScreens ? 'completed' : 
+                             prds.length > 0 ? 'active' : 'upcoming';
+                  } else if (index === 4) {
+                    const hasScreens = briefs.some(brief => {
+                      const prd = prdStore.getPRDs(brief.id)[0];
+                      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                    });
+                    
+                    const hasTechDocs = briefs.some(brief => {
+                      const prd = prdStore.getPRDs(brief.id)[0];
+                      return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                    });
+                    
+                    status = hasTechDocs ? 'completed' : 
+                             hasScreens ? 'active' : 'upcoming';
+                  }
                   
-                  // Set colors based on status
-                  const bgColor = status === 'completed' ? '#e6f0eb' : 
-                                 status === 'active' ? '#e6f0eb' : 
-                                 '#f0f2f5';
-                  
-                  const textColor = status === 'completed' ? '#0F533A' : 
-                                  status === 'active' ? '#0F533A' : 
-                                  '#6b7280';
-                  
-                  const borderColor = status === 'completed' ? '#0F533A' : 
-                                    status === 'active' ? '#0F533A' : 
-                                    'transparent';
+                  const colors = getStageColor(stage.id.toLowerCase(), status);
                   
                   return (
-                    <div 
-                      key={stage.id} 
-                      className="flex flex-col items-center"
-                    >
+                    <div key={stage.id} className="flex flex-col items-center relative">
                       <div 
-                        className="w-full py-2 px-1 rounded-md text-center text-xs font-medium mb-1 flex items-center justify-center"
-                        style={{ 
-                          backgroundColor: bgColor,
-                          color: textColor,
-                          borderBottom: `2px solid ${borderColor}`
+                        className="w-full py-2 px-1 rounded-md text-center text-xs font-medium flex items-center justify-center transition-all duration-200"
+                        style={{
+                          backgroundColor: colors.bg,
+                          color: colors.text,
+                          borderBottom: `2px solid ${colors.border}`,
+                          boxShadow: status === 'active' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                          transform: status === 'active' ? 'translateY(-1px)' : 'none'
                         }}
                       >
                         {stage.name}
                       </div>
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ 
-                          backgroundColor: status === 'completed' ? '#0F533A' : 
-                                          status === 'active' ? 'white' : 
-                                          '#f0f2f5',
-                          border: `2px solid ${status === 'completed' || status === 'active' ? 
-                                              '#0F533A' : 
-                                              '#e5e7eb'}`
-                        }}
-                      ></div>
                     </div>
                   );
                 })}
@@ -232,23 +307,70 @@ export default function ProjectDetail() {
                   <h4 className="text-sm font-medium text-[#4b5563]">Next Step</h4>
                   <p className="text-xs text-[#6b7280] mt-1">
                     {!briefs.length ? 'Create a Brief to get started' : 
-                     featureSets.length > 0 ? 'Move to Draft PRD stage (Coming Soon)' : 
-                     'Generate features for your product'}
+                     featureSets.length > 0 && prds.length === 0 ? 'Generate a PRD based on your features' :
+                     briefs.length > 0 && featureSets.length === 0 ? 'Generate features for your product' :
+                     prds.length > 0 && !briefs.some(brief => {
+                       const prd = prdStore.getPRDs(brief.id)[0];
+                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                     }) ? 'Generate app screens based on your PRD' :
+                     briefs.some(brief => {
+                       const prd = prdStore.getPRDs(brief.id)[0];
+                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                     }) && !briefs.some(brief => {
+                       const prd = prdStore.getPRDs(brief.id)[0];
+                       return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                     }) ? 'Create technical documentation for your project' :
+                     'All stages completed'}
                   </p>
                 </div>
                 <Link
                   href={!briefs.length ? `/brief/new?projectId=${project.id}` : 
-                        briefs.length > 0 && featureSets.length === 0 ? `/brief/${briefs[0].id}/ideate` : 
-                        '#'}
-                  className={`inline-flex items-center justify-center px-6 py-3.5 rounded-lg text-base font-medium transition-colors shadow-md ${featureSets.length > 0 ? 'cursor-not-allowed opacity-70 bg-gray-100 text-gray-500' : 'bg-[#0F533A] text-white hover:bg-[#0a3f2c]'}`}
-                  onClick={featureSets.length > 0 ? (e) => e.preventDefault() : undefined}
+                        featureSets.length > 0 && prds.length === 0 ? `/prd/${briefs[0].id}` :
+                        briefs.length > 0 && featureSets.length === 0 ? `/brief/${briefs[0].id}/ideate` :
+                        prds.length > 0 && !briefs.some(brief => {
+                          const prd = prdStore.getPRDs(brief.id)[0];
+                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                        }) ? `/screens/${prds[0].id}` :
+                        briefs.some(brief => {
+                          const prd = prdStore.getPRDs(brief.id)[0];
+                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                        }) && !briefs.some(brief => {
+                          const prd = prdStore.getPRDs(brief.id)[0];
+                          return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                        }) ? `/docs/${prds[0].id}` :
+                        `/project/${project.id}`}
+                  className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm ${
+                    briefs.some(brief => {
+                      const prd = prdStore.getPRDs(brief.id)[0];
+                      return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                    }) ? 'bg-white border border-[#e5e7eb] text-[#4b5563] hover:bg-[#f0f2f5]' : 'bg-[#0F533A] text-white hover:bg-[#0a3f2c]'
+                  }`}
                 >
-                  {!briefs.length ? 'Create Brief' : 
-                   featureSets.length > 0 ? 'Draft PRD (Coming Soon)' : 
-                   'Ideate Features'}
-                  <svg className="w-5 h-5 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  {briefs.some(brief => {
+                    const prd = prdStore.getPRDs(brief.id)[0];
+                    return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                  }) ? (
+                    <>
+                      View Project
+                      <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      {!briefs.length ? 'Create Brief' : 
+                       featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
+                       briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
+                       prds.length > 0 && !briefs.some(brief => {
+                         const prd = prdStore.getPRDs(brief.id)[0];
+                         return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                       }) ? 'Generate Screens' :
+                       'Create Tech Docs'}
+                      <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </>
+                  )}
                 </Link>
               </div>
             </div>
@@ -258,23 +380,18 @@ export default function ProjectDetail() {
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div className="flex items-center">
-                <div className={`w-2 h-2 rounded-full ${briefs.length ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'} mr-2`}></div>
+                <div className={`w-2 h-2 rounded-full ${briefs.length ? 'bg-[#10b981]' : 'bg-[#3b82f6]'} mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Brief</h2>
               </div>
-              {briefs.length > 0 && (
-                <div className="bg-[#e6f0eb] text-[#0F533A] px-3 py-1 rounded-full text-xs font-medium">
-                  Completed
-                </div>
-              )}
+              <div className={`${
+                briefs.length ? 'bg-[#e6f0eb] text-[#0F533A]' : 'bg-[#f0f2f5] text-[#6b7280]'
+              } px-3 py-1 rounded-full text-xs font-medium`}>
+                {briefs.length ? 'Completed' : 'Not Started'}
+              </div>
             </div>
             
             {briefs.length === 0 ? (
-              <div className="bg-[#f0f2f5] rounded-lg p-8 text-center">
-                <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-4 shadow-sm">
-                  <svg className="w-7 h-7 text-[#9ca3af]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
+              <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
                 <h3 className="text-lg font-medium text-[#111827] mb-2">Create a Brief to get started</h3>
                 <p className="text-[#6b7280] mb-6 max-w-md mx-auto">A Brief helps define your target audience and their needs</p>
                 <Link
@@ -282,11 +399,32 @@ export default function ProjectDetail() {
                   className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                 >
                   Create Brief
+                  <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                <BriefList briefs={briefs} projectId={project.id} />
+              <div className="bg-[#f8f9fa] rounded-lg p-8">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">
+                      Brief Created
+                    </h3>
+                    <p className="text-[#6b7280]">
+                      Your brief has been created and is ready for feature ideation
+                    </p>
+                  </div>
+                  <Link
+                    href={`/brief/${briefs[0].id}`}
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                  >
+                    View Brief
+                    <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </Link>
+                </div>
               </div>
             )}
           </div>
@@ -295,106 +433,368 @@ export default function ProjectDetail() {
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div className="flex items-center">
-                <div className={`w-2 h-2 rounded-full ${briefs.length ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'} mr-2`}></div>
+                <div className={`w-2 h-2 rounded-full ${
+                  featureSets.length > 0 ? 'bg-[#10b981]' : 
+                  briefs.length ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Feature Ideation</h2>
               </div>
               <div className={`${
                 !briefs.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
                 featureSets.length > 0 ? 'bg-[#e6f0eb] text-[#0F533A]' : 
-                'bg-[#e6f0eb] text-[#0F533A]'
+                'bg-[#eff6ff] text-[#3b82f6]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
                 {!briefs.length ? 'Locked' : featureSets.length > 0 ? 'Completed' : 'Active'}
               </div>
             </div>
             
-            {briefs.length === 0 ? (
-              <div className="bg-[#f0f2f5] rounded-lg p-8 text-center opacity-70">
-                <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-4 shadow-sm">
-                  <svg className="w-7 h-7 text-[#9ca3af]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-[#111827] mb-2">Complete a Brief first</h3>
+            {!briefs.length ? (
+              <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
+                <h3 className="text-lg font-medium text-[#111827] mb-2">Start with a Brief</h3>
                 <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Create a Brief to unlock Feature Ideation</p>
-              </div>
-            ) : featureSets.length > 0 ? (
-              <div className="bg-[#f8f9fa] rounded-lg p-8">
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  <div className="w-16 h-16 bg-[#e6f0eb] rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-8 h-8 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M7.75 12L10.58 14.83L16.25 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <h3 className="text-lg font-medium text-[#111827] mb-2">Features Generated</h3>
-                    <p className="text-[#6b7280] mb-4">You've successfully generated features for your product using the MoSCoW framework.</p>
-                    <Link
-                      href={`/brief/${briefs[0].id}/ideate`}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                    >
-                      View Features
-                    </Link>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="bg-[#f8f9fa] rounded-lg p-8">
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  <div className="w-16 h-16 bg-[#e6f0eb] rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-8 h-8 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">
+                      {featureSets.length > 0 ? 'Features Generated' : 'Feature Ideation'}
+                    </h3>
+                    <p className="text-[#6b7280]">
+                      {featureSets.length > 0 
+                        ? 'Features have been generated and are ready for PRD creation'
+                        : 'Generate or define features for your product'}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/brief/${briefs[0].id}/ideate`}
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                  >
+                    {featureSets.length > 0 ? 'View Features' : 'Start Ideation'}
+                    <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                  </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <h3 className="text-lg font-medium text-[#111827] mb-2">Generate Features with AI</h3>
-                    <p className="text-[#6b7280] mb-4">Use AI to generate a prioritized list of features for your product using the MoSCoW framework based on your brief.</p>
-                    <Link
-                      href={`/brief/${briefs[0].id}/ideate`}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                    >
-                      Ideate Features
-                    </Link>
-                  </div>
+                  </Link>
                 </div>
               </div>
             )}
           </div>
 
-          {/* PRDs section - available but not part of the active timeline yet */}
-          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8 opacity-70">
+          {/* PRD Section */}
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div className="flex items-center">
-                <div className="w-2 h-2 rounded-full bg-[#9ca3af] mr-2"></div>
+                <div className={`w-2 h-2 rounded-full ${
+                  prds.length > 0 ? 'bg-[#10b981]' : 
+                  featureSets.length > 0 ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Product Requirement Documents</h2>
               </div>
-              <div className="bg-[#f0f2f5] text-[#6b7280] px-3 py-1 rounded-full text-xs font-medium">
-                Coming Soon
+              <div className={`${
+                !featureSets.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
+                prds.length > 0 ? 'bg-[#e6f0eb] text-[#0F533A]' : 
+                'bg-[#eff6ff] text-[#3b82f6]'
+              } px-3 py-1 rounded-full text-xs font-medium`}>
+                {!featureSets.length ? 'Locked' : prds.length > 0 ? 'Completed' : 'Active'}
               </div>
             </div>
             
-            <div className="bg-[#f0f2f5] rounded-lg p-8 text-center">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <svg className="w-7 h-7 text-[#9ca3af]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+            {!featureSets.length ? (
+              <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
+                <h3 className="text-lg font-medium text-[#111827] mb-2">Complete Feature Ideation First</h3>
+                <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Generate features to unlock PRD creation</p>
               </div>
-              <h3 className="text-lg font-medium text-[#111827] mb-2">PRDs will be available soon</h3>
-              <p className="text-[#6b7280] mb-6 max-w-md mx-auto">After completing your Brief, you'll unlock the ability to create PRDs</p>
-              <button
-                disabled
-                className="inline-flex items-center justify-center bg-[#e5e7eb] text-[#9ca3af] px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed"
-              >
-                Learn More
-              </button>
+            ) : (
+              <div className="bg-[#f8f9fa] rounded-lg p-8">
+                {prds.length === 0 ? (
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">No PRDs yet</h3>
+                    <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
+                      Generate your first PRD to document your product requirements
+                    </p>
+                    <Link
+                      href={`/prd/${briefs[0].id}`}
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                    >
+                      Generate PRD
+                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </Link>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-[#111827] mb-2">
+                          PRDs Created
+                        </h3>
+                        <p className="text-[#6b7280]">
+                          Your PRDs have been created and are ready for screen generation
+                        </p>
+                      </div>
+                      <div className="flex space-x-3">
+                        <Link
+                          href={`/prd/${prds[0].id}`}
+                          className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                        >
+                          View PRD
+                          <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </Link>
+                        {/* Add Screens Link */}
+                        {briefs.length > 0 && briefs.some(brief => {
+                          const prd = prdStore.getPRDs(brief.id)[0];
+                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                        }) && (
+                          <Link
+                            href={`/screens/${(() => {
+                              const brief = briefs.find(brief => {
+                                const prd = prdStore.getPRDs(brief.id)[0];
+                                return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                              });
+                              if (brief) {
+                                const prds = prdStore.getPRDs(brief.id);
+                                if (prds.length > 0) {
+                                  return prds[0].id;
+                                }
+                              }
+                              return '';
+                            })()}`}
+                            className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            style={{ 
+                              borderColor: COLORS.docs.border,
+                              color: COLORS.docs.primary,
+                              backgroundColor: COLORS.docs.light
+                            }}
+                          >
+                            View Screens
+                            <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Display PRD list with delete functionality */}
+                    <div className="mt-6 border-t border-[#e5e7eb] pt-6">
+                      <h4 className="text-sm font-medium text-[#6b7280] mb-4">All PRDs</h4>
+                      <PRDList 
+                        prds={prds} 
+                        onDelete={handleDeletePRD} 
+                        projectId={project.id} 
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Screens Section */}
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full ${
+                  briefs.some(brief => {
+                    const prd = prdStore.getPRDs(brief.id)[0];
+                    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                  }) ? 'bg-[#10b981]' : 
+                  prds.length > 0 ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                } mr-2`}></div>
+                <h2 className="text-xl font-semibold text-[#111827]">Screens</h2>
+              </div>
+              <div className={`${
+                !prds.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
+                briefs.some(brief => {
+                  const prd = prdStore.getPRDs(brief.id)[0];
+                  return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
+                'bg-[#eff6ff] text-[#3b82f6]'
+              } px-3 py-1 rounded-full text-xs font-medium`}>
+                {!prds.length ? 'Locked' : 
+                 briefs.some(brief => {
+                   const prd = prdStore.getPRDs(brief.id)[0];
+                   return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                 }) ? 'Completed' : 'Active'}
+              </div>
             </div>
+            
+            {!prds.length ? (
+              <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
+                <h3 className="text-lg font-medium text-[#111827] mb-2">Complete PRD First</h3>
+                <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Generate a PRD to unlock Screen Design</p>
+              </div>
+            ) : (
+              <div className="bg-[#f8f9fa] rounded-lg p-8">
+                {!briefs.some(brief => {
+                  const prd = prdStore.getPRDs(brief.id)[0];
+                  return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                }) ? (
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">No Screens yet</h3>
+                    <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
+                      Generate app screens based on your PRD to visualize your product
+                    </p>
+                    <Link
+                      href={`/screens/${(() => {
+                        const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
+                        return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                      })()}`}
+                      className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors"
+                    >
+                      Generate Screens
+                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </Link>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-[#111827] mb-2">
+                          Screens Created
+                        </h3>
+                        <p className="text-[#6b7280]">
+                          Your app screens have been generated and are ready to view
+                        </p>
+                      </div>
+                      <Link
+                        href={`/screens/${(() => {
+                          const brief = briefs.find(brief => {
+                            const prd = prdStore.getPRDs(brief.id)[0];
+                            return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                          });
+                          if (brief) {
+                            const prds = prdStore.getPRDs(brief.id);
+                            if (prds.length > 0) {
+                              return prds[0].id;
+                            }
+                          }
+                          return '';
+                        })()}`}
+                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                      >
+                        View Screens
+                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Technical Documentation Section */}
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full ${
+                  briefs.some(brief => {
+                    const prd = prdStore.getPRDs(brief.id)[0];
+                    return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                  }) ? 'bg-[#10b981]' : 
+                  prds.length > 0 ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                } mr-2`}></div>
+                <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
+              </div>
+              <div className={`${
+                !prds.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
+                briefs.some(brief => {
+                  const prd = prdStore.getPRDs(brief.id)[0];
+                  return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
+                'bg-[#eff6ff] text-[#3b82f6]'
+              } px-3 py-1 rounded-full text-xs font-medium`}>
+                {!prds.length ? 'Locked' : 
+                 briefs.some(brief => {
+                   const prd = prdStore.getPRDs(brief.id)[0];
+                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                 }) ? 'Completed' : 'Active'}
+              </div>
+            </div>
+            
+            {!prds.length ? (
+              <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
+                <h3 className="text-lg font-medium text-[#111827] mb-2">Complete PRD First</h3>
+                <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Generate a PRD to unlock Technical Documentation</p>
+              </div>
+            ) : (
+              <div className="bg-[#f8f9fa] rounded-lg p-8">
+                {!briefs.some(brief => {
+                  const prd = prdStore.getPRDs(brief.id)[0];
+                  return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                }) ? (
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">No Technical Documentation yet</h3>
+                    <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
+                      Generate technical documentation based on your PRD to guide your development team
+                    </p>
+                    <Link
+                      href={`/docs/${(() => {
+                        const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
+                        return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                      })()}`}
+                      className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors"
+                    >
+                      Generate Documentation
+                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.5 12H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12.5 15L15.5 12L12.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#111827] mb-2">
+                        Technical Documentation Created
+                      </h3>
+                      <p className="text-[#6b7280]">
+                        Your technical documentation has been created and is ready for your development team
+                      </p>
+                    </div>
+                    <Link
+                      href={`/docs/${(() => {
+                        const brief = briefs.find(brief => {
+                          const prd = prdStore.getPRDs(brief.id)[0];
+                          return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                        });
+                        if (brief) {
+                          const prds = prdStore.getPRDs(brief.id);
+                          if (prds.length > 0) {
+                            return prds[0].id;
+                          }
+                        }
+                        return '';
+                      })()}`}
+                      className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      style={{ 
+                        borderColor: COLORS.docs.border,
+                        color: COLORS.docs.primary,
+                        backgroundColor: COLORS.docs.light
+                      }}
+                    >
+                      View Documentation
+                      <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Project Timeline */}
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+            {/* ... existing code ... */}
           </div>
         </div>
       </div>

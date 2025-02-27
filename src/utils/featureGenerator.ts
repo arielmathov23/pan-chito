@@ -179,7 +179,7 @@ Format your response as a JSON object with the following structure:
           content: prompt
         }
       ],
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
       temperature: 0.7,
       max_tokens: 4000,
     });

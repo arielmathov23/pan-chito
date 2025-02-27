@@ -1,5 +1,15 @@
 import OpenAI from 'openai';
-import { PRDFormData } from '../components/PRDForm';
+
+// Define the PRDFormData interface directly in this file
+export interface PRDFormData {
+  title: string;
+  description: string;
+  targetAudience: string;
+  problemStatement: string;
+  proposedSolution: string;
+  keyFeatures: string;
+  successMetrics: string;
+}
 
 // Check if API key is available
 const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
@@ -115,7 +125,7 @@ Please format the PRD in a clear, professional structure with markdown formattin
           content: prompt
         }
       ],
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
       temperature: 0.7,
       max_tokens: 4000,
     });

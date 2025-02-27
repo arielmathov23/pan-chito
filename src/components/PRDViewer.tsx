@@ -1,296 +1,485 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { PRD } from '../utils/prdStore';
+import { PRDSection } from '../utils/prdGenerator';
 
 interface PRDViewerProps {
-  prdContent: string;
+  prd: PRD;
+  onUpdate: (updatedPRD: PRD) => void;
 }
 
-interface Feature {
-  title: string;
-  description: string[];
-  userStories: string[];
-  acceptanceCriteria: string[];
-  useCases: string[];
-  technical: string[];
-}
+export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [editingFeature, setEditingFeature] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<PRDSection | null>(null);
 
-interface ProcessedPRD {
-  overview: string[];
-  features: Feature[];
-}
+  const handleEdit = (featureName: string, section: PRDSection) => {
+    setEditingFeature(featureName);
+    setEditingSection(null);
+    setEditedContent({ ...section });
+  };
 
-const formatText = (text: string) => {
-  return text
-    // Bold text
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
-    // Italic text
-    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
-    // Headers
-    .replace(/#{3}\s*(.*)/g, '<h3 class="text-xl font-bold mb-3">$1</h3>')
-    .replace(/#{2}\s*(.*)/g, '<h2 class="text-2xl font-bold mb-4">$1</h2>')
-    .replace(/#{1}\s*(.*)/g, '<h1 class="text-3xl font-bold mb-5">$1</h1>')
-    // Lists
-    .replace(/^\-\s*(.*)/gm, '<li class="ml-4">$1</li>')
-    // Numbers
-    .replace(/^\d+\.\s*(.*)/gm, '<div class="font-semibold">$1</div>')
-    // Links
-    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-indigo-600 hover:text-indigo-800 underline">$1</a>');
-};
+  const handleSave = () => {
+    if (!editedContent || !editingFeature) return;
 
-const PRDViewer = ({ prdContent }: PRDViewerProps) => {
-  const processedContent = React.useMemo(() => {
-    try {
-      console.log('Raw PRD content:', prdContent);
-      
-      const lines = prdContent.split('\n').map(line => line.trim()).filter(Boolean);
-      const processed: ProcessedPRD = {
-        overview: [],
-        features: []
-      };
-
-      let currentFeature: Feature | null = null;
-      let currentSection: keyof Feature | 'overview' = 'overview';
-
-      for (const line of lines) {
-        // Start of a new feature
-        if (line.startsWith('Funcionalidad')) {
-          if (currentFeature) {
-            processed.features.push(currentFeature);
-          }
-          currentFeature = {
-            title: line,
-            description: [],
-            userStories: [],
-            acceptanceCriteria: [],
-            useCases: [],
-            technical: []
-          };
-          currentSection = 'description';
-          continue;
-        }
-
-        // Identify sections within a feature
-        if (line.includes('Descripción:')) {
-          currentSection = 'description';
-          continue;
-        } else if (line.includes('User Stories:')) {
-          currentSection = 'userStories';
-          continue;
-        } else if (line.includes('Criterios de Aceptación:')) {
-          currentSection = 'acceptanceCriteria';
-          continue;
-        } else if (line.includes('Casos de Uso:')) {
-          currentSection = 'useCases';
-          continue;
-        } else if (line.includes('Consideraciones Técnicas:')) {
-          currentSection = 'technical';
-          continue;
-        }
-
-        // Add content to current section with formatting
-        if (currentFeature && currentSection !== 'overview') {
-          currentFeature[currentSection].push(formatText(line));
-        } else if (!currentFeature) {
-          processed.overview.push(formatText(line));
-        }
+    const updatedPRD: PRD = {
+      ...prd,
+      content: {
+        ...prd.content,
+        sections: prd.content.sections.map(section =>
+          section.featureName === editingFeature ? editedContent : section
+        )
       }
+    };
 
-      // Don't forget to add the last feature
-      if (currentFeature) {
-        processed.features.push(currentFeature);
-      }
+    onUpdate(updatedPRD);
+    setEditingFeature(null);
+    setEditedContent(null);
+  };
 
-      console.log('Processed content:', processed);
-      return processed;
-    } catch (error) {
-      console.error('Error processing PRD content:', error);
-      return {
-        overview: [typeof prdContent === 'string' ? prdContent : 'Error processing content'],
-        features: []
-      };
+  const handleCancel = () => {
+    setEditingFeature(null);
+    setEditedContent(null);
+  };
+
+  const renderEditableField = (
+    value: string,
+    onChange: (value: string) => void,
+    multiline = false
+  ) => {
+    if (multiline) {
+      return (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+          rows={3}
+        />
+      );
     }
-  }, [prdContent]);
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+      />
+    );
+  };
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gray-50">
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-        {/* Modern Header */}
-        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-8 py-10">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-extrabold text-white tracking-tight">
-                Product Requirements Document
-              </h1>
-              <p className="mt-2 text-indigo-100 font-medium">
-                Generated {new Date().toLocaleDateString()}
-              </p>
-            </div>
-            <button 
-              onClick={() => window.print()}
-              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg 
-                text-sm transition-all duration-200 font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export PDF
-            </button>
+  const renderPrioritySelector = (
+    value: 'must' | 'should' | 'could' | 'wont',
+    onChange: (value: 'must' | 'should' | 'could' | 'wont') => void
+  ) => {
+    return (
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as 'must' | 'should' | 'could' | 'wont')}
+        className="w-full px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+      >
+        <option value="must">MUST</option>
+        <option value="should">SHOULD</option>
+        <option value="could">COULD</option>
+        <option value="wont">WON'T</option>
+      </select>
+    );
+  };
+
+  const renderEditableList = (
+    items: string[],
+    onChange: (items: string[]) => void
+  ) => (
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <input
+            type="text"
+            value={item}
+            onChange={(e) => {
+              const newItems = [...items];
+              newItems[index] = e.target.value;
+              onChange(newItems);
+            }}
+            className="flex-1 px-3 py-2 border border-[#e5e7eb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0F533A]"
+          />
+          <button
+            onClick={() => {
+              const newItems = items.filter((_, i) => i !== index);
+              onChange(newItems);
+            }}
+            className="p-2 text-[#6b7280] hover:text-red-600"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={() => onChange([...items, ''])}
+        className="text-sm text-[#0F533A] hover:text-[#0a3f2c] font-medium"
+      >
+        + Add Item
+      </button>
+    </div>
+  );
+
+  const renderSection = (section: PRDSection) => {
+    const isEditing = editingFeature === section.featureName;
+    const content = isEditing ? editedContent! : section;
+
+    // Priority badge color mapping
+    const priorityColors = {
+      must: 'bg-red-100 text-red-800',
+      should: 'bg-blue-100 text-blue-800',
+      could: 'bg-yellow-100 text-yellow-800',
+      wont: 'bg-gray-100 text-gray-800'
+    };
+
+    const priorityColor = priorityColors[content.featurePriority] || 'bg-gray-100 text-gray-800';
+
+    return (
+      <div key={section.featureName} className="border-b border-[#e5e7eb] last:border-b-0 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-[#111827]">{section.featureName}</h2>
+            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${priorityColor}`}>
+              {content.featurePriority?.toUpperCase()}
+            </span>
           </div>
+          {!isEditing ? (
+            <button
+              onClick={() => handleEdit(section.featureName, section)}
+              className="text-[#0F533A] hover:text-[#0a3f2c]"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16.04 3.02L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96C22.34 6.6 22.98 5.02 20.98 3.02C18.98 1.02 17.4 1.66 16.04 3.02Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleCancel}
+                className="text-[#6b7280] hover:text-[#111827]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="bg-[#0F533A] text-white px-4 py-2 rounded-lg hover:bg-[#0a3f2c]"
+              >
+                Save Changes
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-12 min-h-screen">
-          {/* Modern Sidebar */}
-          <div className="col-span-3 border-r border-gray-100 bg-white">
-            <nav className="sticky top-0 p-6 space-y-1 max-h-screen overflow-y-auto">
-              <div className="mb-6">
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Contenido
-                </h2>
+        <div className="space-y-8">
+          {/* Feature Priority */}
+          {isEditing && (
+            <div>
+              <h3 className="text-lg font-semibold text-[#111827] mb-4">Feature Priority</h3>
+              <div>
+                <label className="block text-sm font-medium text-[#4b5563] mb-2">Priority</label>
+                {renderPrioritySelector(
+                  content.featurePriority,
+                  (value) => setEditedContent({
+                    ...content,
+                    featurePriority: value
+                  })
+                )}
               </div>
-              <a href="#overview" 
-                className="block px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 
-                  rounded-lg transition-colors duration-200"
-              >
-                Resumen del Producto
-              </a>
-              {processedContent.features.map((feature, index) => (
-                <a
-                  key={index}
-                  href={`#feature-${index}`}
-                  className="block px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 
-                    rounded-lg transition-colors duration-200"
-                >
-                  {feature.title.replace('Funcionalidad ', '📍 Funcionalidad ')}
-                </a>
-              ))}
-            </nav>
+            </div>
+          )}
+
+          {/* Overview */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">Overview</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#4b5563] mb-2">Purpose</label>
+                {isEditing ? (
+                  renderEditableField(
+                    content.overview.purpose,
+                    (value) => setEditedContent({
+                      ...content,
+                      overview: { ...content.overview, purpose: value }
+                    }),
+                    true
+                  )
+                ) : (
+                  <p className="text-[#111827]">{content.overview.purpose}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#4b5563] mb-2">Success Metrics</label>
+                {isEditing ? (
+                  renderEditableList(
+                    content.overview.successMetrics,
+                    (metrics) => setEditedContent({
+                      ...content,
+                      overview: { ...content.overview, successMetrics: metrics }
+                    })
+                  )
+                ) : (
+                  <ul className="list-disc list-inside space-y-1 text-[#111827]">
+                    {content.overview.successMetrics.map((metric, index) => (
+                      <li key={index}>{metric}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Main Content with Modern Styling */}
-          <div className="col-span-9 bg-white">
-            <div className="p-8 space-y-8">
-              {/* Overview Section */}
-              <section id="overview" className="mb-12">
-                <div className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-2xl">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                    Resumen del Producto
-                  </h2>
-                  <div className="prose max-w-none">
-                    {processedContent.overview.map((line, index) => (
-                      <div 
-                        key={index} 
-                        className="text-gray-600 leading-relaxed mb-4"
-                        dangerouslySetInnerHTML={{ __html: line }}
-                      />
+          {/* User Stories */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">User Stories</h3>
+            {isEditing ? (
+              renderEditableList(
+                content.userStories,
+                (stories) => setEditedContent({ ...content, userStories: stories })
+              )
+            ) : (
+              <ul className="list-disc list-inside space-y-2 text-[#111827]">
+                {content.userStories.map((story, index) => (
+                  <li key={index}>{story}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Acceptance Criteria */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">Acceptance Criteria</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#4b5563] mb-2">Guidelines</label>
+                {isEditing ? (
+                  renderEditableField(
+                    content.acceptanceCriteria.guidelines,
+                    (value) => setEditedContent({
+                      ...content,
+                      acceptanceCriteria: { ...content.acceptanceCriteria, guidelines: value }
+                    }),
+                    true
+                  )
+                ) : (
+                  <p className="text-[#111827]">{content.acceptanceCriteria.guidelines}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#4b5563] mb-2">Criteria</label>
+                {isEditing ? (
+                  renderEditableList(
+                    content.acceptanceCriteria.criteria,
+                    (criteria) => setEditedContent({
+                      ...content,
+                      acceptanceCriteria: { ...content.acceptanceCriteria, criteria }
+                    })
+                  )
+                ) : (
+                  <ul className="list-disc list-inside space-y-1 text-[#111827]">
+                    {content.acceptanceCriteria.criteria.map((criterion, index) => (
+                      <li key={index}>{criterion}</li>
                     ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Use Cases */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">Use Cases</h3>
+            {content.useCases.map((useCase, index) => (
+              <div key={useCase.id} className="bg-[#f8f9fa] p-4 rounded-lg mb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium text-[#111827]">{useCase.title}</h4>
+                  <span className="text-sm text-[#6b7280]">#{useCase.id}</span>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-[#4b5563]">{useCase.description}</p>
+                  <div>
+                    <h5 className="font-medium text-[#111827] mb-2">Actors</h5>
+                    <ul className="list-disc list-inside text-[#4b5563]">
+                      {useCase.actors.map((actor, i) => (
+                        <li key={i}>{actor}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h5 className="font-medium text-[#111827] mb-2">Main Scenario</h5>
+                    <ol className="list-decimal list-inside text-[#4b5563]">
+                      {useCase.mainScenario.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ol>
                   </div>
                 </div>
-              </section>
+              </div>
+            ))}
+          </div>
 
-              {/* Features with Modern Cards */}
-              {processedContent.features.map((feature, featureIndex) => (
-                <section 
-                  key={featureIndex} 
-                  id={`feature-${featureIndex}`} 
-                  className="mb-16 bg-white rounded-2xl border border-gray-100 overflow-hidden"
-                >
-                  {/* Feature Header */}
-                  <div className="bg-gradient-to-r from-gray-50 to-white px-8 py-6 border-b border-gray-100">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {feature.title.replace('Funcionalidad ', '📍 Funcionalidad ')}
-                    </h2>
-                  </div>
-
-                  <div className="p-8 space-y-8">
-                    {/* Description */}
-                    <div className="prose max-w-none">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                        Descripción
-                      </h3>
-                      {feature.description.map((line, index) => (
-                        <div 
-                          key={index} 
-                          className="text-gray-600 leading-relaxed mb-3"
-                          dangerouslySetInnerHTML={{ __html: line }}
-                        />
+          {/* Non-Functional Requirements */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">Non-Functional Requirements</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {Object.entries(content.nonFunctionalRequirements).map(([category, requirements]) => (
+                <div key={category}>
+                  <h4 className="font-medium text-[#111827] capitalize mb-2">{category}</h4>
+                  {isEditing ? (
+                    renderEditableList(
+                      requirements,
+                      (newReqs) => setEditedContent({
+                        ...content,
+                        nonFunctionalRequirements: {
+                          ...content.nonFunctionalRequirements,
+                          [category]: newReqs
+                        }
+                      })
+                    )
+                  ) : (
+                    <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
+                      {requirements.map((req, index) => (
+                        <li key={index}>{req}</li>
                       ))}
-                    </div>
-
-                    {/* User Stories */}
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                        User Stories
-                      </h3>
-                      <div className="grid gap-4">
-                        {feature.userStories.map((story, index) => (
-                          <div key={index} 
-                            className="bg-blue-50 p-6 rounded-xl border border-blue-100"
-                          >
-                            <p className="text-blue-900 font-medium">
-                              {story.replace(/^[-*]\s*/, '')}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Acceptance Criteria */}
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                        Criterios de Aceptación
-                      </h3>
-                      <ul className="space-y-3">
-                        {feature.acceptanceCriteria.map((criteria, index) => (
-                          <li key={index} 
-                            className="flex items-start gap-3 text-gray-600"
-                          >
-                            <span className="text-indigo-500 mt-1">•</span>
-                            <span>{criteria.replace(/^[-*]\s*/, '')}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Use Cases */}
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                        Casos de Uso
-                      </h3>
-                      <div className="space-y-4">
-                        {feature.useCases.map((useCase, index) => (
-                          <div key={index} 
-                            className="bg-gray-50 p-6 rounded-xl border border-gray-100"
-                          >
-                            <p className="text-gray-900">
-                              {useCase.replace(/^[-*]\s*/, '')}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Technical Considerations */}
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                        Consideraciones Técnicas
-                      </h3>
-                      <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-100">
-                        {feature.technical.map((tech, index) => (
-                          <p key={index} className="text-yellow-900 mb-3 last:mb-0">
-                            {tech.replace(/^[-*]\s*/, '')}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </section>
+                    </ul>
+                  )}
+                </div>
               ))}
             </div>
+          </div>
+
+          {/* Dependencies and Assumptions */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">Dependencies and Assumptions</h3>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-[#111827] mb-2">Dependencies</h4>
+                {isEditing ? (
+                  renderEditableList(
+                    content.dependencies.dependencies,
+                    (deps) => setEditedContent({
+                      ...content,
+                      dependencies: { ...content.dependencies, dependencies: deps }
+                    })
+                  )
+                ) : (
+                  <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
+                    {content.dependencies.dependencies.map((dep, index) => (
+                      <li key={index}>{dep}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h4 className="font-medium text-[#111827] mb-2">Assumptions</h4>
+                {isEditing ? (
+                  renderEditableList(
+                    content.dependencies.assumptions,
+                    (assumptions) => setEditedContent({
+                      ...content,
+                      dependencies: { ...content.dependencies, assumptions }
+                    })
+                  )
+                ) : (
+                  <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
+                    {content.dependencies.assumptions.map((assumption, index) => (
+                      <li key={index}>{assumption}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Open Questions and Risks */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">Open Questions and Risks</h3>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-[#111827] mb-2">Questions</h4>
+                {isEditing ? (
+                  renderEditableList(
+                    content.openQuestions.questions,
+                    (questions) => setEditedContent({
+                      ...content,
+                      openQuestions: { ...content.openQuestions, questions }
+                    })
+                  )
+                ) : (
+                  <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
+                    {content.openQuestions.questions.map((question, index) => (
+                      <li key={index}>{question}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h4 className="font-medium text-[#111827] mb-2">Risks</h4>
+                {isEditing ? (
+                  renderEditableList(
+                    content.openQuestions.risks,
+                    (risks) => setEditedContent({
+                      ...content,
+                      openQuestions: { ...content.openQuestions, risks }
+                    })
+                  )
+                ) : (
+                  <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
+                    {content.openQuestions.risks.map((risk, index) => (
+                      <li key={index}>{risk}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h4 className="font-medium text-[#111827] mb-2">Mitigations</h4>
+                {isEditing ? (
+                  renderEditableList(
+                    content.openQuestions.mitigations,
+                    (mitigations) => setEditedContent({
+                      ...content,
+                      openQuestions: { ...content.openQuestions, mitigations }
+                    })
+                  )
+                ) : (
+                  <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
+                    {content.openQuestions.mitigations.map((mitigation, index) => (
+                      <li key={index}>{mitigation}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Wireframe Guidelines */}
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827] mb-4">Wireframe Guidelines</h3>
+            {isEditing ? (
+              renderEditableList(
+                content.wireframeGuidelines,
+                (guidelines) => setEditedContent({ ...content, wireframeGuidelines: guidelines })
+              )
+            ) : (
+              <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
+                {content.wireframeGuidelines.map((guideline, index) => (
+                  <li key={index}>{guideline}</li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div>
+      {prd.content.sections.map(renderSection)}
     </div>
   );
-};
-
-export default PRDViewer; 
+} 

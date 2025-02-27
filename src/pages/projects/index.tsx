@@ -5,15 +5,16 @@ import Navbar from '../../components/Navbar';
 import { Project, projectStore } from '../../utils/projectStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { featureStore } from '../../utils/featureStore';
+import { prdStore } from '../../utils/prdStore';
+import { techDocStore } from '../../utils/techDocStore';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
   { id: 'brief', name: 'Brief', icon: null },
   { id: 'ideation', name: 'Ideation', icon: null },
-  { id: 'draftPrd', name: 'Draft PRD', icon: null },
-  { id: 'finalPrd', name: 'Final PRD', icon: null },
-  { id: 'docs', name: 'Docs', icon: null },
-  { id: 'screens', name: 'Screens', icon: null }
+  { id: 'prd', name: 'PRD', icon: null },
+  { id: 'screens', name: 'Screens', icon: null },
+  { id: 'docs', name: 'Tech Docs', icon: null }
 ];
 
 // Color scheme for the application
@@ -31,6 +32,13 @@ const COLORS = {
     secondary: '#60a5fa',
     light: '#eff6ff',
     border: 'rgba(59, 130, 246, 0.2)',
+  },
+  // Documentation colors - purple
+  docs: {
+    primary: '#8b5cf6', // Purple
+    secondary: '#a78bfa',
+    light: '#f5f3ff',
+    border: 'rgba(139, 92, 246, 0.2)',
   },
   // Status colors
   status: {
@@ -63,13 +71,13 @@ export default function Projects() {
     const featureSetsByProject: Record<string, any[]> = {};
     
     loadedProjects.forEach(project => {
-      briefsByProject[project.id] = briefStore.getBriefs(project.id);
+      const projectBriefs = briefStore.getBriefs(project.id);
+      briefsByProject[project.id] = projectBriefs;
       
       // Load feature sets for each project
-      const briefs = briefStore.getBriefs(project.id);
       let allFeatureSets: any[] = [];
       
-      briefs.forEach(brief => {
+      projectBriefs.forEach(brief => {
         const briefFeatureSet = featureStore.getFeatureSetByBriefId(brief.id);
         if (briefFeatureSet) {
           allFeatureSets.push(briefFeatureSet);
@@ -101,8 +109,31 @@ export default function Projects() {
 
   const getProjectStage = (project: Project, briefs: Brief[]) => {
     if (!briefs.length) return 0; // No brief yet
-    return 1; // Has brief, next is ideation
-    // Future stages would be implemented here based on actual data
+    
+    const featureSets = projectFeatureSets[project.id] || [];
+    if (!featureSets.length) return 1; // Has brief, next is ideation
+    
+    // Check if PRD exists for any brief
+    const hasPRD = briefs.some(brief => prdStore.getPRDs(brief.id).length > 0);
+    if (!hasPRD) return 2; // Has features, next is PRD
+    
+    // Check if screens exist for any PRD
+    const hasScreens = briefs.some(brief => {
+      const prd = prdStore.getPRDs(brief.id)[0];
+      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+    });
+    
+    if (!hasScreens) return 3; // Has PRD, next is screens
+    
+    // Check if tech docs exist for any PRD
+    const hasTechDocs = briefs.some(brief => {
+      const prd = prdStore.getPRDs(brief.id)[0];
+      return prd && techDocStore.getTechDocByPrdId(prd.id);
+    });
+    
+    if (!hasTechDocs) return 4; // Has screens, next is tech docs
+    
+    return 5; // Has tech docs, all stages completed
   };
 
   const getStageStatus = (project: Project, briefs: Brief[], stageIndex: number) => {
@@ -111,6 +142,14 @@ export default function Projects() {
     if (stageIndex < currentStage) return 'completed';
     if (stageIndex === currentStage) return 'active';
     return 'upcoming';
+  };
+
+  // Helper function to get stage color based on stage ID and status
+  const getStageColor = (stageId: string, status: string) => {
+    // Default color scheme for all stages
+    if (status === 'completed') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
+    if (status === 'active') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
+    return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
   };
 
   return (
@@ -124,7 +163,7 @@ export default function Projects() {
           </div>
           <Link
             href="/project/new"
-            className="inline-flex items-center justify-center text-white px-5 py-2.5 rounded-lg font-medium hover:bg-opacity-90 transition-colors shadow-sm"
+            className="inline-flex items-center justify-center text-white px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-colors shadow-sm"
             style={{ backgroundColor: COLORS.project.primary }}
           >
             <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -148,7 +187,7 @@ export default function Projects() {
             <p className="text-[#4b5563] mb-8 max-w-md mx-auto">Create your first project to get started with product documentation</p>
             <Link
               href="/project/new"
-              className="inline-flex items-center justify-center text-white px-5 py-2.5 rounded-lg font-medium hover:bg-opacity-90 transition-colors shadow-sm"
+              className="inline-flex items-center justify-center text-white px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-colors shadow-sm"
               style={{ backgroundColor: COLORS.project.primary }}
             >
               Create project
@@ -159,8 +198,8 @@ export default function Projects() {
             {projects.map((project) => {
               const briefs = projectBriefs[project.id] || [];
               const currentStage = getProjectStage(project, briefs);
-              const nextStage = currentStage < PROJECT_STAGES.length - 1 ? currentStage + 1 : -1;
-              const progress = Math.round((currentStage / (PROJECT_STAGES.length - 1)) * 100);
+              const nextStage = currentStage < PROJECT_STAGES.length ? currentStage : -1;
+              const progress = Math.min(100, Math.round((currentStage / PROJECT_STAGES.length) * 100));
               
               return (
                 <div
@@ -210,9 +249,57 @@ export default function Projects() {
                             </svg>
                           </Link>
                         )}
+                        {briefs.length > 0 && briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) && (
+                          <Link
+                            href={`/prd/${briefs.find(brief => prdStore.getPRDs(brief.id).length > 0)?.id}`}
+                            className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            style={{ 
+                              borderColor: COLORS.project.border,
+                              color: COLORS.project.primary,
+                              backgroundColor: COLORS.project.light
+                            }}
+                          >
+                            View PRD
+                            <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </Link>
+                        )}
+                        {/* Add Screens Link */}
+                        {briefs.length > 0 && briefs.some(brief => {
+                          const prd = prdStore.getPRDs(brief.id)[0];
+                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                        }) && (
+                          <Link
+                            href={`/screens/${(() => {
+                              const brief = briefs.find(brief => {
+                                const prd = prdStore.getPRDs(brief.id)[0];
+                                return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                              });
+                              if (brief) {
+                                const prds = prdStore.getPRDs(brief.id);
+                                if (prds.length > 0) {
+                                  return prds[0].id;
+                                }
+                              }
+                              return '';
+                            })()}`}
+                            className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            style={{ 
+                              borderColor: COLORS.docs.border,
+                              color: COLORS.docs.primary,
+                              backgroundColor: COLORS.docs.light
+                            }}
+                          >
+                            View Screens
+                            <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </Link>
+                        )}
                         <Link
                           href={`/project/${project.id}`}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-90"
                           style={{ 
                             backgroundColor: COLORS.project.primary,
                             color: 'white'
@@ -247,49 +334,27 @@ export default function Projects() {
                       </div>
                       
                       {/* Project Timeline */}
-                      <div className="grid grid-cols-6 gap-2">
+                      <div className="grid grid-cols-5 gap-2 relative">
                         {PROJECT_STAGES.map((stage, index) => {
                           const status = getStageStatus(project, briefs, index);
-                          
-                          // Set colors based on status
-                          const bgColor = status === 'completed' ? COLORS.project.light : 
-                                         status === 'active' ? COLORS.project.light : 
-                                         COLORS.neutral.lighter;
-                          
-                          const textColor = status === 'completed' ? COLORS.project.primary : 
-                                          status === 'active' ? COLORS.project.primary : 
-                                          COLORS.neutral.medium;
-                          
-                          const borderColor = status === 'completed' ? COLORS.project.primary : 
-                                            status === 'active' ? COLORS.project.primary : 
-                                            'transparent';
+                          const colors = getStageColor(stage.id, status);
                           
                           return (
                             <div 
                               key={stage.id} 
-                              className="flex flex-col items-center"
+                              className="flex flex-col items-center relative"
                             >
                               <div 
-                                className="w-full py-2 px-1 rounded-md text-center text-xs font-medium mb-1 flex items-center justify-center"
+                                className="w-full py-2 px-1 rounded-md text-center text-xs font-medium flex items-center justify-center transition-all duration-200"
                                 style={{ 
-                                  backgroundColor: bgColor,
-                                  color: textColor,
-                                  borderBottom: `2px solid ${borderColor}`
+                                  backgroundColor: colors.bg,
+                                  color: colors.text,
+                                  borderBottom: `2px solid ${colors.border}`,
+                                  boxShadow: status === 'active' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
                                 }}
                               >
                                 {stage.name}
                               </div>
-                              <div 
-                                className="w-3 h-3 rounded-full"
-                                style={{ 
-                                  backgroundColor: status === 'completed' ? COLORS.project.primary : 
-                                                  status === 'active' ? 'white' : 
-                                                  COLORS.neutral.lighter,
-                                  border: `2px solid ${status === 'completed' || status === 'active' ? 
-                                                      COLORS.project.primary : 
-                                                      COLORS.neutral.light}`
-                                }}
-                              ></div>
                             </div>
                           );
                         })}
@@ -298,41 +363,83 @@ export default function Projects() {
                     
                     {/* Next Action Section */}
                     {nextStage >= 0 && (
-                      <div className="mt-6 pt-6 border-t border-[#e5e7eb] flex justify-between items-center">
-                        <div>
-                          <h4 className="text-sm font-medium text-[#4b5563]">Next Step</h4>
-                          <p className="text-xs text-[#6b7280] mt-1">
-                            {!briefs.length ? 'Create a Brief to get started' : 
-                             (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) ? 
-                             'Draft PRD (Coming Soon)' : 
-                             'Generate features for your product'}
-                          </p>
+                      <div className="mt-6 pt-6 border-t border-[#e5e7eb]">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-[#4b5563]">Next Step</h4>
+                            <p className="text-xs text-[#6b7280] mt-1">
+                              {!briefs.length ? 'Create a Brief to get started' : 
+                               !projectFeatureSets[project.id]?.length ? 'Generate features for your product' :
+                               !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ? 'Generate PRD based on features' :
+                               !briefs.some(brief => {
+                                 const prd = prdStore.getPRDs(brief.id)[0];
+                                 return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                               }) ? 'Generate app screens based on PRD' :
+                               !briefs.some(brief => {
+                                 const prd = prdStore.getPRDs(brief.id)[0];
+                                 return prd && techDocStore.getTechDocByPrdId(prd.id);
+                               }) ? 'Generate technical documentation' :
+                               'All steps completed'}
+                            </p>
+                          </div>
+                          <Link
+                            href={!briefs.length ? 
+                                  `/brief/new?projectId=${project.id}` : 
+                                  !projectFeatureSets[project.id]?.length ? 
+                                  `/brief/${briefs[0].id}/ideate` :
+                                  !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ?
+                                  `/prd/${briefs[0].id}` :
+                                  !briefs.some(brief => {
+                                    const prd = prdStore.getPRDs(brief.id)[0];
+                                    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                                  }) ?
+                                  `/screens/${(() => {
+                                    const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
+                                    return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                                  })()}` :
+                                  !briefs.some(brief => {
+                                    const prd = prdStore.getPRDs(brief.id)[0];
+                                    return prd && techDocStore.getTechDocByPrdId(prd.id);
+                                  }) ?
+                                  `/docs/${(() => {
+                                    const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
+                                    return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                                  })()}` :
+                                  `/project/${project.id}`}
+                            className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm text-white hover:opacity-90"
+                            style={{ 
+                              backgroundColor: !briefs.length ? '#0F533A' : 
+                                              !projectFeatureSets[project.id]?.length ? '#3b82f6' : 
+                                              !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ? '#0F533A' :
+                                              !briefs.some(brief => {
+                                                const prd = prdStore.getPRDs(brief.id)[0];
+                                                return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                                              }) ? '#8b5cf6' :
+                                              !briefs.some(brief => {
+                                                const prd = prdStore.getPRDs(brief.id)[0];
+                                                return prd && techDocStore.getTechDocByPrdId(prd.id);
+                                              }) ? '#0F533A' :
+                                              '#0F533A',
+                              color: 'white'
+                            }}
+                          >
+                            {!briefs.length ? 'Create Brief' : 
+                             !projectFeatureSets[project.id]?.length ? 'Ideate Features' :
+                             !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ? 'Generate PRD' :
+                             !briefs.some(brief => {
+                               const prd = prdStore.getPRDs(brief.id)[0];
+                               return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                             }) ? 'Generate Screens' :
+                             !briefs.some(brief => {
+                               const prd = prdStore.getPRDs(brief.id)[0];
+                               return prd && techDocStore.getTechDocByPrdId(prd.id);
+                             }) ? 'Generate Tech Docs' :
+                             'View Project Details'}
+                            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </Link>
                         </div>
-                        <Link
-                          href={!briefs.length ? 
-                                `/brief/new?projectId=${project.id}` : 
-                                (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) ? 
-                                `/project/${project.id}` : 
-                                briefs.length > 0 ? `/brief/${briefs[0].id}/ideate` : `/project/${project.id}`}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-medium transition-colors"
-                          style={{ 
-                            backgroundColor: COLORS.project.light,
-                            color: COLORS.project.primary
-                          }}
-                          onClick={(e) => {
-                            if (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          {!briefs.length ? 'Create Brief' : 
-                           (projectFeatureSets[project.id] && projectFeatureSets[project.id].length > 0) ? 
-                           'Draft PRD (Coming Soon)' : 
-                           'Ideate Features'}
-                          <svg className="w-3 h-3 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </Link>
                       </div>
                     )}
                   </div>

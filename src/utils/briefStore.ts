@@ -9,6 +9,7 @@ export interface Brief {
   briefData: GeneratedBrief;
   createdAt: string;
   formData: BriefFormData;
+  platforms?: string[];
 }
 
 const STORAGE_KEY = 'pan-chito-briefs';
@@ -89,5 +90,25 @@ export const briefStore = {
     briefs.push(newBrief);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(briefs));
     return newBrief;
+  },
+
+  updateBrief: (id: string, updatedBriefData: GeneratedBrief): Brief | null => {
+    const briefs = briefStore.getBriefs();
+    const briefIndex = briefs.findIndex(b => b.id === id);
+    
+    if (briefIndex === -1) return null;
+    
+    // Ensure all fields are strings
+    const processedBriefData = ensureStringFields(updatedBriefData);
+    
+    // Update the brief
+    briefs[briefIndex] = {
+      ...briefs[briefIndex],
+      briefData: processedBriefData,
+      content: JSON.stringify(processedBriefData)
+    };
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(briefs));
+    return briefs[briefIndex];
   }
 }; 

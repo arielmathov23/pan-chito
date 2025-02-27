@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import PRDForm from '../components/PRDForm';
 import PRDViewer from '../components/PRDViewer';
 import LoadingPRD from '../components/LoadingPRD';
 import { useState } from 'react';
