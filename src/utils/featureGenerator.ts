@@ -1,6 +1,7 @@
 import { Brief } from './briefStore';
 import { Feature } from './featureStore';
 import OpenAI from 'openai';
+import { v4 as uuidv4 } from 'uuid';
 
 // Check if API key is available
 const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
@@ -71,127 +72,54 @@ function generateMockFeatures(brief: Brief): string {
   });
 }
 
-export async function generateFeatures(brief: Brief): Promise<string> {
-  const briefData = brief.briefData;
-  
-  // Create a comprehensive brief summary for the AI
-  const briefSummary = `
-Product Name: ${brief.productName}
+export async function generateFeatures(brief: Brief): Promise<Feature[]> {
+  const prompt = `Based on the following product brief, generate a list of features using the MoSCoW prioritization framework (Must have, Should have, Could have, Won't have). For each feature, also assess its difficulty level (easy, medium, hard) based on implementation complexity.
 
-Executive Summary: ${briefData.executiveSummary}
+Product Brief:
+${brief.productName}
+${brief.productDescription}
 
-Problem Statement: ${briefData.problemStatement}
+Target Users: ${brief.targetUsers}
+Key Problems: ${brief.keyProblems}
+Success Metrics: ${brief.successMetrics}
 
-Target Users: ${briefData.targetUsers}
+Format each feature as a JSON object with:
+- name: short feature name
+- description: detailed description
+- priority: one of ["must", "should", "could", "wont"]
+- difficulty: one of ["easy", "medium", "hard"]
 
-Existing Solutions: ${briefData.existingSolutions}
-
-Proposed Solution: ${briefData.proposedSolution}
-
-Product Objectives: ${briefData.productObjectives}
-
-Key Features: ${briefData.keyFeatures}
-
-${briefData.marketAnalysis ? `Market Analysis: ${briefData.marketAnalysis}` : ''}
-
-${briefData.technicalRisks ? `Technical Risks: ${briefData.technicalRisks}` : ''}
-
-${briefData.businessRisks ? `Business Risks: ${briefData.businessRisks}` : ''}
-
-${briefData.implementationStrategy ? `Implementation Strategy: ${briefData.implementationStrategy}` : ''}
-
-${briefData.successMetrics ? `Success Metrics: ${briefData.successMetrics}` : ''}
-`;
-
-  const prompt = `Based on this brief:
-
-${briefSummary}
-
-Generate a list of key features and technical requirements for building this MVP.
-
-First ideate on which features will add more value, and then define the list of features for the MVP using the MoSCoW framework to categorize based on their importance for the MVP, ensuring a fast and focused release.
-
-Then refine and define MVP features to create a solid and valuable product that can be released in no more than 3 months with a small team of developers and designers.
-
-Please take into account that user stories are not necessary for this instance.
-
-Finally, please make a list of key questions to respond to before starting the implementation.
-
-Format your response as a JSON object with the following structure:
-{
-  "features": {
-    "must": [
-      {
-        "name": "Feature name",
-        "description": "Detailed description of the feature",
-        "priority": "must"
-      }
-    ],
-    "should": [
-      {
-        "name": "Feature name",
-        "description": "Detailed description of the feature",
-        "priority": "should"
-      }
-    ],
-    "could": [
-      {
-        "name": "Feature name",
-        "description": "Detailed description of the feature",
-        "priority": "could"
-      }
-    ],
-    "wont": [
-      {
-        "name": "Feature name",
-        "description": "Detailed description of the feature",
-        "priority": "wont"
-      }
-    ]
-  },
-  "keyQuestions": [
-    "Question 1?",
-    "Question 2?",
-    "Question 3?"
-  ]
-}`;
+Return the features as a JSON array.`;
 
   try {
-    // Use mock implementation if API key is missing
-    if (USE_MOCK) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      return generateMockFeatures(brief);
-    }
-
-    if (!apiKey) {
-      throw new Error('OpenAI API key is missing. Please add OPENAI_API_KEY to your .env.local file.');
-    }
-
     const completion = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: "You are a professional product manager who specializes in feature prioritization and MVP planning."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      model: "gpt-4o-mini",
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
-      max_tokens: 4000,
     });
 
-    return completion.choices[0]?.message?.content || '';
+    const response = completion.choices[0].message.content;
+    if (!response) {
+      throw new Error('No content received from OpenAI');
+    }
+
+    const features = JSON.parse(response);
+    if (!Array.isArray(features)) {
+      throw new Error('Invalid response format: expected an array of features');
+    }
+
+    return features.map((feature: any) => ({
+      id: uuidv4(),
+      briefId: brief.id,
+      name: feature.name || '',
+      description: feature.description || '',
+      priority: feature.priority || 'could',
+      difficulty: feature.difficulty || 'medium',
+      createdAt: new Date().toISOString()
+    }));
   } catch (error) {
     console.error('Error generating features:', error);
-    if (error instanceof Error) {
-      throw error;
-    } else {
-      throw new Error('Failed to generate features. Please check your OpenAI API key or try again later.');
-    }
+    throw new Error('Failed to generate features. Please try again.');
   }
 }
 
@@ -220,6 +148,7 @@ export function parseGeneratedFeatures(jsonString: string, briefId: string): Gen
         name: feature.name,
         description: feature.description,
         priority,
+        difficulty: feature.difficulty || 'medium', // Add default difficulty if not provided
         createdAt: new Date().toISOString()
       }));
     };

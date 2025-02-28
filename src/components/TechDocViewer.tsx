@@ -3,7 +3,7 @@ import { TechDoc, techDocStore } from '../utils/techDocStore';
 
 interface TechDocViewerProps {
   techDoc: TechDoc;
-  onUpdate?: (updatedTechDoc: TechDoc) => void;
+  onUpdate: (updatedTechDoc: TechDoc) => void;
 }
 
 interface ParsedTechStack {
@@ -43,25 +43,23 @@ interface ParsedTechDoc {
   backendStructure?: ParsedBackendStructure;
 }
 
+interface EditableContent {
+  [key: string]: any;
+}
+
 export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps) {
   const [activeTab, setActiveTab] = useState<'tech-stack' | 'frontend' | 'backend'>('tech-stack');
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState({
-    techStack: techDoc.techStack || '',
-    frontend: techDoc.frontend || '',
-    backend: techDoc.backend || ''
-  });
+  const [editedContent, setEditedContent] = useState<string>('');
+  const [content, setContent] = useState<EditableContent>(techDoc.content);
   const [parsedContent, setParsedContent] = useState<ParsedTechDoc>({});
+  const [editingSection, setEditingSection] = useState<string | null>(null);
 
   useEffect(() => {
     parseDocContent();
     
     // Update edited content when techDoc changes
-    setEditedContent({
-      techStack: techDoc.techStack || '',
-      frontend: techDoc.frontend || '',
-      backend: techDoc.backend || ''
-    });
+    setEditedContent(JSON.stringify(techDoc.content, null, 2));
   }, [techDoc]);
 
   const parseDocContent = () => {
@@ -160,30 +158,56 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     setParsedContent(parsed);
   };
 
-  const handleSave = () => {
-    const updatedTechDoc = {
-      ...techDoc,
-      techStack: editedContent.techStack,
-      frontend: editedContent.frontend,
-      backend: editedContent.backend
-    };
-    
-    const savedTechDoc = techDocStore.updateTechDoc(updatedTechDoc);
-    
-    if (onUpdate) {
-      onUpdate(savedTechDoc);
+  const handleEdit = (section: string, sectionContent: any) => {
+    setEditingSection(section);
+    // Ensure we're setting the actual content based on the section
+    let content = '';
+    if (section === 'tech-stack') {
+      content = techDoc.techStack || '';
+    } else if (section === 'frontend') {
+      content = techDoc.frontend || '';
+    } else if (section === 'backend') {
+      content = techDoc.backend || '';
+    } else {
+      content = JSON.stringify(sectionContent, null, 2);
     }
+    setEditedContent(content);
+  };
+
+  const handleSave = () => {
+    if (!editingSection || !editedContent) return;
+
+    const updatedTechDoc = { ...techDoc };
     
-    setIsEditing(false);
-    parseDocContent();
+    // Update the appropriate section
+    if (editingSection === 'tech-stack') {
+      updatedTechDoc.techStack = editedContent;
+    } else if (editingSection === 'frontend') {
+      updatedTechDoc.frontend = editedContent;
+    } else if (editingSection === 'backend') {
+      updatedTechDoc.backend = editedContent;
+    } else {
+      try {
+        // For other sections, parse the JSON content
+        const parsedContent = JSON.parse(editedContent);
+        updatedTechDoc.content = {
+          ...updatedTechDoc.content,
+          [editingSection]: parsedContent
+        };
+      } catch (error) {
+        console.error('Error parsing content:', error);
+        return;
+      }
+    }
+
+    onUpdate(updatedTechDoc);
+    setEditingSection(null);
+    setEditedContent('');
+    parseDocContent(); // Refresh the displayed content
   };
 
   const handleCancel = () => {
-    setEditedContent({
-      techStack: techDoc.techStack || '',
-      frontend: techDoc.frontend || '',
-      backend: techDoc.backend || ''
-    });
+    setEditedContent(JSON.stringify(techDoc.content, null, 2));
     setIsEditing(false);
   };
 
@@ -226,7 +250,7 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     setIsEditing(true);
     
     // If the current tab's content is empty, provide a template
-    const newContent = { ...editedContent };
+    const newContent = { ...content };
     
     switch (activeTab) {
       case 'tech-stack':
@@ -246,8 +270,85 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         break;
     }
     
-    setEditedContent(newContent);
+    setEditedContent(JSON.stringify(newContent, null, 2));
   };
+
+  const renderEditableSection = (title: string, section: string, content: any) => (
+    <div className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden">
+      <div className="bg-gradient-to-r from-[#0F533A]/5 to-transparent px-4 py-3 border-b border-[#e5e7eb] flex items-center justify-between">
+        <h3 className="font-medium text-[#111827]">{title}</h3>
+        <button
+          onClick={() => handleEdit(section, content)}
+          className="text-[#0F533A] hover:text-[#0a3f2c] transition-colors"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <path d="M11 4H4C2.89543 4 2 4.89543 2 6V20C2 21.1046 2.89543 22 4 22H18C19.1046 22 20 21.1046 20 20V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21.5 2.5L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 2H22V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div className="p-4">
+        {editingSection === section ? (
+          <div className="space-y-4">
+            <textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="w-full h-64 font-mono text-sm p-3 rounded-lg border border-[#e5e7eb] focus:border-[#0F533A] focus:ring-1 focus:ring-[#0F533A] outline-none transition-colors"
+              placeholder="Enter JSON content..."
+            />
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setEditingSection(null)}
+                className="px-3 py-1.5 text-sm text-[#6b7280] hover:text-[#111827] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-3 py-1.5 text-sm bg-[#0F533A] text-white rounded hover:bg-[#0a3f2c] transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {section === 'platform' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-[#111827]">Target Platforms</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {content.targets.map((target: string) => (
+                      <span key={target} className="px-2 py-1 text-xs rounded-full bg-[#0F533A]/10 text-[#0F533A]">
+                        {target}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-[#111827]">Requirements</h4>
+                  <ul className="text-sm text-[#4b5563] space-y-1">
+                    {content.requirements.map((req: string) => (
+                      <li key={req} className="flex items-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                        {req}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+            {section !== 'platform' && (
+              <pre className="text-sm text-[#4b5563] whitespace-pre-wrap">
+                {JSON.stringify(content, null, 2)}
+              </pre>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const renderSectionTitle = (title: string) => (
     <h3 className="text-lg font-semibold text-[#111827] mt-6 mb-3">{title}</h3>
@@ -408,13 +509,13 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
       
       switch (activeTab) {
         case 'tech-stack':
-          content = editedContent.techStack;
+          content = editedContent;
           break;
         case 'frontend':
-          content = editedContent.frontend;
+          content = editedContent;
           break;
         case 'backend':
-          content = editedContent.backend;
+          content = editedContent;
           break;
       }
       
@@ -423,21 +524,7 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
           <textarea
             className="w-full h-[500px] p-4 border border-[#e5e7eb] rounded-lg font-mono text-sm"
             value={content}
-            onChange={(e) => {
-              const newContent = { ...editedContent };
-              switch (activeTab) {
-                case 'tech-stack':
-                  newContent.techStack = e.target.value;
-                  break;
-                case 'frontend':
-                  newContent.frontend = e.target.value;
-                  break;
-                case 'backend':
-                  newContent.backend = e.target.value;
-                  break;
-              }
-              setEditedContent(newContent);
-            }}
+            onChange={(e) => setEditedContent(e.target.value)}
           />
           
           <div className="flex justify-end mt-4 space-x-3">

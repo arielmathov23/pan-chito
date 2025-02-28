@@ -8,6 +8,8 @@ import { Brief, briefStore } from '../../utils/briefStore';
 import { featureStore } from '../../utils/featureStore';
 import { GeneratedBrief } from '../../utils/briefGenerator';
 import isMockData from '../../utils/mockDetector';
+import { generatePRD, parsePRD } from '../../utils/prdGenerator';
+import { prdStore } from '../../utils/prdStore';
 
 // Helper function to safely render potentially stringified JSON
 function RenderField({ 
@@ -67,6 +69,8 @@ export default function BriefDetail() {
   const [hasFeatures, setHasFeatures] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [usingMockData, setUsingMockData] = useState(false);
+  const [isGeneratingPRD, setIsGeneratingPRD] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -117,6 +121,59 @@ export default function BriefDetail() {
       console.error('Error saving brief:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleGeneratePRD = async () => {
+    if (!brief) return;
+    setIsGeneratingPRD(true);
+    setError(null);
+    
+    try {
+      // Get the feature set for this brief
+      const featureSet = featureStore.getFeatureSetByBriefId(brief.id);
+      if (!featureSet) {
+        throw new Error('Please generate features before creating a PRD');
+      }
+
+      // Generate the PRD
+      const prdContent = await generatePRD(brief, featureSet);
+      const parsedPRD = parsePRD(prdContent);
+      
+      // Save the PRD
+      const savedPRD = prdStore.savePRD(brief.id, featureSet.id, parsedPRD);
+      
+      // Show success message or handle the saved PRD
+      router.push(`/prd/${savedPRD.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate PRD. Please try again.');
+    } finally {
+      setIsGeneratingPRD(false);
+    }
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setEditedBriefData(brief?.briefData || null);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedBriefData(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!brief || !editedBriefData) return;
+    
+    try {
+      const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData);
+      if (updatedBrief) {
+        setBrief(updatedBrief);
+        setIsEditing(false);
+        setEditedBriefData(updatedBrief.briefData);
+      }
+    } catch (error) {
+      setError('Failed to save changes. Please try again.');
     }
   };
 
@@ -172,20 +229,57 @@ export default function BriefDetail() {
       <Navbar />
       <div className="container mx-auto px-6 py-10 max-w-5xl">
         <div className="mb-10">
-          <div className="flex items-center space-x-2 text-sm text-[#6b7280] mb-4">
-            <Link href="/projects" className="hover:text-[#111827] transition-colors flex items-center">
-              <svg className="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Projects
-            </Link>
-            <span>/</span>
-            <Link href={`/project/${project.id}`} className="hover:text-[#111827] transition-colors">
-              {project.name}
-            </Link>
-            <span>/</span>
-            <span className="text-[#111827]">Brief</span>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-2 text-sm text-[#6b7280]">
+              <Link href="/projects" className="hover:text-[#111827] transition-colors">Projects</Link>
+              <span>/</span>
+              <Link href={`/project/${project?.id}`} className="hover:text-[#111827] transition-colors">
+                {project?.name}
+              </Link>
+              <span>/</span>
+              <span className="text-[#111827]">Brief</span>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#0F533A] rounded-lg hover:bg-[#0a3f2c] transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleEditClick}
+                    className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors"
+                  >
+                    Edit Brief
+                  </button>
+                  <Link
+                    href={`/brief/${brief?.id}/ideate`}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#0F533A] rounded-lg hover:bg-[#0a3f2c] transition-colors"
+                  >
+                    Continue
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
+
+          {error && (
+            <div className="mb-4 bg-red-50 text-red-700 p-4 rounded-lg">
+              {error}
+            </div>
+          )}
 
           {usingMockData && <MockNotification stage="brief" />}
 
@@ -193,58 +287,6 @@ export default function BriefDetail() {
             <div>
               <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Product Brief</h1>
               <p className="text-[#6b7280] mt-2">{brief.productName}</p>
-            </div>
-            <div className="flex items-center space-x-3 self-start">
-              {!isEditing ? (
-                <>
-                  <Link
-                    href={`/brief/${brief.id}/ideate`}
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Create Features
-                  </Link>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#6b7280] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M14.91 4.1499C15.58 6.5399 17.45 8.4099 19.85 9.0899" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Edit Brief
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={handleSave}
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 11V17L11 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M9 17L7 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M22 10V15C22 20 20 22 15 22H9C4 22 2 20 2 15V9C2 4 4 2 9 2H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M22 10H18C15 10 14 9 14 6V2L22 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditedBriefData(null);
-                    }}
-                    className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#6b7280] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>

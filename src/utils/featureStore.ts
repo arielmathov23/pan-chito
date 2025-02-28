@@ -4,6 +4,7 @@ export interface Feature {
   name: string;
   description: string;
   priority: 'must' | 'should' | 'could' | 'wont';
+  difficulty: 'easy' | 'medium' | 'hard';
   createdAt: string;
 }
 

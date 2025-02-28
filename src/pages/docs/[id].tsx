@@ -10,6 +10,7 @@ import { TechDoc, techDocStore } from '../../utils/techDocStore';
 import { generateTechDocumentation, parseTechDoc } from '../../utils/techDocGenerator';
 import MockNotification from '../../components/MockNotification';
 import { isMockData } from '../../utils/mockDetector';
+import Modal from '../../components/Modal';
 
 export default function TechDocPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function TechDocPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -92,13 +94,16 @@ export default function TechDocPage() {
 
   const handleDeleteTechDoc = () => {
     if (!techDoc || !project) return;
-    
-    if (window.confirm(`Are you sure you want to delete this technical documentation?\n\nThis action cannot be undone.`)) {
-      const deleted = techDocStore.deleteTechDoc(techDoc.id);
-      if (deleted) {
-        setTechDoc(null);
-      }
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (!techDoc) return;
+    const deleted = techDocStore.deleteTechDoc(techDoc.id);
+    if (deleted) {
+      setTechDoc(null);
     }
+    setShowDeleteModal(false);
   };
 
   if (isLoading) {
@@ -173,6 +178,10 @@ export default function TechDocPage() {
               PRD
             </Link>
             <span>/</span>
+            <Link href={`/screens/${prd.id}`} className="hover:text-[#111827] transition-colors">
+              App Screens
+            </Link>
+            <span>/</span>
             <span className="text-[#111827]">Technical Documentation</span>
           </div>
           
@@ -204,28 +213,99 @@ export default function TechDocPage() {
         <div className="grid gap-8 grid-cols-1">
           {!techDoc ? (
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
-                  <h2 className="text-xl font-semibold text-[#111827]">Generate Technical Documentation</h2>
-                </div>
-              </div>
-              
-              <div className="space-y-6">
-                <p className="text-[#4b5563]">
-                  Generate comprehensive technical documentation based on your PRD. This will help your development team understand the technical requirements and implementation details.
-                </p>
-                
-                <div className="bg-blue-50 text-blue-700 p-4 rounded-lg">
-                  <p className="font-medium">Note</p>
-                  <p>The technical documentation will include:</p>
-                  <ul className="list-disc ml-5 mt-2">
-                    <li>Tech Stack Documentation: Recommended frameworks and technologies</li>
-                    <li>Frontend Guidelines: UI consistency guidelines and color palette</li>
-                    <li>Backend Structure: API routes, database schemas, and core logic</li>
+              <div className="space-y-8">
+                <div className="bg-gradient-to-br from-[#f8f9fa] to-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
+                  <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    What is Technical Documentation?
+                  </h3>
+                  <p className="text-[#4b5563] mb-4 leading-relaxed">
+                    Technical documentation provides comprehensive guidance for your development team, ensuring consistent implementation and maintainable code.
+                  </p>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[#4b5563]">
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Standardize development practices
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Ensure consistent implementation
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Guide architectural decisions
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Maintain code quality standards
+                    </li>
                   </ul>
                 </div>
-                
+
+                <div className="bg-gradient-to-br from-[#0F533A]/5 to-transparent rounded-xl p-6">
+                  <h4 className="text-sm font-medium text-[#0F533A] mb-3">Documentation Sections</h4>
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-lg p-4 border border-[#e5e7eb]">
+                      <h5 className="text-sm font-medium text-[#111827] mb-2">Platform & Architecture</h5>
+                      <ul className="space-y-2 text-sm text-[#4b5563]">
+                        <li className="flex items-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                          Platform specifications (Web, Mobile, Desktop)
+                        </li>
+                        <li className="flex items-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                          System architecture and components
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-4 border border-[#e5e7eb]">
+                      <h5 className="text-sm font-medium text-[#111827] mb-2">Frontend Development</h5>
+                      <ul className="space-y-2 text-sm text-[#4b5563]">
+                        <li className="flex items-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                          UI framework and component library
+                        </li>
+                        <li className="flex items-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                          Design system and style guidelines
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-4 border border-[#e5e7eb]">
+                      <h5 className="text-sm font-medium text-[#111827] mb-2">Backend Infrastructure</h5>
+                      <ul className="space-y-2 text-sm text-[#4b5563]">
+                        <li className="flex items-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                          API architecture and endpoints
+                        </li>
+                        <li className="flex items-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                          Database schema and relationships
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
                 {error && (
                   <div className="bg-red-50 text-red-700 p-4 rounded-lg">
                     <p className="font-medium">Error</p>
@@ -237,7 +317,7 @@ export default function TechDocPage() {
                   <button
                     onClick={handleGenerateTechDoc}
                     disabled={isGenerating}
-                    className={`inline-flex items-center justify-center bg-[#8b5cf6] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#7c3aed] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
                     {isGenerating ? (
                       <>
@@ -248,14 +328,7 @@ export default function TechDocPage() {
                         Generating...
                       </>
                     ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M8.5 12H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12.5 15L15.5 12L12.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Generate Documentation
-                      </>
+                      'Generate Documentation'
                     )}
                   </button>
                 </div>
@@ -268,6 +341,31 @@ export default function TechDocPage() {
           )}
         </div>
       </div>
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Technical Documentation"
+      >
+        <div className="p-6">
+          <p className="text-[#4b5563] mb-6">
+            Are you sure you want to delete this technical documentation? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 text-sm text-[#6b7280] hover:text-[#111827] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Delete Documentation
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

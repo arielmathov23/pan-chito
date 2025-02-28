@@ -78,7 +78,15 @@ function generateMockTechDoc(brief: Brief, prd: PRD): Omit<TechDoc, 'id' | 'prdI
   return {
     techStack: generateTechStackContent(brief, prd),
     frontend: generateFrontendContent(brief, prd),
-    backend: generateBackendContent(brief, prd)
+    backend: generateBackendContent(brief, prd),
+    content: {
+      platform: { targets: [], requirements: [] },
+      frontend: {},
+      backend: {},
+      api: {},
+      database: {},
+      deployment: {}
+    }
   };
 }
 
@@ -94,7 +102,7 @@ export async function generateTechDocumentation(brief: Brief, prd: PRD): Promise
     throw new Error('OpenAI API key is missing. Please add OPENAI_API_KEY to your .env.local file.');
   }
 
-  const prompt = `You are a senior technical architect with expertise in modern web development. Your task is to create comprehensive technical documentation for a new product based on the provided brief and PRD. The documentation should include three main sections: Tech Stack, Frontend Guidelines, and Backend Structure.
+  const prompt = `You are a senior technical architect and a UXUI strategist with expertise in modern tech development. Your task is to create comprehensive technical documentation for a new product based on the provided brief and PRD. The documentation should include three main sections: Tech Stack, Frontend Guidelines, and Backend Structure.
 
 Product Brief:
 ${JSON.stringify(brief.briefData, null, 2)}
@@ -108,7 +116,7 @@ Please provide your response as a JSON object with the following structure:
 
 {
   "techStack": {
-    "overview": "A brief overview of the recommended technology stack",
+    "overview": "A brief overview of the recommended technology stack including the platform.",
     "frontend": "Frontend technologies with justification",
     "backend": "Backend technologies with justification",
     "database": "Database recommendations with justification",
@@ -188,7 +196,15 @@ Ensure all recommendations are justified based on the product requirements and t
       return {
         techStack: jsonString,
         frontend: jsonString,
-        backend: jsonString
+        backend: jsonString,
+        content: {
+          platform: { targets: [], requirements: [] },
+          frontend: {},
+          backend: {},
+          api: {},
+          database: {},
+          deployment: {}
+        }
       };
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError);
@@ -196,7 +212,15 @@ Ensure all recommendations are justified based on the product requirements and t
       return {
         techStack: responseContent,
         frontend: responseContent,
-        backend: responseContent
+        backend: responseContent,
+        content: {
+          platform: { targets: [], requirements: [] },
+          frontend: {},
+          backend: {},
+          api: {},
+          database: {},
+          deployment: {}
+        }
       };
     }
   } catch (error) {

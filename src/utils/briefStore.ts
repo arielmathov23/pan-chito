@@ -5,9 +5,13 @@ export interface Brief {
   id: string;
   projectId: string;
   productName: string;
+  productDescription: string;
+  targetUsers: string;
+  keyProblems: string;
+  successMetrics: string;
+  createdAt: string;
   content: string;
   briefData: GeneratedBrief;
-  createdAt: string;
   formData: BriefFormData;
   platforms?: string[];
 }
@@ -81,9 +85,13 @@ export const briefStore = {
       id: crypto.randomUUID(),
       projectId,
       productName: formData.productName,
+      productDescription: formData.productDescription,
+      targetUsers: formData.targetUsers,
+      keyProblems: formData.keyProblems,
+      successMetrics: formData.successMetrics,
+      createdAt: new Date().toISOString(),
       content,
       briefData,
-      createdAt: new Date().toISOString(),
       formData
     };
     

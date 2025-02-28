@@ -5,10 +5,13 @@ import Navbar from '../../components/Navbar';
 import { Project, projectStore } from '../../utils/projectStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { PRD, prdStore } from '../../utils/prdStore';
-import { ScreenSet, screenStore } from '../../utils/screenStore';
+import { ScreenSet, screenStore, Screen as ScreenType } from '../../utils/screenStore';
 import { generateScreens } from '../../utils/screenGenerator';
 import MockNotification from '../../components/MockNotification';
 import { isMockData } from '../../utils/mockDetector';
+import { v4 as uuidv4 } from 'uuid';
+import { AppFlow, FlowStep } from '../../utils/screenStore';
+import Modal from '../../components/Modal';
 
 export default function ScreensPage() {
   const router = useRouter();
@@ -21,6 +24,13 @@ export default function ScreensPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
+  const [editingStep, setEditingStep] = useState<FlowStep | null>(null);
+  const [isStepModalOpen, setIsStepModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [stepToDelete, setStepToDelete] = useState<string | null>(null);
+  const [stepDescription, setStepDescription] = useState('');
+  const [selectedScreenId, setSelectedScreenId] = useState<string | undefined>();
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -92,11 +102,162 @@ export default function ScreensPage() {
     if (!screenSet || !prd) return;
     
     if (window.confirm(`Are you sure you want to delete these screens?\n\nThis action cannot be undone.`)) {
-      const deleted = screenStore.deleteScreenSet(screenSet.id);
+      const deleted = screenStore.deleteScreenSet(screenSet.appFlow.id);
       if (deleted) {
         setScreenSet(null);
       }
     }
+  };
+
+  const handleAddStep = () => {
+    setEditingStep(null);
+    setStepDescription('');
+    setSelectedScreenId(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleEditStep = (step: FlowStep) => {
+    setEditingStep(step);
+    setIsStepModalOpen(true);
+  };
+
+  const handleDeleteStep = (stepId: string) => {
+    setStepToDelete(stepId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteStep = async () => {
+    if (stepToDelete && screenSet && screenSet.appFlow) {
+      const updatedSteps = screenSet.appFlow.steps.filter(step => step.id !== stepToDelete);
+      const updatedAppFlow = { ...screenSet.appFlow, steps: updatedSteps };
+      screenStore.updateAppFlow(updatedAppFlow);
+      setScreenSet({
+        ...screenSet,
+        appFlow: updatedAppFlow
+      });
+      setIsDeleteModalOpen(false);
+      setStepToDelete(null);
+    }
+  };
+
+  const handleSaveStep = async (stepData: { description: string; screenId?: string }) => {
+    if (!screenSet) return;
+
+    try {
+      let updatedSteps;
+      if (editingStep) {
+        // Update existing step
+        updatedSteps = screenSet.appFlow.steps.map(step =>
+          step.id === editingStep.id
+            ? { ...step, ...stepData }
+            : step
+        );
+      } else {
+        // Add new step
+        const newStep = {
+          id: uuidv4(),
+          ...stepData
+        };
+        updatedSteps = [...screenSet.appFlow.steps, newStep];
+      }
+
+      const updatedAppFlow = { ...screenSet.appFlow, steps: updatedSteps };
+      
+      // Update the screenSet state
+      setScreenSet({
+        ...screenSet,
+        appFlow: updatedAppFlow
+      });
+
+      // Save to backend
+      await fetch(`/api/screens/${screenSet.appFlow.id}/steps${editingStep ? `/${editingStep.id}` : ''}`, {
+        method: editingStep ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(stepData)
+      });
+
+      setIsStepModalOpen(false);
+      setEditingStep(null);
+    } catch (error) {
+      console.error('Error saving step:', error);
+      setError('Failed to save step. Please try again.');
+    }
+  };
+
+  const renderScreen = (screen: ScreenType) => {
+    // Group elements by type
+    const elements = {
+      images: screen.elements.filter(e => e.type === 'image'),
+      inputs: screen.elements.filter(e => e.type === 'input'),
+      text: screen.elements.filter(e => e.type === 'text'),
+      buttons: screen.elements.filter(e => e.type === 'button')
+    };
+
+    return (
+      <div key={screen.id} className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden mb-6">
+        <div className="bg-gradient-to-r from-[#0F533A]/5 to-transparent px-6 py-4 border-b border-[#e5e7eb]">
+          <h3 className="text-lg font-medium text-[#111827]">{screen.name}</h3>
+          <p className="text-[#6b7280] mt-1">{screen.description}</p>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          {/* Images Section */}
+          {elements.images.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-[#374151]">Images</h4>
+              {elements.images.map(element => (
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                  <p className="text-[#4b5563] text-sm">{element.properties.description || 'No description provided'}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Inputs Section */}
+          {elements.inputs.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-[#374151]">Input Fields</h4>
+              {elements.inputs.map(element => (
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                  <p className="text-[#4b5563] text-sm">{element.properties.description || 'No description provided'}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Information Section */}
+          {elements.text.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-[#374151]">Information</h4>
+              {elements.text.map(element => (
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                  <p className="text-[#4b5563] text-sm">{element.properties.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Navigation Section */}
+          {elements.buttons.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-[#374151]">Navigation</h4>
+              {elements.buttons.map(element => (
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#4b5563] text-sm font-medium">{element.properties.content}</span>
+                    {element.properties.action && (
+                      <span className="text-[#0F533A] text-sm">→ {element.properties.action}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -186,13 +347,9 @@ export default function ScreensPage() {
                 <>
                   <Link
                     href={`/docs/${prd.id}`}
-                    className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors shadow-sm"
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                   >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Create Tech Docs
+                    Continue
                   </Link>
                   <button
                     onClick={handleDeleteScreens}
@@ -214,28 +371,71 @@ export default function ScreensPage() {
         <div className="grid gap-8 grid-cols-1">
           {!screenSet ? (
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-              <div className="flex flex-col items-center justify-center gap-4 mb-6">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
-                  <h2 className="text-xl font-semibold text-[#111827]">Generate Screens</h2>
-                </div>
-              </div>
-              
-              <div className="space-y-6 text-center">
-                <p className="text-[#4b5563]">
-                  Generate app screens and user flow based on your PRD. This will help you visualize the application structure and design.
-                </p>
-                
-                <div className="bg-blue-50 text-blue-700 p-4 rounded-lg">
-                  <p className="font-medium">Note</p>
-                  <p>The screen generation will create:</p>
-                  <ul className="list-disc ml-5 mt-2">
-                    <li>App flow explanation in steps</li>
-                    <li>All main screens needed for the application</li>
-                    <li>Core functionality like login/signup and other essential features</li>
+              <div className="space-y-8">
+                <div className="bg-gradient-to-br from-[#f8f9fa] to-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
+                  <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M16 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 11H16" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 16H12" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    What are App Screens?
+                  </h3>
+                  <p className="text-[#4b5563] mb-4 leading-relaxed">
+                    App screens are visual representations of your application's interface. They help:
+                  </p>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[#4b5563]">
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Visualize user interface and flow
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Define navigation and interactions
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Guide development and design teams
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Validate user experience early
+                    </li>
                   </ul>
                 </div>
-                
+
+                <div className="bg-gradient-to-br from-[#0F533A]/5 to-transparent rounded-xl p-6">
+                  <h4 className="text-sm font-medium text-[#0F533A] mb-3">What Will Be Generated?</h4>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                      <span className="text-[#4b5563]">Complete user flow with step-by-step navigation</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                      <span className="text-[#4b5563]">Essential screens based on your PRD features</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#0F533A] mr-2"></div>
+                      <span className="text-[#4b5563]">Core functionality screens (auth, dashboard, etc.)</span>
+                    </div>
+                  </div>
+                </div>
+
                 {error && (
                   <div className="bg-red-50 text-red-700 p-4 rounded-lg">
                     <p className="font-medium">Error</p>
@@ -243,11 +443,11 @@ export default function ScreensPage() {
                   </div>
                 )}
                 
-                <div className="flex justify-center">
+                <div className="flex justify-end">
                   <button
                     onClick={handleGenerateScreens}
                     disabled={isGenerating}
-                    className={`inline-flex items-center justify-center bg-[#8b5cf6] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#7c3aed] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
                     {isGenerating ? (
                       <>
@@ -277,29 +477,75 @@ export default function ScreensPage() {
               <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
-                    <h2 className="text-xl font-semibold text-[#111827]">App Flow</h2>
+                    <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
+                    <h2 className="text-xl font-semibold text-[#111827]">User Journey</h2>
                   </div>
+                  <button
+                    onClick={handleAddStep}
+                    className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 8V16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    Add Step
+                  </button>
                 </div>
                 
                 <div className="space-y-6">
-                  <div className="border border-[#e5e7eb] rounded-lg overflow-hidden">
-                    <div className="bg-[#f9fafb] border-b border-[#e5e7eb] px-4 py-3">
-                      <h3 className="font-medium text-[#111827]">User Journey Steps</h3>
-                    </div>
-                    <div className="p-4">
-                      <ol className="space-y-4 list-decimal ml-5">
-                        {screenSet.appFlow.steps.map((step, index) => (
-                          <li key={step.id} className="text-[#4b5563]">
-                            <p>{step.description}</p>
-                            {step.screenId && (
-                              <span className="inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f3e8ff] text-[#8b5cf6]">
-                                Screen: {screenSet.screens.find(s => s.id === step.screenId)?.name || 'Unknown'}
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                      </ol>
+                  <div className="relative">
+                    <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-[#0F533A]/10"></div>
+                    <div className="space-y-6">
+                      {screenSet.appFlow.steps.map((step, index) => (
+                        <div key={step.id} className="relative flex items-start group">
+                          <div className="absolute -left-2 flex items-center justify-center w-20 h-full">
+                            <div className="w-4 h-4 rounded-full bg-[#0F533A] flex items-center justify-center text-white text-xs">
+                              {index + 1}
+                            </div>
+                          </div>
+                          <div className="ml-12 flex-grow">
+                            <div className="bg-white rounded-xl border border-[#e5e7eb] p-4 group-hover:border-[#0F533A]/30 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-grow">
+                                  <p className="text-[#111827] font-medium">{step.description}</p>
+                                  {step.screenId && (
+                                    <div className="mt-2 flex items-center">
+                                      <svg className="w-4 h-4 text-[#0F533A] mr-1.5" viewBox="0 0 24 24" fill="none">
+                                        <path d="M10 16L14 12L10 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                      <span className="text-sm text-[#0F533A]">
+                                        Goes to: {screenSet.screens.find(s => s.id === step.screenId)?.name}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button 
+                                    onClick={() => handleEditStep(step)}
+                                    className="p-1 hover:bg-[#f3f4f6] rounded text-[#6b7280] hover:text-[#111827] transition-colors"
+                                  >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                      <path d="M11 4H4C2.89543 4 2 4.89543 2 6V20C2 21.1046 2.89543 22 4 22H18C19.1046 22 20 21.1046 20 20V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      <path d="M21.5 2.5L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      <path d="M15 2H22V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteStep(step.id)}
+                                    className="p-1 hover:bg-red-50 rounded text-[#6b7280] hover:text-red-600 transition-colors"
+                                  >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                      <path d="M3 6H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      <path d="M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      <path d="M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -309,53 +555,98 @@ export default function ScreensPage() {
               <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
-                    <h2 className="text-xl font-semibold text-[#111827]">Screens</h2>
+                    <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
+                    <h2 className="text-xl font-semibold text-[#111827]">App Screens</h2>
                   </div>
                 </div>
                 
-                <div className="space-y-8">
-                  {screenSet.screens.map((screen) => (
-                    <div key={screen.id} className="border border-[#e5e7eb] rounded-lg overflow-hidden">
-                      <div className="bg-[#f9fafb] border-b border-[#e5e7eb] px-4 py-3">
-                        <h3 className="font-medium text-[#111827]">{screen.name}</h3>
-                      </div>
-                      <div className="p-4">
-                        <p className="text-[#4b5563] mb-4">{screen.description}</p>
-                        
-                        <h4 className="font-medium text-[#111827] mb-2">Screen Elements:</h4>
-                        <div className="space-y-3">
-                          {screen.elements.map((element) => (
-                            <div key={element.id} className="bg-[#f9fafb] p-3 rounded border border-[#e5e7eb]">
-                              <div className="flex items-center mb-1">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f3e8ff] text-[#8b5cf6] mr-2">
-                                  {element.type}
-                                </span>
-                                {element.properties.label && (
-                                  <span className="text-sm font-medium text-[#111827]">{element.properties.label}</span>
-                                )}
-                              </div>
-                              {element.properties.action && (
-                                <p className="text-xs text-[#6b7280]">Action: {element.properties.action}</p>
-                              )}
-                              {Object.entries(element.properties)
-                                .filter(([key]) => !['label', 'action'].includes(key))
-                                .map(([key, value]) => (
-                                  <p key={key} className="text-xs text-[#6b7280]">
-                                    {key}: {value as string}
-                                  </p>
-                                ))}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="space-y-6">
+                  {screenSet.screens.map(screen => renderScreen(screen))}
                 </div>
               </div>
             </>
           )}
         </div>
+
+        {/* Step Edit Modal */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={editingStep ? "Edit Journey Step" : "Add Journey Step"}
+        >
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Step Description
+              </label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0F533A] focus:border-[#0F533A]"
+                rows={3}
+                value={stepDescription}
+                onChange={(e) => setStepDescription(e.target.value)}
+                placeholder="Describe what happens in this step..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Target Screen
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0F533A] focus:border-[#0F533A]"
+                value={selectedScreenId || ''}
+                onChange={(e) => setSelectedScreenId(e.target.value || undefined)}
+              >
+                <option value="">Select a screen</option>
+                {screenSet?.screens.map((screen) => (
+                  <option key={screen.id} value={screen.id}>
+                    {screen.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveStep({ description: stepDescription, screenId: selectedScreenId })}
+                className="px-4 py-2 text-sm bg-[#0F533A] text-white rounded-md hover:bg-[#0a3f2c]"
+              >
+                Save Step
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          title="Delete Step"
+        >
+          <div className="p-6">
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete this step? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteStep}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </div>
   );

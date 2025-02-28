@@ -93,10 +93,11 @@ export default function NewBrief() {
     if (!project || !generatedBrief || !currentFormData) return;
     
     try {
-      briefStore.saveBrief(project.id, currentFormData, generatedBrief);
-      router.push(`/project/${project.id}`);
+      const savedBrief = briefStore.saveBrief(project.id, currentFormData, generatedBrief);
+      router.push(`/brief/${savedBrief.id}`);
     } catch (error) {
-      setError('Failed to save Brief. Please try again.');
+      console.error('Error saving brief:', error);
+      setError('Failed to save brief. Please try again.');
     }
   };
 

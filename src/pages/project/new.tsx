@@ -65,7 +65,7 @@ export default function NewProject() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full px-4 py-2 rounded-lg border border-[#e5e7eb] bg-white text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0F533A]/20 focus:border-[#0F533A] transition-colors min-h-[100px]"
-                    placeholder="Brief description of your project"
+                    placeholder="Short description of your project"
                   />
                 </div>
               </div>

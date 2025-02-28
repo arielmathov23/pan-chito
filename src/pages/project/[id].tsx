@@ -107,9 +107,9 @@ export default function ProjectDetail() {
 
   // Helper function to get stage color based on stage ID and status
   const getStageColor = (stageId: string, status: string) => {
-    // Use blue color scheme for all stages
-    if (status === 'completed') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
-    if (status === 'active') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
+    // Use green color scheme for all stages
+    if (status === 'completed') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
+    if (status === 'active') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
     return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
   };
 
@@ -195,7 +195,7 @@ export default function ProjectDetail() {
           {/* Project Progress Summary */}
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h2 className="text-xl font-semibold text-[#111827]">Project Progress</h2>
+              <h2 className="text-xl font-semibold text-[#111827]">Project Progress: Complete all steps to start development</h2>
               <div className="bg-[#e6f0eb] text-[#0F533A] text-sm px-3 py-1 rounded-full font-medium">
                 {!briefs.length ? '0' : 
                  !featureSets.length ? '1' : 
@@ -309,7 +309,7 @@ export default function ProjectDetail() {
                        const prd = prdStore.getPRDs(brief.id)[0];
                        return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                      }) ? 'Create technical documentation for your project' :
-                     'All stages completed'}
+                     '🎉 Congratulations! All stages are completed. Your project is ready for development.'}
                   </p>
                 </div>
                 <Link
@@ -340,7 +340,7 @@ export default function ProjectDetail() {
                     return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                   }) ? (
                     <>
-                      View Project
+                      Start Development
                       <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
@@ -532,38 +532,6 @@ export default function ProjectDetail() {
                             <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                         </Link>
-                        {/* Add Screens Link */}
-                        {briefs.length > 0 && briefs.some(brief => {
-                          const prd = prdStore.getPRDs(brief.id)[0];
-                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                        }) && (
-                          <Link
-                            href={`/screens/${(() => {
-                              const brief = briefs.find(brief => {
-                                const prd = prdStore.getPRDs(brief.id)[0];
-                                return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                              });
-                              if (brief) {
-                                const prds = prdStore.getPRDs(brief.id);
-                                if (prds.length > 0) {
-                                  return prds[0].id;
-                                }
-                              }
-                              return '';
-                            })()}`}
-                            className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            style={{ 
-                              borderColor: COLORS.docs.border,
-                              color: COLORS.docs.primary,
-                              backgroundColor: COLORS.docs.light
-                            }}
-                          >
-                            View Screens
-                            <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </Link>
-                        )}
                       </div>
                     </div>
                     
@@ -763,15 +731,10 @@ export default function ProjectDetail() {
                         }
                         return '';
                       })()}`}
-                      className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                      style={{ 
-                        borderColor: COLORS.docs.border,
-                        color: COLORS.docs.primary,
-                        backgroundColor: COLORS.docs.light
-                      }}
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                     >
                       View Documentation
-                      <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </Link>

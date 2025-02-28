@@ -8,6 +8,17 @@ export interface TechDoc {
   backend: string;
   createdAt: number;
   updatedAt: number;
+  content: {
+    platform: {
+      targets: string[];
+      requirements: string[];
+    };
+    frontend: any;
+    backend: any;
+    api: any;
+    database: any;
+    deployment: any;
+  };
 }
 
 class TechDocStore {

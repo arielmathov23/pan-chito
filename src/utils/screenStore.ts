@@ -13,8 +13,15 @@ export interface Screen {
 // Define the ScreenElement interface
 export interface ScreenElement {
   id: string;
-  type: string; // e.g., 'button', 'input', 'text', etc.
-  properties: Record<string, any>;
+  type: 'button' | 'input' | 'text' | 'image' | 'container' | 'list' | 'card';
+  properties: {
+    content?: string;
+    description?: string;
+    label?: string;
+    action?: string;
+    style?: string;
+    layout?: string;
+  };
 }
 
 // Define the AppFlow interface
@@ -34,90 +41,150 @@ export interface FlowStep {
 
 // Define the ScreenSet interface
 export interface ScreenSet {
-  id: string;
-  prdId: string;
   screens: Screen[];
   appFlow: AppFlow;
-  createdAt: number;
 }
 
 // Create the screen store
 class ScreenStore {
-  private readonly STORAGE_KEY = 'pan_chito_screens';
+  private screens: Screen[] = [];
+  private appFlows: AppFlow[] = [];
+  private storageKey = 'screens';
+  private appFlowKey = 'appFlows';
+
+  constructor() {
+    this.loadFromLocalStorage();
+  }
+
+  private loadFromLocalStorage() {
+    if (typeof window !== 'undefined') {
+      const storedScreens = localStorage.getItem(this.storageKey);
+      const storedAppFlows = localStorage.getItem(this.appFlowKey);
+      
+      if (storedScreens) {
+        try {
+          this.screens = JSON.parse(storedScreens);
+        } catch (error) {
+          console.error('Error parsing screens from localStorage:', error);
+          this.screens = [];
+        }
+      }
+      
+      if (storedAppFlows) {
+        try {
+          this.appFlows = JSON.parse(storedAppFlows);
+        } catch (error) {
+          console.error('Error parsing app flows from localStorage:', error);
+          this.appFlows = [];
+        }
+      }
+    }
+  }
+
+  private saveToLocalStorage() {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.screens));
+      localStorage.setItem(this.appFlowKey, JSON.stringify(this.appFlows));
+    }
+  }
 
   // Get all screen sets
   getScreenSets(): ScreenSet[] {
-    const storedData = localStorage.getItem(this.STORAGE_KEY);
-    if (!storedData) return [];
-    return JSON.parse(storedData);
+    const screenSets: ScreenSet[] = [];
+    for (const screen of this.screens) {
+      const appFlow = this.appFlows.find(flow => flow.prdId === screen.prdId);
+      if (appFlow) {
+        screenSets.push({
+          screens: [screen],
+          appFlow: appFlow
+        });
+      }
+    }
+    return screenSets;
   }
 
   // Get a specific screen set by ID
   getScreenSet(id: string): ScreenSet | null {
-    const screenSets = this.getScreenSets();
-    return screenSets.find(set => set.id === id) || null;
+    const screens = this.screens.filter(screen => screen.prdId === id);
+    const appFlow = this.appFlows.find(flow => flow.prdId === id);
+    
+    if (!appFlow) return null;
+    
+    return {
+      screens,
+      appFlow
+    };
   }
 
   // Get a screen set by PRD ID
   getScreenSetByPrdId(prdId: string): ScreenSet | null {
-    const screenSets = this.getScreenSets();
-    return screenSets.find(set => set.prdId === prdId) || null;
+    const screens = this.screens.filter(screen => screen.prdId === prdId);
+    const appFlow = this.appFlows.find(flow => flow.prdId === prdId);
+    
+    if (!appFlow) return null;
+    
+    return {
+      screens,
+      appFlow
+    };
   }
 
   // Save a new screen set
   saveScreenSet(prdId: string, screens: Screen[], appFlow: AppFlow): ScreenSet {
-    const screenSets = this.getScreenSets();
+    // Remove existing screens and app flow for this PRD
+    this.screens = this.screens.filter(screen => screen.prdId !== prdId);
+    this.appFlows = this.appFlows.filter(flow => flow.prdId !== prdId);
     
-    // Check if a screen set already exists for this PRD
-    const existingIndex = screenSets.findIndex(set => set.prdId === prdId);
+    // Add new screens and app flow
+    this.screens.push(...screens);
+    this.appFlows.push(appFlow);
     
-    const newScreenSet: ScreenSet = {
-      id: uuidv4(),
-      prdId,
-      screens,
-      appFlow,
-      createdAt: Date.now()
-    };
+    this.saveToLocalStorage();
     
-    if (existingIndex >= 0) {
-      // Update existing screen set
-      screenSets[existingIndex] = {
-        ...newScreenSet,
-        id: screenSets[existingIndex].id
-      };
-    } else {
-      // Add new screen set
-      screenSets.push(newScreenSet);
-    }
-    
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(screenSets));
-    return newScreenSet;
+    return { screens, appFlow };
   }
 
   // Delete a screen set
   deleteScreenSet(id: string): boolean {
-    const screenSets = this.getScreenSets();
-    const filteredSets = screenSets.filter(set => set.id !== id);
+    const initialScreensLength = this.screens.length;
+    const initialAppFlowsLength = this.appFlows.length;
     
-    if (filteredSets.length === screenSets.length) {
-      return false; // Nothing was deleted
+    this.screens = this.screens.filter(screen => screen.prdId !== id);
+    this.appFlows = this.appFlows.filter(flow => flow.prdId !== id);
+    
+    if (this.screens.length !== initialScreensLength || this.appFlows.length !== initialAppFlowsLength) {
+      this.saveToLocalStorage();
+      return true;
     }
     
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredSets));
-    return true;
+    return false;
   }
 
   // Delete a screen set by PRD ID
   deleteScreenSetByPrdId(prdId: string): boolean {
-    const screenSets = this.getScreenSets();
-    const filteredSets = screenSets.filter(set => set.prdId !== prdId);
+    const initialScreensLength = this.screens.length;
+    const initialAppFlowsLength = this.appFlows.length;
     
-    if (filteredSets.length === screenSets.length) {
-      return false; // Nothing was deleted
+    this.screens = this.screens.filter(screen => screen.prdId !== prdId);
+    this.appFlows = this.appFlows.filter(flow => flow.prdId !== prdId);
+    
+    if (this.screens.length !== initialScreensLength || this.appFlows.length !== initialAppFlowsLength) {
+      this.saveToLocalStorage();
+      return true;
     }
     
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredSets));
-    return true;
+    return false;
+  }
+
+  updateAppFlow(appFlow: AppFlow): AppFlow {
+    const index = this.appFlows.findIndex(flow => flow.id === appFlow.id);
+    
+    if (index !== -1) {
+      this.appFlows[index] = appFlow;
+      this.saveToLocalStorage();
+    }
+    
+    return appFlow;
   }
 }
 

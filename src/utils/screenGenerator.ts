@@ -6,16 +6,16 @@ import { AppFlow, Screen, ScreenElement, FlowStep } from './screenStore';
 // Function to generate screens using OpenAI
 export async function generateScreens(brief: Brief, prd: PRD): Promise<{ screens: Screen[], appFlow: AppFlow }> {
   try {
-    // Prepare a more concise prompt for OpenAI
     const prompt = `
-Based on the following product brief and PRD, generate a user interface design specification in JSON format.
+You are a senior UX designer creating detailed screen specifications for a mobile/web application. Based on the following product brief and PRD, generate a user interface design specification in JSON format.
 
+Context:
 Product: ${brief.productName}
-Problem: ${brief.briefData.problemStatement.slice(0, 300)}...
-Users: ${brief.briefData.targetUsers.slice(0, 300)}...
-Key Features: ${brief.briefData.keyFeatures.slice(0, 300)}...
+Problem: ${brief.briefData.problemStatement}
+Users: ${brief.briefData.targetUsers}
+Key Features: ${brief.briefData.keyFeatures}
 
-Core PRD Content (Summary):
+PRD Summary:
 ${JSON.stringify(prd.content).slice(0, 800)}...
 
 Required Output Format:
@@ -23,20 +23,39 @@ Required Output Format:
   "appFlow": {
     "steps": [
       {
-        "description": "string describing the step",
-        "screenReference": "name of the screen this step refers to"
+        "description": "Detailed description of the user journey step",
+        "screenReference": "Name of the target screen"
       }
     ]
   },
   "screens": [
     {
-      "name": "string name of screen",
-      "description": "string description",
+      "name": "Screen name",
+      "description": "Detailed description of screen purpose and functionality",
       "elements": [
         {
-          "type": "string type of element",
+          "type": "image",
           "properties": {
-            "key": "value"
+            "description": "Detailed description of what the image represents or shows"
+          }
+        },
+        {
+          "type": "input",
+          "properties": {
+            "description": "Description of input purpose and validation requirements"
+          }
+        },
+        {
+          "type": "text",
+          "properties": {
+            "content": "Actual text content to be displayed"
+          }
+        },
+        {
+          "type": "button",
+          "properties": {
+            "content": "Button label",
+            "action": "Description of what happens when clicked (e.g., 'Navigate to Home Screen')"
           }
         }
       ]
@@ -44,12 +63,14 @@ Required Output Format:
   ]
 }
 
-Focus on:
-1. Essential screens only
-2. Clear user flow
-3. Core functionality (login/signup if needed)
-4. Keep descriptions concise
-5. Use simple element types (button, input, text, image)`;
+Guidelines:
+1. Focus on essential UI elements: images (descriptions only), inputs, text content, and navigation buttons
+2. Provide clear descriptions for all elements
+3. Ensure button actions specify the target screen or functionality
+4. Keep the interface clean and focused on core functionality
+5. Use consistent naming across screens and flow steps
+6. Organize content logically within each screen
+7. Include all necessary navigation paths between screens`;
 
     // Call OpenAI API with optimized parameters
     const response = await fetch('/api/openai', {

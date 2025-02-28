@@ -182,8 +182,8 @@ export default function Projects() {
                 <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-3">No projects yet</h2>
-            <p className="text-[#4b5563] mb-8 max-w-md mx-auto">Create your first project to get started with product documentation</p>
+            <h2 className="text-xl font-semibold text-[#111827] mb-3">Ready to build your first digital product?</h2>
+            <p className="text-[#4b5563] mb-8 max-w-md mx-auto">Get all the essential documentation you need before development. Remember: 80% planning, 20% execution is the key to success.</p>
             <Link
               href="/project/new"
               className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm text-white bg-[#0F533A]"

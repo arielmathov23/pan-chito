@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { projectStore } from '../utils/projectStore';
 
 interface BriefFormProps {
   projectId: string;
@@ -37,6 +38,17 @@ export default function BriefForm({ projectId, onSubmit, isGenerating = false, e
   const [currentStep, setCurrentStep] = useState(0);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof BriefFormData, string>>>({});
   const [progress, setProgress] = useState(0);
+  const [projectName, setProjectName] = useState('');
+
+  useEffect(() => {
+    // Get project name when component mounts
+    const project = projectStore.getProject(projectId);
+    if (project) {
+      setProjectName(project.name);
+      // Pre-fill the product name with project name
+      setFormData(prev => ({ ...prev, productName: project.name }));
+    }
+  }, [projectId]);
 
   const questions = [
     {
@@ -58,21 +70,21 @@ export default function BriefForm({ projectId, onSubmit, isGenerating = false, e
       type: 'textarea'
     },
     {
-      id: 'existingSolutions',
-      question: 'What existing solutions address this problem?',
-      placeholder: 'Describe current alternatives, their limitations, and how your solution is different or better',
-      type: 'textarea'
-    },
-    {
       id: 'proposedSolution',
       question: 'What solution does your product propose?',
       placeholder: 'Describe how your product solves the problem in a unique and effective way',
       type: 'textarea'
     },
     {
+      id: 'existingSolutions',
+      question: 'What existing solutions address this problem?',
+      placeholder: 'Name/URL, and description of current alternatives, their limitations, and how your solution is different or better',
+      type: 'textarea'
+    },
+    {
       id: 'productObjectives',
-      question: 'What are the product objectives?',
-      placeholder: 'List the main objectives of your product, both short and long term',
+      question: 'What are the short-term objectives and where will you launch?',
+      placeholder: 'List your immediate product objectives and specify where you plan to launch first (city/country).',
       type: 'textarea'
     },
     {
@@ -83,8 +95,8 @@ export default function BriefForm({ projectId, onSubmit, isGenerating = false, e
     },
     {
       id: 'marketAnalysis',
-      question: 'What is the market like for this product?',
-      placeholder: 'Describe the market size, current trends and potential competitors',
+      question: 'What interesting trends or analogous products inspire you?',
+      placeholder: 'Share any emerging trends, similar products in other industries, or interesting solutions that could inspire your product. Example: "Uber-like experience but for X" or "Growing trend of Y in industry Z"',
       type: 'textarea'
     }
   ];
@@ -209,11 +221,6 @@ export default function BriefForm({ projectId, onSubmit, isGenerating = false, e
               <h2 className="text-lg font-bold text-[#111827]">
                 {currentQuestion.question}
               </h2>
-              {currentQuestion.type === 'textarea' && (
-                <p className="text-xs text-[#6b7280] mt-1">
-                  Press Enter to continue, Shift+Enter to add a new line
-                </p>
-              )}
             </div>
 
             <div className="mb-4">
@@ -247,6 +254,9 @@ export default function BriefForm({ projectId, onSubmit, isGenerating = false, e
               {formErrors[currentFieldId] && (
                 <p className="mt-1 text-xs text-red-500">{formErrors[currentFieldId]}</p>
               )}
+              <p className="text-xs text-[#6b7280] mt-1">
+                Press Enter to continue{currentQuestion.type === 'textarea' ? ', Shift+Enter to add a new line' : ''}
+              </p>
             </div>
           </motion.div>
         </AnimatePresence>

@@ -197,38 +197,38 @@ export default function PRDPage() {
               Brief
             </Link>
             <span>/</span>
-            <span className="text-[#111827]">PRD</span>
+            <Link href={`/brief/${brief.id}/ideate`} className="hover:text-[#111827] transition-colors">
+              Features
+            </Link>
+            <span>/</span>
+            <span className="text-[#111827]">Requirements</span>
           </div>
           {usingMockData && <MockNotification stage="prd" />}
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Product Requirements Document</h1>
-              <p className="text-[#6b7280] mt-2">Detailed specifications for {brief.productName}</p>
+              <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Product Requirements</h1>
+              <p className="text-[#6b7280] mt-2">Create detailed specifications for {brief.productName}</p>
             </div>
             <div className="flex items-center space-x-3 self-start">
               {prd && (
                 <>
                   <Link
                     href={`/screens/${prd.id}`}
-                    className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors shadow-sm"
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                   >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M9 10C10.1046 10 11 9.10457 11 8C11 6.89543 10.1046 6 9 6C7.89543 6 7 6.89543 7 8C7 9.10457 7.89543 10 9 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M2.67 18.95L7.6 15.64C8.39 15.11 9.53 15.17 10.24 15.78L10.57 16.07C11.35 16.74 12.61 16.74 13.39 16.07L17.55 12.5C18.33 11.83 19.59 11.83 20.37 12.5L22 13.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Create app screen
+                    Continue
                   </Link>
                   <button
                     onClick={handleDeletePRD}
-                    className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#6b7280] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+                    className="inline-flex items-center justify-center bg-white text-[#6b7280] hover:text-[#111827] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M18.85 9.14001L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79002C6.00002 22 5.91002 20.78 5.80002 19.21L5.15002 9.14001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
+                    Delete
                   </button>
                 </>
               )}
@@ -239,22 +239,98 @@ export default function PRDPage() {
         <div className="grid gap-8 grid-cols-1">
           {!prd ? (
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
-                  <h2 className="text-xl font-semibold text-[#111827]">Generate PRD</h2>
+              <div className="space-y-8">
+                <div className="bg-gradient-to-br from-[#f8f9fa] to-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
+                  <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    What is a Product Requirements Document (PRD)?
+                  </h3>
+                  <p className="text-[#4b5563] mb-4 leading-relaxed">
+                    A Product Requirements Document is a comprehensive guide that outlines everything needed to build your product successfully. It helps:
+                  </p>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[#4b5563]">
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Development teams understand exactly what to build
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Stakeholders align on product functionality
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Project managers track progress effectively
+                    </li>
+                    <li className="flex items-start">
+                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Designers create matching user interfaces
+                    </li>
+                  </ul>
                 </div>
-              </div>
-              
-              <div className="space-y-6">
-                <p className="text-[#4b5563]">
-                  Generate a comprehensive Product Requirements Document based on your brief and selected features.
-                  This will help you define detailed specifications, user stories, and technical requirements for your MVP.
-                </p>
-                
-                <div className="bg-blue-50 text-blue-700 p-4 rounded-lg">
-                  <p className="font-medium">Note</p>
-                  <p>The PRD will include all features with "Must" and "Should" priorities. Each feature will be tagged with its priority in the document.</p>
+
+                <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
+                  <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8.5 12H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12.5 15L15.5 12L12.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    What Will Be Generated?
+                  </h3>
+                  <p className="text-[#4b5563] mb-4">
+                    Based on your product brief and prioritized features, we'll generate a detailed document that includes:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ul className="space-y-2 text-[#4b5563]">
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-[#0F533A] rounded-full mr-2"></span>
+                        Detailed feature specifications
+                      </li>
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-[#0F533A] rounded-full mr-2"></span>
+                        User stories and acceptance criteria
+                      </li>
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-[#0F533A] rounded-full mr-2"></span>
+                        Technical requirements
+                      </li>
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-[#0F533A] rounded-full mr-2"></span>
+                        Implementation guidelines
+                      </li>
+                    </ul>
+                    
+                    <div className="bg-blue-50 text-blue-800 p-4 rounded-lg">
+                      <p className="font-medium mb-2">Features Included</p>
+                      <ul className="space-y-2">
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                          All "Must Have" features
+                        </li>
+                        <li className="flex items-center">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                          All "Should Have" features
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
                 
                 {error && (
@@ -264,7 +340,16 @@ export default function PRDPage() {
                   </div>
                 )}
                 
-                <div className="flex justify-center">
+                <div className="flex justify-center space-x-4">
+                  <Link
+                    href={`/brief/${brief?.id}/ideate`}
+                    className="inline-flex items-center justify-center bg-white text-[#0F533A] border border-[#0F533A] px-6 py-3 rounded-lg font-medium hover:bg-[#f8f9fa] transition-colors"
+                  >
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Back to Features
+                  </Link>
                   <button
                     onClick={handleGeneratePRD}
                     disabled={isGenerating}
