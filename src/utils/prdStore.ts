@@ -7,6 +7,12 @@ export interface PRD {
   id: string;
   briefId: string;
   featureSetId: string;
+  overview?: string;
+  goals?: string;
+  userFlows?: string;
+  requirements?: string;
+  constraints?: string;
+  timeline?: string;
   title: string;
   content: GeneratedPRD;
   createdAt: string;

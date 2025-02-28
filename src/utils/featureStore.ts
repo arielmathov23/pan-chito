@@ -1,9 +1,13 @@
 export interface Feature {
   id: string;
+  title: string;
+  description: string;
+  userStories?: string[];
+  priority?: string;
+  complexity?: string;
+  status?: string;
   briefId: string;
   name: string;
-  description: string;
-  priority: 'must' | 'should' | 'could' | 'wont';
   difficulty: 'easy' | 'medium' | 'hard';
   createdAt: string;
 }

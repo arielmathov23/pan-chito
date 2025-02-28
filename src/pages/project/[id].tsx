@@ -113,6 +113,191 @@ export default function ProjectDetail() {
     return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
   };
 
+  // Function to generate markdown content
+  const generateProjectMarkdown = () => {
+    if (!project || !briefs.length) return '';
+
+    let markdown = `# ${project.name}\n\n`;
+    markdown += `## Project Overview\n${project.description || ''}\n\n`;
+    
+    // Add Brief section
+    const brief = briefs[0];
+    if (brief) {
+      markdown += `## Product Brief\n\n`;
+      markdown += `### Executive Summary\n${brief.briefData.executiveSummary}\n\n`;
+      markdown += `### Problem Statement\n${brief.briefData.problemStatement}\n\n`;
+      markdown += `### Target Users\n${brief.briefData.targetUsers}\n\n`;
+      markdown += `### Existing Solutions\n${brief.briefData.existingSolutions}\n\n`;
+      markdown += `### Proposed Solution\n${brief.briefData.proposedSolution}\n\n`;
+      markdown += `### Product Objectives\n${brief.briefData.productObjectives}\n\n`;
+      markdown += `### Key Features\n${brief.briefData.keyFeatures}\n\n`;
+      
+      if (brief.briefData.marketAnalysis) {
+        markdown += `### Market Analysis\n${brief.briefData.marketAnalysis}\n\n`;
+      }
+      if (brief.briefData.technicalRisks) {
+        markdown += `### Technical Risks\n${brief.briefData.technicalRisks}\n\n`;
+      }
+      if (brief.briefData.businessRisks) {
+        markdown += `### Business Risks\n${brief.briefData.businessRisks}\n\n`;
+      }
+      if (brief.briefData.implementationStrategy) {
+        markdown += `### Implementation Strategy\n${brief.briefData.implementationStrategy}\n\n`;
+      }
+      if (brief.briefData.successMetrics) {
+        markdown += `### Success Metrics\n${brief.briefData.successMetrics}\n\n`;
+      }
+    }
+
+    // Add Features section
+    if (featureSets.length > 0) {
+      markdown += `## Features\n\n`;
+      featureSets.forEach(featureSet => {
+        featureSet.features.forEach(feature => {
+          markdown += `### ${feature.title || feature.name}\n`;
+          markdown += `${feature.description}\n\n`;
+          if (feature.userStories && feature.userStories.length > 0) {
+            markdown += `**User Stories:**\n`;
+            feature.userStories.forEach(story => {
+              markdown += `- ${story}\n`;
+            });
+            markdown += '\n';
+          }
+          if (feature.priority) {
+            markdown += `**Priority:** ${feature.priority}\n`;
+          }
+          if (feature.complexity) {
+            markdown += `**Complexity:** ${feature.complexity}\n`;
+          }
+          if (feature.status) {
+            markdown += `**Status:** ${feature.status}\n`;
+          }
+          markdown += '\n';
+        });
+      });
+    }
+
+    // Add PRD section
+    if (prds.length > 0) {
+      const prd = prds[0];
+      markdown += `## Product Requirements Document\n\n`;
+      
+      if (prd.overview) {
+        markdown += `### Overview\n${prd.overview}\n\n`;
+      }
+      if (prd.goals) {
+        markdown += `### Goals\n${prd.goals}\n\n`;
+      }
+      if (prd.userFlows) {
+        markdown += `### User Flows\n${prd.userFlows}\n\n`;
+      }
+      if (prd.requirements) {
+        markdown += `### Requirements\n${prd.requirements}\n\n`;
+      }
+      if (prd.constraints) {
+        markdown += `### Constraints\n${prd.constraints}\n\n`;
+      }
+      if (prd.timeline) {
+        markdown += `### Timeline\n${prd.timeline}\n\n`;
+      }
+    }
+
+    // Add Screens section if available
+    const hasScreens = briefs.some(brief => {
+      const prd = prdStore.getPRDs(brief.id)[0];
+      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+    });
+
+    if (hasScreens) {
+      markdown += `## Screens\n\n`;
+      const brief = briefs[0];
+      const prd = prdStore.getPRDs(brief.id)[0];
+      if (prd) {
+        const screenSet = require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+        if (screenSet) {
+          // Add screen journey/flow if available
+          if (screenSet.journey) {
+            markdown += `### User Journey\n${screenSet.journey}\n\n`;
+          }
+          if (screenSet.userFlows) {
+            markdown += `### User Flows\n${screenSet.userFlows}\n\n`;
+          }
+          
+          // Add individual screens
+          markdown += `### Screens\n\n`;
+          screenSet.screens.forEach(screen => {
+            markdown += `#### ${screen.name}\n`;
+            markdown += `${screen.description || ''}\n\n`;
+            if (screen.interactions) {
+              markdown += `**Interactions:**\n${screen.interactions}\n\n`;
+            }
+            if (screen.flow) {
+              markdown += `**Flow:**\n${screen.flow}\n\n`;
+            }
+          });
+        }
+      }
+    }
+
+    // Add Technical Documentation section if available
+    const hasTechDocs = briefs.some(brief => {
+      const prd = prdStore.getPRDs(brief.id)[0];
+      return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+    });
+
+    if (hasTechDocs) {
+      markdown += `## Technical Documentation\n\n`;
+      const brief = briefs[0];
+      const prd = prdStore.getPRDs(brief.id)[0];
+      if (prd) {
+        const techDoc = require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+        if (techDoc) {
+          if (techDoc.platform) {
+            markdown += `### Platform\n`;
+            const platform = typeof techDoc.platform === 'string' ? JSON.parse(techDoc.platform) : techDoc.platform;
+            if (platform.targets) {
+              markdown += `**Targets:**\n${platform.targets}\n\n`;
+            }
+            if (platform.requirements) {
+              markdown += `**Requirements:**\n${platform.requirements}\n\n`;
+            }
+          }
+          if (techDoc.frontend) {
+            markdown += `### Frontend\n${techDoc.frontend}\n\n`;
+          }
+          if (techDoc.backend) {
+            markdown += `### Backend\n${techDoc.backend}\n\n`;
+          }
+          if (techDoc.api) {
+            markdown += `### API\n${techDoc.api}\n\n`;
+          }
+          if (techDoc.database) {
+            markdown += `### Database\n${techDoc.database}\n\n`;
+          }
+          if (techDoc.deployment) {
+            markdown += `### Deployment\n${techDoc.deployment}\n\n`;
+          }
+        }
+      }
+    }
+
+    return markdown;
+  };
+
+  // Function to download markdown file
+  const downloadProjectDocs = () => {
+    const markdown = generateProjectMarkdown();
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${project?.name.toLowerCase().replace(/\s+/g, '-')}-documentation.md`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fa]">
@@ -309,58 +494,48 @@ export default function ProjectDetail() {
                        const prd = prdStore.getPRDs(brief.id)[0];
                        return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                      }) ? 'Create technical documentation for your project' :
-                     '🎉 Congratulations! All stages are completed. Your project is ready for development.'}
+                     '🎉 Congratulations! All stages are completed. Download your project documentation.'}
                   </p>
                 </div>
-                <Link
-                  href={!briefs.length ? `/brief/new?projectId=${project.id}` : 
-                        featureSets.length > 0 && prds.length === 0 ? `/prd/${briefs[0].id}` :
-                        briefs.length > 0 && featureSets.length === 0 ? `/brief/${briefs[0].id}/ideate` :
-                        prds.length > 0 && !briefs.some(brief => {
-                          const prd = prdStore.getPRDs(brief.id)[0];
-                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                        }) ? `/screens/${prds[0].id}` :
-                        briefs.some(brief => {
-                          const prd = prdStore.getPRDs(brief.id)[0];
-                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                        }) && !briefs.some(brief => {
-                          const prd = prdStore.getPRDs(brief.id)[0];
-                          return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                        }) ? `/docs/${prds[0].id}` :
-                        `/project/${project.id}`}
-                  className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm ${
-                    briefs.some(brief => {
-                      const prd = prdStore.getPRDs(brief.id)[0];
-                      return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                    }) ? 'bg-white border border-[#e5e7eb] text-[#4b5563] hover:bg-[#f0f2f5]' : 'bg-[#0F533A] text-white hover:bg-[#0a3f2c]'
-                  }`}
-                >
-                  {briefs.some(brief => {
-                    const prd = prdStore.getPRDs(brief.id)[0];
-                    return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                  }) ? (
-                    <>
-                      Start Development
-                      <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </>
-                  ) : (
-                    <>
-                      {!briefs.length ? 'Create Brief' : 
-                       featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
-                       briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
-                       prds.length > 0 && !briefs.some(brief => {
-                         const prd = prdStore.getPRDs(brief.id)[0];
-                         return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                       }) ? 'Generate Screens' :
-                       'Create Tech Docs'}
-                      <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </>
-                  )}
-                </Link>
+                {briefs.some(brief => {
+                  const prd = prdStore.getPRDs(brief.id)[0];
+                  return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                }) ? (
+                  <button
+                    onClick={downloadProjectDocs}
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                  >
+                    Download Documentation
+                    <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 21H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                ) : (
+                  <Link
+                    href={!briefs.length ? `/brief/new?projectId=${project.id}` : 
+                          featureSets.length > 0 && prds.length === 0 ? `/prd/${briefs[0].id}` :
+                          briefs.length > 0 && featureSets.length === 0 ? `/brief/${briefs[0].id}/ideate` :
+                          prds.length > 0 && !briefs.some(brief => {
+                            const prd = prdStore.getPRDs(brief.id)[0];
+                            return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                          }) ? `/screens/${prds[0].id}` :
+                          `/docs/${prds[0].id}`}
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                  >
+                    {!briefs.length ? 'Create Brief' : 
+                     featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
+                     briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
+                     prds.length > 0 && !briefs.some(brief => {
+                       const prd = prdStore.getPRDs(brief.id)[0];
+                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+                     }) ? 'Generate Screens' :
+                     'Create Tech Docs'}
+                    <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -692,20 +867,16 @@ export default function ProjectDetail() {
                     <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
                       Generate technical documentation based on your PRD to guide your development team
                     </p>
-                    <Link
-                      href={`/docs/${(() => {
-                        const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
-                        return brief ? prdStore.getPRDs(brief.id)[0].id : '';
-                      })()}`}
-                      className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors"
+                    <button
+                      onClick={downloadProjectDocs}
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                     >
-                      Generate Documentation
+                      Download Documentation
                       <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.5 12H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12.5 15L15.5 12L12.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8 21H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                    </Link>
+                    </button>
                   </div>
                 ) : (
                   <div className="flex flex-col md:flex-row items-center justify-between gap-6">
