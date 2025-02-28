@@ -9,11 +9,18 @@ import { Feature, FeatureSet, featureStore } from '../../../utils/featureStore';
 import { generateFeatures } from '../../../utils/featureGenerator';
 import Modal from '../../../components/Modal';
 
-interface EditingFeature extends Feature {
+interface EditingFeature {
+  id: string;
+  briefId: string;
+  title: string;
   name: string;
   description: string;
+  userStories?: string[];
   priority: 'must' | 'should' | 'could' | 'wont';
+  complexity: 'low' | 'medium' | 'high';
+  status: 'pending' | 'in-progress' | 'completed';
   difficulty: 'easy' | 'medium' | 'hard';
+  createdAt: string;
 }
 
 export default function IdeateFeatures() {
@@ -84,7 +91,19 @@ export default function IdeateFeatures() {
   };
 
   const handleEditClick = (feature: Feature) => {
-    setEditingFeature(feature);
+    setEditingFeature({
+      id: feature.id,
+      briefId: feature.briefId,
+      title: feature.title || '',
+      name: feature.name,
+      description: feature.description,
+      userStories: feature.userStories,
+      priority: (feature.priority as 'must' | 'should' | 'could' | 'wont') || 'should',
+      complexity: (feature.complexity as 'low' | 'medium' | 'high') || 'medium',
+      status: (feature.status as 'pending' | 'in-progress' | 'completed') || 'pending',
+      difficulty: feature.difficulty,
+      createdAt: feature.createdAt
+    });
     setIsEditModalOpen(true);
   };
 
@@ -126,9 +145,12 @@ export default function IdeateFeatures() {
     const newFeature: EditingFeature = {
       id: crypto.randomUUID(),
       briefId: brief?.id || '',
+      title: '',
       name: '',
       description: '',
       priority,
+      complexity: 'medium',
+      status: 'pending',
       difficulty: 'medium',
       createdAt: new Date().toISOString()
     };
