@@ -14,6 +14,8 @@ export interface Brief {
   briefData: GeneratedBrief;
   formData: BriefFormData;
   platforms?: string[];
+  isEditing: boolean;
+  showEditButtons: boolean;
 }
 
 const STORAGE_KEY = 'pan-chito-briefs';
@@ -92,7 +94,9 @@ export const briefStore = {
       createdAt: new Date().toISOString(),
       content,
       briefData,
-      formData
+      formData,
+      isEditing: false,
+      showEditButtons: false
     };
     
     briefs.push(newBrief);
@@ -100,23 +104,22 @@ export const briefStore = {
     return newBrief;
   },
 
-  updateBrief: (id: string, updatedBriefData: GeneratedBrief): Brief | null => {
+  updateBrief: (id: string, briefData: GeneratedBrief, isEditing: boolean = false, showEditButtons: boolean = false): Brief | null => {
     const briefs = briefStore.getBriefs();
     const briefIndex = briefs.findIndex(b => b.id === id);
     
     if (briefIndex === -1) return null;
     
-    // Ensure all fields are strings
-    const processedBriefData = ensureStringFields(updatedBriefData);
-    
-    // Update the brief
-    briefs[briefIndex] = {
+    const updatedBrief = {
       ...briefs[briefIndex],
-      briefData: processedBriefData,
-      content: JSON.stringify(processedBriefData)
+      briefData,
+      isEditing,
+      showEditButtons
     };
     
+    briefs[briefIndex] = updatedBrief;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(briefs));
-    return briefs[briefIndex];
+    
+    return updatedBrief;
   }
 }; 

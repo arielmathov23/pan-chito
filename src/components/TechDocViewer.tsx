@@ -160,18 +160,26 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
 
   const handleEdit = (section: string, sectionContent: any) => {
     setEditingSection(section);
-    // Ensure we're setting the actual content based on the section
-    let content = '';
-    if (section === 'tech-stack') {
-      content = techDoc.techStack || '';
-    } else if (section === 'frontend') {
-      content = techDoc.frontend || '';
-    } else if (section === 'backend') {
-      content = techDoc.backend || '';
+    // For platform section, provide a more structured editing experience
+    if (section === 'platform') {
+      const formattedContent = {
+        targets: sectionContent.targets || [],
+        requirements: sectionContent.requirements || []
+      };
+      setEditedContent(JSON.stringify(formattedContent, null, 2));
     } else {
-      content = JSON.stringify(sectionContent, null, 2);
+      let content = '';
+      if (section === 'tech-stack') {
+        content = techDoc.techStack || '';
+      } else if (section === 'frontend') {
+        content = techDoc.frontend || '';
+      } else if (section === 'backend') {
+        content = techDoc.backend || '';
+      } else {
+        content = JSON.stringify(sectionContent, null, 2);
+      }
+      setEditedContent(content);
     }
-    setEditedContent(content);
   };
 
   const handleSave = () => {
@@ -291,12 +299,47 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
       <div className="p-4">
         {editingSection === section ? (
           <div className="space-y-4">
-            <textarea
-              value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
-              className="w-full h-64 font-mono text-sm p-3 rounded-lg border border-[#e5e7eb] focus:border-[#0F533A] focus:ring-1 focus:ring-[#0F533A] outline-none transition-colors"
-              placeholder="Enter JSON content..."
-            />
+            {section === 'platform' ? (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Target Platforms</label>
+                  <textarea
+                    value={JSON.parse(editedContent).targets.join('\n')}
+                    onChange={(e) => {
+                      const targets = e.target.value.split('\n').filter(t => t.trim());
+                      setEditedContent(JSON.stringify({
+                        ...JSON.parse(editedContent),
+                        targets
+                      }, null, 2));
+                    }}
+                    className="w-full h-24 font-mono text-sm p-3 rounded-lg border border-[#e5e7eb] focus:border-[#0F533A] focus:ring-1 focus:ring-[#0F533A] outline-none transition-colors"
+                    placeholder="Enter one target platform per line"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Requirements</label>
+                  <textarea
+                    value={JSON.parse(editedContent).requirements.join('\n')}
+                    onChange={(e) => {
+                      const requirements = e.target.value.split('\n').filter(r => r.trim());
+                      setEditedContent(JSON.stringify({
+                        ...JSON.parse(editedContent),
+                        requirements
+                      }, null, 2));
+                    }}
+                    className="w-full h-32 font-mono text-sm p-3 rounded-lg border border-[#e5e7eb] focus:border-[#0F533A] focus:ring-1 focus:ring-[#0F533A] outline-none transition-colors"
+                    placeholder="Enter one requirement per line"
+                  />
+                </div>
+              </div>
+            ) : (
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full h-64 font-mono text-sm p-3 rounded-lg border border-[#e5e7eb] focus:border-[#0F533A] focus:ring-1 focus:ring-[#0F533A] outline-none transition-colors"
+                placeholder="Enter JSON content..."
+              />
+            )}
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setEditingSection(null)}

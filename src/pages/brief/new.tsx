@@ -93,8 +93,17 @@ export default function NewBrief() {
     if (!project || !generatedBrief || !currentFormData) return;
     
     try {
+      // Parse the brief data to ensure it's properly structured
+      const briefData = JSON.parse(generatedBrief);
+      
+      // Save the brief with initial states set to false
       const savedBrief = briefStore.saveBrief(project.id, currentFormData, generatedBrief);
-      router.push(`/brief/${savedBrief.id}`);
+      
+      // Update the brief to ensure proper button states
+      const updatedBrief = briefStore.updateBrief(savedBrief.id, briefData, false, false);
+      
+      // Navigate to the ideation page instead of brief detail
+      router.push(`/brief/${savedBrief.id}/ideate`);
     } catch (error) {
       console.error('Error saving brief:', error);
       setError('Failed to save brief. Please try again.');
@@ -187,7 +196,7 @@ export default function NewBrief() {
                   onClick={handleSaveBrief}
                   className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                 >
-                  Save Brief
+                  Continue
                 </button>
               </div>
             </div>

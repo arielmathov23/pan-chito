@@ -71,6 +71,7 @@ export default function BriefDetail() {
   const [usingMockData, setUsingMockData] = useState(false);
   const [isGeneratingPRD, setIsGeneratingPRD] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEditButtons, setShowEditButtons] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -85,7 +86,9 @@ export default function BriefDetail() {
         const featureSet = featureStore.getFeatureSetByBriefId(foundBrief.id);
         setHasFeatures(!!featureSet && featureSet.features.length > 0);
         
-        // Initialize edited brief data
+        // Initialize states from brief properties
+        setIsEditing(foundBrief.isEditing || false);
+        setShowEditButtons(foundBrief.showEditButtons || false);
         setEditedBriefData(foundBrief.briefData);
       }
       
@@ -111,7 +114,7 @@ export default function BriefDetail() {
     setIsSaving(true);
     
     try {
-      const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData);
+      const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData, false, false);
       if (updatedBrief) {
         setBrief(updatedBrief);
         setIsEditing(false);
@@ -153,11 +156,13 @@ export default function BriefDetail() {
   };
 
   const handleEditClick = () => {
+    setShowEditButtons(true);
     setIsEditing(true);
     setEditedBriefData(brief?.briefData || null);
   };
 
   const handleCancelEdit = () => {
+    setShowEditButtons(false);
     setIsEditing(false);
     setEditedBriefData(null);
   };
@@ -166,9 +171,10 @@ export default function BriefDetail() {
     if (!brief || !editedBriefData) return;
     
     try {
-      const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData);
+      const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData, false, false);
       if (updatedBrief) {
         setBrief(updatedBrief);
+        setShowEditButtons(false);
         setIsEditing(false);
         setEditedBriefData(updatedBrief.briefData);
       }
@@ -240,8 +246,8 @@ export default function BriefDetail() {
               <span className="text-[#111827]">Brief</span>
             </div>
             
-            <div className="flex items-center space-x-3">
-              {isEditing ? (
+            <div className="flex space-x-4">
+              {showEditButtons ? (
                 <>
                   <button
                     onClick={handleCancelEdit}
@@ -262,7 +268,7 @@ export default function BriefDetail() {
                     onClick={handleEditClick}
                     className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors"
                   >
-                    Edit Brief
+                    Edit
                   </button>
                   <Link
                     href={`/brief/${brief?.id}/ideate`}
