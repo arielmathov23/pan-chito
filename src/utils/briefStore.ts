@@ -5,10 +5,10 @@ export interface Brief {
   id: string;
   projectId: string;
   productName: string;
-  productDescription: string;
+  problemStatement: string;
   targetUsers: string;
-  keyProblems: string;
-  successMetrics: string;
+  proposedSolution: string;
+  productObjectives: string;
   createdAt: string;
   content: string;
   briefData: GeneratedBrief;
@@ -85,10 +85,10 @@ export const briefStore = {
       id: crypto.randomUUID(),
       projectId,
       productName: formData.productName,
-      productDescription: formData.productDescription,
+      problemStatement: formData.problemStatement,
       targetUsers: formData.targetUsers,
-      keyProblems: formData.keyProblems,
-      successMetrics: formData.successMetrics,
+      proposedSolution: formData.proposedSolution,
+      productObjectives: formData.productObjectives,
       createdAt: new Date().toISOString(),
       content,
       briefData,

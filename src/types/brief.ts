@@ -1,8 +1,13 @@
 export interface BriefFormData {
   productName: string;
-  productDescription: string;
+  problemStatement: string;
   targetUsers: string;
-  keyProblems: string;
-  successMetrics: string;
+  proposedSolution: string;
+  productObjectives: string;
+  keyFeatures: string;
+  marketAnalysis: string;
+  technicalRisks: string;
+  businessRisks: string;
+  existingSolutions: string;
   platforms?: string[];
 } 

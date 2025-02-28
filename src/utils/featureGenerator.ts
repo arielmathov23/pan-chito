@@ -77,11 +77,11 @@ export async function generateFeatures(brief: Brief): Promise<Feature[]> {
 
 Product Brief:
 ${brief.productName}
-${brief.productDescription}
+${brief.problemStatement}
 
 Target Users: ${brief.targetUsers}
-Key Problems: ${brief.keyProblems}
-Success Metrics: ${brief.successMetrics}
+Problem Statement: ${brief.problemStatement}
+Product Objectives: ${brief.productObjectives}
 
 Format each feature as a JSON object with:
 - name: short feature name
