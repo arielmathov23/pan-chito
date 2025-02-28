@@ -3,7 +3,7 @@ export interface Feature {
   title: string;
   description: string;
   userStories?: string[];
-  priority?: string;
+  priority: 'must' | 'should' | 'could' | 'wont';
   complexity?: string;
   status?: string;
   briefId: string;

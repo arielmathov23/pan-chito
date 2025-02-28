@@ -111,9 +111,10 @@ Return the features as a JSON array.`;
     return features.map((feature: any) => ({
       id: uuidv4(),
       briefId: brief.id,
+      title: feature.name || '',
       name: feature.name || '',
       description: feature.description || '',
-      priority: feature.priority || 'could',
+      priority: (feature.priority === 'must' || feature.priority === 'should' || feature.priority === 'could' || feature.priority === 'wont') ? feature.priority : 'could',
       difficulty: feature.difficulty || 'medium',
       createdAt: new Date().toISOString()
     }));
@@ -145,10 +146,11 @@ export function parseGeneratedFeatures(jsonString: string, briefId: string): Gen
       return features.map(feature => ({
         id: crypto.randomUUID(),
         briefId,
+        title: feature.name || '',
         name: feature.name,
         description: feature.description,
         priority,
-        difficulty: feature.difficulty || 'medium', // Add default difficulty if not provided
+        difficulty: feature.difficulty || 'medium',
         createdAt: new Date().toISOString()
       }));
     };
