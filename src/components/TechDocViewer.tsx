@@ -187,6 +187,7 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     }
     
     setParsedContent(parsed);
+    return parsed;
   };
 
   const handleEdit = (section: string, sectionContent: any) => {
@@ -208,7 +209,14 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         JSON.parse(content);
       } catch (e) {
         if (!content || content.trim() === '') {
-          content = getTemplateForTab('tech-stack');
+          content = JSON.stringify({
+            overview: "Brief overview of the technology stack including what type of platform this is (mobile app, web app, SaaS, desktop application, etc.) and the overall architecture approach",
+            frontend: "Frontend technologies with justification",
+            backend: "Backend technologies with justification",
+            database: "Database recommendations with justification",
+            deployment: "Deployment and hosting recommendations",
+            thirdPartyServices: "Any third-party services or APIs needed"
+          }, null, 2);
         }
       }
       setEditedContent(content);
@@ -218,7 +226,15 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         JSON.parse(content);
       } catch (e) {
         if (!content || content.trim() === '') {
-          content = getTemplateForTab('frontend');
+          content = JSON.stringify({
+            overview: "Brief overview of the frontend guidelines",
+            colorPalette: "Recommended color palette with hex codes (e.g. #0F533A, #8b5cf6)",
+            typography: "Typography recommendations including font families and sizes",
+            componentStructure: "How components should be organized and structured",
+            responsiveDesign: "Guidelines for ensuring the application works across devices",
+            accessibilityConsiderations: "Key accessibility requirements to implement",
+            uiReferences: "References to similar UIs or design systems for inspiration"
+          }, null, 2);
         }
       }
       setEditedContent(content);
@@ -228,7 +244,14 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         JSON.parse(content);
       } catch (e) {
         if (!content || content.trim() === '') {
-          content = getTemplateForTab('backend');
+          content = JSON.stringify({
+            overview: "Brief overview of the backend architecture",
+            apiRoutes: "Recommended API route structure",
+            databaseSchema: "High-level database schema design",
+            authentication: "Authentication and authorization approach",
+            integrations: "Details on external integrations or APIs",
+            dataProcessing: "How data should be processed and transformed"
+          }, null, 2);
         }
       }
       setEditedContent(content);
@@ -261,152 +284,123 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    if (!editingSection || !editedContent) return;
-
-    const updatedTechDoc = { ...techDoc };
+  const handleSave = async () => {
+    console.log(`Saving ${editingSection} content:`, editedContent.substring(0, 100) + "...");
     
     try {
-      // Update the appropriate section
-      if (editingSection === 'tech-stack') {
-        // Try to parse the content to validate it's proper JSON
+      // Validate JSON if needed
+      if (editingSection === 'tech-stack' || editingSection === 'frontend' || editingSection === 'backend') {
         try {
+          // Try to parse the content as JSON to validate it
           JSON.parse(editedContent);
-          updatedTechDoc.techStack = editedContent;
-          console.log('Saving tech stack content:', editedContent.substring(0, 100) + '...');
-        } catch (error) {
-          console.error('Invalid JSON for tech stack:', error);
-          alert('The tech stack content is not valid JSON. Please check your formatting.');
+        } catch (e) {
+          console.error(`Invalid JSON format for ${editingSection}:`, e);
+          alert(`The content for ${editingSection} is not valid JSON. Please check your formatting.`);
           return;
-        }
-      } else if (editingSection === 'frontend') {
-        try {
-          JSON.parse(editedContent);
-          updatedTechDoc.frontend = editedContent;
-          console.log('Saving frontend content:', editedContent.substring(0, 100) + '...');
-        } catch (error) {
-          console.error('Invalid JSON for frontend guidelines:', error);
-          alert('The frontend guidelines content is not valid JSON. Please check your formatting.');
-          return;
-        }
-      } else if (editingSection === 'backend') {
-        try {
-          JSON.parse(editedContent);
-          updatedTechDoc.backend = editedContent;
-          console.log('Saving backend content:', editedContent.substring(0, 100) + '...');
-        } catch (error) {
-          console.error('Invalid JSON for backend structure:', error);
-          alert('The backend structure content is not valid JSON. Please check your formatting.');
-          return;
-        }
-      } else if (editingSection === 'platform') {
-        // For platform section, which has a specific structure
-        try {
-          const parsedContent = JSON.parse(editedContent);
-          updatedTechDoc.content = {
-            ...updatedTechDoc.content,
-            platform: parsedContent
-          };
-        } catch (error) {
-          console.error('Error parsing platform content:', error);
-          alert('There was an error with the platform content. Please check your formatting.');
-          return;
-        }
-      } else {
-        // For other subsections
-        try {
-          // Try to parse as JSON first
-          const parsedContent = JSON.parse(editedContent);
-          updatedTechDoc.content = {
-            ...updatedTechDoc.content,
-            [editingSection]: parsedContent
-          };
-        } catch (error) {
-          console.error('Error parsing content as JSON, saving as text:', error);
-          // If JSON parsing fails, save as plain text
-          updatedTechDoc.content = {
-            ...updatedTechDoc.content,
-            [editingSection]: editedContent
-          };
         }
       }
-
-      onUpdate(updatedTechDoc);
-      setEditingSection(null);
-      setEditedContent('');
-      setIsEditing(false);
-      parseDocContent(); // Refresh the displayed content
+      
+      // Create a copy of the tech doc to update
+      const updatedTechDoc = { ...techDoc };
+      
+      // Update the appropriate section
+      if (editingSection === 'tech-stack') {
+        updatedTechDoc.techStack = editedContent;
+        console.log("Updated tech stack content");
+      } else if (editingSection === 'frontend') {
+        updatedTechDoc.frontend = editedContent;
+        console.log("Updated frontend content");
+      } else if (editingSection === 'backend') {
+        updatedTechDoc.backend = editedContent;
+        console.log("Updated backend content");
+      }
+      
+      // Save the updated tech doc
+      if (projectId) {
+        const response = await fetch(`/api/projects/${projectId}/tech-doc`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedTechDoc),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to save tech doc: ${response.statusText}`);
+        }
+        
+        // Update the local state with the new tech doc
+        onUpdate(updatedTechDoc);
+        console.log("Successfully saved tech doc");
+        
+        // Reset editing state
+        setIsEditing(false);
+        setEditingSection(null);
+        setEditedContent('');
+        
+        // Refresh the parsed content
+        const refreshedContent = parseDocContent();
+        setParsedContent(refreshedContent);
+      } else {
+        console.error("Cannot save tech doc: No project ID available");
+        alert("Cannot save tech doc: No project ID available");
+      }
     } catch (error) {
-      console.error('Error saving content:', error);
-      alert('There was an error saving your changes. Please try again.');
+      console.error("Error saving tech doc:", error);
+      alert(`Error saving tech doc: ${error.message}`);
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setEditingSection(null);
-  };
-
-  const getTemplateForTab = (tab: 'tech-stack' | 'frontend' | 'backend'): string => {
-    switch (tab) {
-      case 'tech-stack':
-        return `{
-  "overview": "Brief overview of the technology stack including what type of platform this is (mobile app, web app, SaaS, desktop application, etc.) and the overall architecture approach",
-  "frontend": "Frontend technologies with justification",
-  "backend": "Backend technologies with justification",
-  "database": "Database recommendations with justification",
-  "deployment": "Deployment and hosting recommendations",
-  "thirdPartyServices": "Any third-party services or APIs needed"
-}`;
-      case 'frontend':
-        return `{
-  "overview": "Brief overview of the frontend guidelines",
-  "colorPalette": "Recommended color palette with hex codes (e.g. #0F533A, #8b5cf6)",
-  "typography": "Typography recommendations including font families and sizes",
-  "componentStructure": "How components should be organized and structured",
-  "responsiveDesign": "Guidelines for ensuring the application works across devices",
-  "accessibilityConsiderations": "Key accessibility requirements to implement",
-  "uiReferences": "References to similar UIs or design systems for inspiration"
-}`;
-      case 'backend':
-        return `{
-  "overview": "Brief overview of the backend architecture",
-  "apiRoutes": "Recommended API route structure",
-  "databaseSchema": "High-level database schema design",
-  "authentication": "Authentication and authorization approach",
-  "integrations": "Details on external integrations or APIs",
-  "dataProcessing": "How data should be processed and transformed"
-}`;
-      default:
-        return '';
-    }
+    setEditedContent('');
   };
 
   const handleCreateDocumentation = () => {
-    setIsEditing(true);
+    console.log("Creating documentation for tab:", activeTab);
     
-    // If the current tab's content is empty, provide a template
-    const newContent = { ...content };
+    let initialContent = '';
     
     switch (activeTab) {
       case 'tech-stack':
-        if (!newContent.techStack || newContent.techStack.trim() === '') {
-          newContent.techStack = getTemplateForTab('tech-stack');
-        }
+        initialContent = techDoc.techStack && techDoc.techStack.trim() !== '' 
+          ? techDoc.techStack 
+          : JSON.stringify({
+              overview: "Provide an overview of the technology stack, including platform type (web app, mobile app, etc.)",
+              frontend: "Describe frontend technologies",
+              backend: "Describe backend technologies",
+              database: "Describe database technologies",
+              infrastructure: "Describe infrastructure and deployment"
+            }, null, 2);
         break;
       case 'frontend':
-        if (!newContent.frontend || newContent.frontend.trim() === '') {
-          newContent.frontend = getTemplateForTab('frontend');
-        }
+        initialContent = techDoc.frontend && techDoc.frontend.trim() !== '' 
+          ? techDoc.frontend 
+          : JSON.stringify({
+              typography: "Describe typography guidelines",
+              colors: "Describe color palette",
+              components: "Describe key UI components",
+              responsive: "Describe responsive design approach"
+            }, null, 2);
         break;
       case 'backend':
-        if (!newContent.backend || newContent.backend.trim() === '') {
-          newContent.backend = getTemplateForTab('backend');
-        }
+        initialContent = techDoc.backend && techDoc.backend.trim() !== '' 
+          ? techDoc.backend 
+          : JSON.stringify({
+              architecture: "Describe backend architecture",
+              api: "Describe API structure",
+              security: "Describe security measures",
+              performance: "Describe performance considerations"
+            }, null, 2);
         break;
     }
     
-    setEditedContent(JSON.stringify(newContent, null, 2));
+    console.log("Initial content set to:", initialContent.substring(0, 100) + "...");
+    
+    setEditedContent(initialContent);
+    setEditingSection(activeTab);
+    setIsEditing(true);
   };
 
   const renderEditableSection = (title: string, section: string, content: any) => (
@@ -820,26 +814,12 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
   };
 
   const renderContent = () => {
-    if (isEditing) {
-      let content = '';
-      
-      switch (activeTab) {
-        case 'tech-stack':
-          content = editedContent;
-          break;
-        case 'frontend':
-          content = editedContent;
-          break;
-        case 'backend':
-          content = editedContent;
-          break;
-      }
-      
+    if (isEditing && editingSection) {
       return (
         <div className="mt-6">
           <textarea
             className="w-full h-[500px] p-4 border border-[#e5e7eb] rounded-lg font-mono text-sm"
-            value={content}
+            value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
           />
           
@@ -876,7 +856,7 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
             className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
           >
             <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -908,7 +888,14 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={() => {
+              if (isEditing) {
+                setIsEditing(false);
+                setEditingSection(null);
+              } else {
+                handleCreateDocumentation();
+              }
+            }}
             className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#4b5563] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
           >
             {isEditing ? (
