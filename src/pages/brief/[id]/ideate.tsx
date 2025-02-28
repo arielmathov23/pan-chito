@@ -328,7 +328,7 @@ export default function IdeateFeatures() {
                   <path d="M12 8V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M11.9945 16H12.0035" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <h3 className="text-lg font-semibold text-[#111827]">MVP Feature Prioritization Guide</h3>
+                <h3 className="text-lg font-semibold text-[#111827]">Feature Prioritization Guide</h3>
               </div>
               <svg 
                 className={`w-5 h-5 text-[#0F533A] transform transition-transform duration-200 ${showMvpInfo ? 'rotate-180' : ''}`} 
@@ -345,7 +345,7 @@ export default function IdeateFeatures() {
             >
               <div className="p-4 space-y-4 border-t border-[#e5e7eb]">
                 <p className="text-[#4b5563]">
-                  Use the MoSCoW method to prioritize features for your MVP. Drag and drop features between categories:
+                  Use the MoSCoW method to prioritize features to get a Minimum Viable Product (MVP). Drag and drop features between categories:
                 </p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
