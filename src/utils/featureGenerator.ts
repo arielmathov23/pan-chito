@@ -73,6 +73,33 @@ function generateMockFeatures(brief: Brief): string {
 }
 
 export async function generateFeatures(brief: Brief): Promise<Feature[]> {
+  if (USE_MOCK) {
+    const mockResponse = generateMockFeatures(brief);
+    try {
+      const parsed = JSON.parse(mockResponse);
+      const allFeatures = [
+        ...parsed.features.must,
+        ...parsed.features.should,
+        ...parsed.features.could,
+        ...parsed.features.wont
+      ];
+      
+      return allFeatures.map((feature: any) => ({
+        id: uuidv4(),
+        briefId: brief.id,
+        title: feature.name || '',
+        name: feature.name || '',
+        description: feature.description || '',
+        priority: (feature.priority === 'must' || feature.priority === 'should' || feature.priority === 'could' || feature.priority === 'wont') ? feature.priority : 'could',
+        difficulty: feature.difficulty || 'medium',
+        createdAt: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('Error parsing mock features:', error);
+      throw new Error('Failed to parse mock features');
+    }
+  }
+
   const prompt = `Based on the following product brief, generate a list of features using the MoSCoW prioritization framework (Must have, Should have, Could have, Won't have). For each feature, also assess its difficulty level (easy, medium, hard) based on implementation complexity.
 
 Product Brief:
@@ -83,19 +110,39 @@ Target Users: ${brief.targetUsers}
 Problem Statement: ${brief.problemStatement}
 Product Objectives: ${brief.productObjectives}
 
-Format each feature as a JSON object with:
+Format your response as a valid JSON array of features. Each feature should be a JSON object with:
 - name: short feature name
 - description: detailed description
 - priority: one of ["must", "should", "could", "wont"]
 - difficulty: one of ["easy", "medium", "hard"]
 
-Return the features as a JSON array.`;
+IMPORTANT: Your entire response must be a valid JSON array that can be parsed with JSON.parse().
+Example format:
+[
+  {
+    "name": "Feature Name",
+    "description": "Feature description",
+    "priority": "must",
+    "difficulty": "medium"
+  },
+  ...
+]`;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
+      model: "gpt-4o-mini",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are a feature generator that only outputs valid JSON arrays. Never include explanatory text in your response."
+        },
+        { 
+          role: "user", 
+          content: prompt 
+        }
+      ],
       temperature: 0.7,
+      response_format: { type: "json_object" }
     });
 
     const response = completion.choices[0].message.content;
@@ -103,9 +150,59 @@ Return the features as a JSON array.`;
       throw new Error('No content received from OpenAI');
     }
 
-    const features = JSON.parse(response);
-    if (!Array.isArray(features)) {
-      throw new Error('Invalid response format: expected an array of features');
+    // Extract JSON from the response
+    let jsonString = response.trim();
+    
+    // Remove markdown code block indicators if present
+    if (jsonString.includes('```json')) {
+      jsonString = jsonString.replace(/```json\n|\n```/g, '');
+    } else if (jsonString.includes('```')) {
+      jsonString = jsonString.replace(/```\n|\n```/g, '');
+    }
+    
+    // Find the first { or [ and the last } or ]
+    const firstBrace = Math.min(
+      jsonString.indexOf('{') >= 0 ? jsonString.indexOf('{') : Number.MAX_SAFE_INTEGER,
+      jsonString.indexOf('[') >= 0 ? jsonString.indexOf('[') : Number.MAX_SAFE_INTEGER
+    );
+    
+    const lastBrace = Math.max(
+      jsonString.lastIndexOf('}'),
+      jsonString.lastIndexOf(']')
+    );
+    
+    if (firstBrace !== Number.MAX_SAFE_INTEGER && lastBrace !== -1) {
+      jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+    }
+
+    let features;
+    try {
+      features = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Response was:', jsonString);
+      throw new Error('Failed to parse the response as JSON');
+    }
+
+    // Handle both array format and object with features property
+    if (features.features) {
+      // Handle the case where the response is in the format { features: [...] }
+      features = features.features;
+    } else if (!Array.isArray(features)) {
+      // If it's an object but not in the expected format, try to extract features
+      if (features.must || features.should || features.could || features.wont) {
+        features = [
+          ...(features.must || []),
+          ...(features.should || []),
+          ...(features.could || []),
+          ...(features.wont || [])
+        ];
+      } else {
+        throw new Error('Invalid response format: expected an array of features or a features object');
+      }
+    }
+
+    if (!Array.isArray(features) || features.length === 0) {
+      throw new Error('Invalid response format: expected a non-empty array of features');
     }
 
     return features.map((feature: any) => ({

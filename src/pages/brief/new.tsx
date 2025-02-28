@@ -184,9 +184,24 @@ export default function NewBrief() {
               <div className="flex space-x-4">
                 <button
                   onClick={() => {
-                    setGeneratedBrief(null);
-                    setParsedBrief(null);
-                    setError(null);
+                    if (!project || !generatedBrief || !currentFormData) return;
+                    
+                    try {
+                      // Parse the brief data to ensure it's properly structured
+                      const briefData = JSON.parse(generatedBrief);
+                      
+                      // Save the brief with editing mode enabled
+                      const savedBrief = briefStore.saveBrief(project.id, currentFormData, generatedBrief);
+                      
+                      // Update the brief to ensure proper button states
+                      const updatedBrief = briefStore.updateBrief(savedBrief.id, briefData, true, true);
+                      
+                      // Navigate to the brief detail page in edit mode
+                      router.push(`/brief/${savedBrief.id}`);
+                    } catch (error) {
+                      console.error('Error saving brief for editing:', error);
+                      setError('Failed to save brief for editing. Please try again.');
+                    }
                   }}
                   className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
                 >

@@ -116,7 +116,7 @@ Please provide your response as a JSON object with the following structure:
 
 {
   "techStack": {
-    "overview": "A brief overview of the recommended technology stack including the platform.",
+    "overview": "A brief overview of the recommended technology stack that MUST clearly specify what type of platform this is (mobile app, web app, SaaS, desktop application, etc.) and the overall architecture approach.",
     "frontend": "Frontend technologies with justification",
     "backend": "Backend technologies with justification",
     "database": "Database recommendations with justification",
@@ -167,7 +167,7 @@ Ensure all recommendations are justified based on the product requirements and t
       messages: [
         {
           role: "system",
-          content: "You are a senior technical architect with expertise in modern web development stacks. You provide clear, practical technical documentation that balances best practices with pragmatic implementation details. You have deep knowledge of React, Next.js, Node.js, Express, Supabase, and Vercel. You excel at creating technical specifications that are detailed enough to guide development without being overly complex. You always respond with valid JSON where all values are strings, not nested objects or arrays."
+          content: "You are a senior technical architect with expertise in modern web development stacks. You provide clear, practical technical documentation that balances best practices with pragmatic implementation details. You have deep knowledge of React, Next.js, Node.js, Express, Supabase, and Vercel. You excel at creating technical specifications that are detailed enough to guide development without being overly complex. Always clearly specify the platform type (mobile app, web app, SaaS, desktop application, etc.) in the tech stack overview. You always respond with valid JSON where all values are strings, not nested objects or arrays."
         },
         {
           role: "user",
@@ -246,11 +246,27 @@ function generateTechStackContent(brief: Brief, prd: PRD): string {
   const isIOS = platforms.includes('ios');
   const isAndroid = platforms.includes('android');
   
+  // Determine platform type description
+  let platformType = "Web Application";
+  if (isIOS && isAndroid && isWeb) {
+    platformType = "Cross-platform Application (Web, iOS, Android)";
+  } else if (isIOS && isAndroid) {
+    platformType = "Mobile Application (iOS, Android)";
+  } else if (isIOS) {
+    platformType = "iOS Mobile Application";
+  } else if (isAndroid) {
+    platformType = "Android Mobile Application";
+  }
+  
   let content = `# Technology Stack Recommendations
 
 ## Overview
 
 Based on the requirements outlined in the PRD for ${brief.productName}, we recommend the following technology stack to ensure efficient development, scalability, and maintainability.
+
+**Platform Type: ${platformType}**
+
+This technical documentation outlines the recommended architecture and technology choices for this ${platformType.toLowerCase()}.
 
 ## Recommended Technologies
 

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { TechDoc, techDocStore } from '../utils/techDocStore';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { prdStore } from '../utils/prdStore';
+import { briefStore } from '../utils/briefStore';
 
 interface TechDocViewerProps {
   techDoc: TechDoc;
@@ -48,18 +52,44 @@ interface EditableContent {
 }
 
 export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'tech-stack' | 'frontend' | 'backend'>('tech-stack');
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>('');
-  const [content, setContent] = useState<EditableContent>(techDoc.content);
+  const [content, setContent] = useState<EditableContent>(techDoc.content || {
+    platform: { targets: [], requirements: [] },
+    frontend: {},
+    backend: {},
+    api: {},
+    database: {},
+    deployment: {}
+  });
   const [parsedContent, setParsedContent] = useState<ParsedTechDoc>({});
   const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Parse the tech doc content
     parseDocContent();
     
-    // Update edited content when techDoc changes
-    setEditedContent(JSON.stringify(techDoc.content, null, 2));
+    // Set content from techDoc
+    setContent(techDoc.content || {
+      platform: { targets: [], requirements: [] },
+      frontend: {},
+      backend: {},
+      api: {},
+      database: {},
+      deployment: {}
+    });
+    
+    // Get project ID from the tech doc's PRD
+    const prd = prdStore.getPRD(techDoc.prdId);
+    if (prd) {
+      const brief = briefStore.getBrief(prd.briefId);
+      if (brief) {
+        setProjectId(brief.projectId);
+      }
+    }
   }, [techDoc]);
 
   const parseDocContent = () => {
@@ -69,7 +99,8 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
       console.log('Parsing tech doc content:', {
         techStack: techDoc.techStack ? techDoc.techStack.substring(0, 100) + '...' : null,
         frontend: techDoc.frontend ? techDoc.frontend.substring(0, 100) + '...' : null,
-        backend: techDoc.backend ? techDoc.backend.substring(0, 100) + '...' : null
+        backend: techDoc.backend ? techDoc.backend.substring(0, 100) + '...' : null,
+        content: techDoc.content ? JSON.stringify(techDoc.content).substring(0, 100) + '...' : null
       });
       
       // First try to parse as a complete TechDocumentation object
@@ -160,6 +191,7 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
 
   const handleEdit = (section: string, sectionContent: any) => {
     setEditingSection(section);
+    
     // For platform section, provide a more structured editing experience
     if (section === 'platform') {
       const formattedContent = {
@@ -167,19 +199,66 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         requirements: sectionContent.requirements || []
       };
       setEditedContent(JSON.stringify(formattedContent, null, 2));
-    } else {
-      let content = '';
-      if (section === 'tech-stack') {
-        content = techDoc.techStack || '';
-      } else if (section === 'frontend') {
-        content = techDoc.frontend || '';
-      } else if (section === 'backend') {
-        content = techDoc.backend || '';
-      } else {
-        content = JSON.stringify(sectionContent, null, 2);
+    } else if (section === 'tech-stack') {
+      // Get the raw content from techDoc
+      let content = techDoc.techStack || '';
+      
+      // If it's not valid JSON or empty, create a template
+      try {
+        JSON.parse(content);
+      } catch (e) {
+        if (!content || content.trim() === '') {
+          content = getTemplateForTab('tech-stack');
+        }
       }
       setEditedContent(content);
+    } else if (section === 'frontend') {
+      let content = techDoc.frontend || '';
+      try {
+        JSON.parse(content);
+      } catch (e) {
+        if (!content || content.trim() === '') {
+          content = getTemplateForTab('frontend');
+        }
+      }
+      setEditedContent(content);
+    } else if (section === 'backend') {
+      let content = techDoc.backend || '';
+      try {
+        JSON.parse(content);
+      } catch (e) {
+        if (!content || content.trim() === '') {
+          content = getTemplateForTab('backend');
+        }
+      }
+      setEditedContent(content);
+    } else {
+      // For subsections, ensure we're working with a proper JSON string
+      try {
+        // If sectionContent is already an object, stringify it
+        if (typeof sectionContent === 'object' && sectionContent !== null) {
+          setEditedContent(JSON.stringify(sectionContent, null, 2));
+        } else if (typeof sectionContent === 'string') {
+          // Try to parse it as JSON to validate, then re-stringify with formatting
+          try {
+            const parsed = JSON.parse(sectionContent);
+            setEditedContent(JSON.stringify(parsed, null, 2));
+          } catch (e) {
+            // If it's not valid JSON, use as is
+            setEditedContent(sectionContent);
+          }
+        } else {
+          // Fallback for other types
+          setEditedContent(JSON.stringify(sectionContent || {}, null, 2));
+        }
+      } catch (e) {
+        // If any error occurs, use a safe fallback
+        console.error('Error preparing content for editing:', e);
+        setEditedContent(typeof sectionContent === 'string' ? sectionContent : JSON.stringify(sectionContent || {}, null, 2));
+      }
     }
+    
+    setIsEditing(true);
   };
 
   const handleSave = () => {
@@ -187,43 +266,92 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
 
     const updatedTechDoc = { ...techDoc };
     
-    // Update the appropriate section
-    if (editingSection === 'tech-stack') {
-      updatedTechDoc.techStack = editedContent;
-    } else if (editingSection === 'frontend') {
-      updatedTechDoc.frontend = editedContent;
-    } else if (editingSection === 'backend') {
-      updatedTechDoc.backend = editedContent;
-    } else {
-      try {
-        // For other sections, parse the JSON content
-        const parsedContent = JSON.parse(editedContent);
-        updatedTechDoc.content = {
-          ...updatedTechDoc.content,
-          [editingSection]: parsedContent
-        };
-      } catch (error) {
-        console.error('Error parsing content:', error);
-        return;
+    try {
+      // Update the appropriate section
+      if (editingSection === 'tech-stack') {
+        // Try to parse the content to validate it's proper JSON
+        try {
+          JSON.parse(editedContent);
+          updatedTechDoc.techStack = editedContent;
+          console.log('Saving tech stack content:', editedContent.substring(0, 100) + '...');
+        } catch (error) {
+          console.error('Invalid JSON for tech stack:', error);
+          alert('The tech stack content is not valid JSON. Please check your formatting.');
+          return;
+        }
+      } else if (editingSection === 'frontend') {
+        try {
+          JSON.parse(editedContent);
+          updatedTechDoc.frontend = editedContent;
+          console.log('Saving frontend content:', editedContent.substring(0, 100) + '...');
+        } catch (error) {
+          console.error('Invalid JSON for frontend guidelines:', error);
+          alert('The frontend guidelines content is not valid JSON. Please check your formatting.');
+          return;
+        }
+      } else if (editingSection === 'backend') {
+        try {
+          JSON.parse(editedContent);
+          updatedTechDoc.backend = editedContent;
+          console.log('Saving backend content:', editedContent.substring(0, 100) + '...');
+        } catch (error) {
+          console.error('Invalid JSON for backend structure:', error);
+          alert('The backend structure content is not valid JSON. Please check your formatting.');
+          return;
+        }
+      } else if (editingSection === 'platform') {
+        // For platform section, which has a specific structure
+        try {
+          const parsedContent = JSON.parse(editedContent);
+          updatedTechDoc.content = {
+            ...updatedTechDoc.content,
+            platform: parsedContent
+          };
+        } catch (error) {
+          console.error('Error parsing platform content:', error);
+          alert('There was an error with the platform content. Please check your formatting.');
+          return;
+        }
+      } else {
+        // For other subsections
+        try {
+          // Try to parse as JSON first
+          const parsedContent = JSON.parse(editedContent);
+          updatedTechDoc.content = {
+            ...updatedTechDoc.content,
+            [editingSection]: parsedContent
+          };
+        } catch (error) {
+          console.error('Error parsing content as JSON, saving as text:', error);
+          // If JSON parsing fails, save as plain text
+          updatedTechDoc.content = {
+            ...updatedTechDoc.content,
+            [editingSection]: editedContent
+          };
+        }
       }
-    }
 
-    onUpdate(updatedTechDoc);
-    setEditingSection(null);
-    setEditedContent('');
-    parseDocContent(); // Refresh the displayed content
+      onUpdate(updatedTechDoc);
+      setEditingSection(null);
+      setEditedContent('');
+      setIsEditing(false);
+      parseDocContent(); // Refresh the displayed content
+    } catch (error) {
+      console.error('Error saving content:', error);
+      alert('There was an error saving your changes. Please try again.');
+    }
   };
 
   const handleCancel = () => {
-    setEditedContent(JSON.stringify(techDoc.content, null, 2));
     setIsEditing(false);
+    setEditingSection(null);
   };
 
   const getTemplateForTab = (tab: 'tech-stack' | 'frontend' | 'backend'): string => {
     switch (tab) {
       case 'tech-stack':
         return `{
-  "overview": "Brief overview of the technology stack",
+  "overview": "Brief overview of the technology stack including what type of platform this is (mobile app, web app, SaaS, desktop application, etc.) and the overall architecture approach",
   "frontend": "Frontend technologies with justification",
   "backend": "Backend technologies with justification",
   "database": "Database recommendations with justification",
@@ -383,9 +511,55 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
               </div>
             )}
             {section !== 'platform' && (
-              <pre className="text-sm text-[#4b5563] whitespace-pre-wrap">
-                {JSON.stringify(content, null, 2)}
-              </pre>
+              <div className="text-sm text-[#4b5563]">
+                {typeof content === 'object' && content !== null ? 
+                  Object.entries(content).map(([key, value]) => (
+                    <div key={key} className="mb-4">
+                      <h4 className="text-base font-medium text-[#374151] mb-2">
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      </h4>
+                      <div className="text-[#4b5563] text-sm leading-relaxed whitespace-pre-line">
+                        {typeof value === 'string' 
+                          ? value 
+                          : typeof value === 'object' && value !== null
+                            ? JSON.stringify(value, null, 2)
+                            : String(value)
+                        }
+                      </div>
+                    </div>
+                  ))
+                : typeof content === 'string' 
+                  ? (
+                    <div className="whitespace-pre-wrap">
+                      {(() => {
+                        try {
+                          // Try to parse and format as JSON
+                          const parsed = JSON.parse(content);
+                          return Object.entries(parsed).map(([key, value]) => (
+                            <div key={key} className="mb-4">
+                              <h4 className="text-base font-medium text-[#374151] mb-2">
+                                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                              </h4>
+                              <div className="text-[#4b5563] text-sm leading-relaxed whitespace-pre-line">
+                                {typeof value === 'string' 
+                                  ? value 
+                                  : typeof value === 'object' && value !== null
+                                    ? JSON.stringify(value, null, 2)
+                                    : String(value)
+                                }
+                              </div>
+                            </div>
+                          ));
+                        } catch (e) {
+                          // If not valid JSON, display as plain text
+                          return content;
+                        }
+                      })()}
+                    </div>
+                  )
+                  : String(content)
+                }
+              </div>
             )}
           </div>
         )}
@@ -477,6 +651,39 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     const techStack = parsedContent.techStack;
     
     if (!techStack) {
+      // If no parsed content is available, try to show the raw content
+      if (techDoc.techStack) {
+        try {
+          // Try to parse and display as JSON
+          const rawContent = JSON.parse(techDoc.techStack);
+          return (
+            <div className="mt-6">
+              {Object.entries(rawContent).map(([key, value]) => (
+                <div key={key} className="mb-4">
+                  <h4 className="text-base font-medium text-[#374151] mb-2">
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  </h4>
+                  <div className="text-[#4b5563] text-sm leading-relaxed whitespace-pre-line">
+                    {typeof value === 'string' 
+                      ? value 
+                      : typeof value === 'object' && value !== null
+                        ? JSON.stringify(value, null, 2)
+                        : String(value)
+                    }
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        } catch (e) {
+          // If not valid JSON, display as plain text
+          return (
+            <div className="mt-6 whitespace-pre-wrap text-[#4b5563] text-sm">
+              {techDoc.techStack}
+            </div>
+          );
+        }
+      }
       return <p className="text-gray-500 mt-6">No tech stack information available</p>;
     }
     
@@ -501,6 +708,39 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     const frontend = parsedContent.frontendGuidelines;
     
     if (!frontend) {
+      // If no parsed content is available, try to show the raw content
+      if (techDoc.frontend) {
+        try {
+          // Try to parse and display as JSON
+          const rawContent = JSON.parse(techDoc.frontend);
+          return (
+            <div className="mt-6">
+              {Object.entries(rawContent).map(([key, value]) => (
+                <div key={key} className="mb-4">
+                  <h4 className="text-base font-medium text-[#374151] mb-2">
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  </h4>
+                  <div className="text-[#4b5563] text-sm leading-relaxed whitespace-pre-line">
+                    {typeof value === 'string' 
+                      ? value 
+                      : typeof value === 'object' && value !== null
+                        ? JSON.stringify(value, null, 2)
+                        : String(value)
+                    }
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        } catch (e) {
+          // If not valid JSON, display as plain text
+          return (
+            <div className="mt-6 whitespace-pre-wrap text-[#4b5563] text-sm">
+              {techDoc.frontend}
+            </div>
+          );
+        }
+      }
       return <p className="text-gray-500 mt-6">No frontend guidelines available</p>;
     }
     
@@ -526,6 +766,39 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     const backend = parsedContent.backendStructure;
     
     if (!backend) {
+      // If no parsed content is available, try to show the raw content
+      if (techDoc.backend) {
+        try {
+          // Try to parse and display as JSON
+          const rawContent = JSON.parse(techDoc.backend);
+          return (
+            <div className="mt-6">
+              {Object.entries(rawContent).map(([key, value]) => (
+                <div key={key} className="mb-4">
+                  <h4 className="text-base font-medium text-[#374151] mb-2">
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  </h4>
+                  <div className="text-[#4b5563] text-sm leading-relaxed whitespace-pre-line">
+                    {typeof value === 'string' 
+                      ? value 
+                      : typeof value === 'object' && value !== null
+                        ? JSON.stringify(value, null, 2)
+                        : String(value)
+                    }
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        } catch (e) {
+          // If not valid JSON, display as plain text
+          return (
+            <div className="mt-6 whitespace-pre-wrap text-[#4b5563] text-sm">
+              {techDoc.backend}
+            </div>
+          );
+        }
+      }
       return <p className="text-gray-500 mt-6">No backend structure information available</p>;
     }
     
@@ -603,7 +876,7 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
             className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
           >
             <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -633,30 +906,32 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
           <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
         </div>
         
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#4b5563] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-        >
-          {isEditing ? (
-            <>
-              <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9.17 14.83L14.83 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14.83 14.83L9.17 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Cancel Editing
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Edit Documentation
-            </>
-          )}
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#4b5563] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+          >
+            {isEditing ? (
+              <>
+                <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9.17 14.83L14.83 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14.83 14.83L9.17 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Cancel Editing
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Edit Documentation
+              </>
+            )}
+          </button>
+        </div>
       </div>
       
       <div className="border-b border-[#e5e7eb]">

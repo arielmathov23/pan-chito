@@ -82,20 +82,18 @@ export default function BriefDetail() {
         const foundProject = projectStore.getProject(foundBrief.projectId);
         setProject(foundProject);
         
-        // Check if features exist for this brief
-        const featureSet = featureStore.getFeatureSetByBriefId(foundBrief.id);
-        setHasFeatures(!!featureSet && featureSet.features.length > 0);
+        setHasFeatures(!!featureStore.getFeatureSetByBriefId(foundBrief.id));
         
         // Initialize states from brief properties
         setIsEditing(foundBrief.isEditing || false);
         setShowEditButtons(foundBrief.showEditButtons || false);
         setEditedBriefData(foundBrief.briefData);
+        
+        setIsLoading(false);
+        
+        // Check if using mock data
+        setUsingMockData(isMockData());
       }
-      
-      setIsLoading(false);
-      
-      // Check if mock data is being used
-      setUsingMockData(isMockData());
     }
   }, [id]);
 
@@ -156,21 +154,32 @@ export default function BriefDetail() {
   };
 
   const handleEditClick = () => {
+    if (!brief) return;
+    
     setShowEditButtons(true);
     setIsEditing(true);
-    setEditedBriefData(brief?.briefData || null);
+    setEditedBriefData(brief.briefData);
+    
+    // Update the brief in storage to persist the editing state
+    briefStore.updateBrief(brief.id, brief.briefData, true, true);
   };
 
   const handleCancelEdit = () => {
+    if (!brief) return;
+    
     setShowEditButtons(false);
     setIsEditing(false);
-    setEditedBriefData(null);
+    setEditedBriefData(brief.briefData);
+    
+    // Update the brief in storage to persist the non-editing state
+    briefStore.updateBrief(brief.id, brief.briefData, false, false);
   };
 
   const handleSaveEdit = async () => {
     if (!brief || !editedBriefData) return;
     
     try {
+      // Update the brief with editing mode disabled
       const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData, false, false);
       if (updatedBrief) {
         setBrief(updatedBrief);
