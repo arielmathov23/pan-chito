@@ -3,11 +3,11 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import MockNotification from '../../components/MockNotification';
-import { Project, projectStore } from '../../utils/projectStore';
-import { Brief, briefStore } from '../../utils/briefStore';
+import { Project, projectService } from '../../services/projectService';
+import { Brief, briefService } from '../../services/briefService';
 import { featureStore } from '../../utils/featureStore';
 import { GeneratedBrief } from '../../utils/briefGenerator';
-import isMockData from '../../utils/mockDetector';
+import { isMockData } from '../../utils/mockDetector';
 import { generatePRD, parsePRD } from '../../utils/prdGenerator';
 import { prdStore } from '../../utils/prdStore';
 
@@ -74,27 +74,38 @@ export default function BriefDetail() {
   const [showEditButtons, setShowEditButtons] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      const foundBrief = briefStore.getBrief(id as string);
-      setBrief(foundBrief);
+    const fetchBriefAndProject = async () => {
+      if (!id) return;
       
-      if (foundBrief) {
-        const foundProject = projectStore.getProject(foundBrief.projectId);
-        setProject(foundProject);
+      try {
+        // Fetch brief from Supabase
+        const foundBrief = await briefService.getBriefById(id as string);
         
-        setHasFeatures(!!featureStore.getFeatureSetByBriefId(foundBrief.id));
-        
-        // Initialize states from brief properties
-        setIsEditing(foundBrief.isEditing || false);
-        setShowEditButtons(foundBrief.showEditButtons || false);
-        setEditedBriefData(foundBrief.briefData);
-        
+        if (foundBrief) {
+          setBrief(foundBrief);
+          
+          // Fetch project from Supabase
+          const foundProject = await projectService.getProjectById(foundBrief.project_id);
+          setProject(foundProject);
+          
+          // Check for features (still using local storage for now)
+          setHasFeatures(!!featureStore.getFeatureSetByBriefId(foundBrief.id));
+          
+          // Initialize states from brief properties
+          setIsEditing(foundBrief.is_editing || false);
+          setShowEditButtons(foundBrief.show_edit_buttons || false);
+          setEditedBriefData(foundBrief.brief_data);
+        }
+      } catch (error) {
+        console.error('Error fetching brief or project:', error);
+        setError('Failed to load brief. Please try again.');
+      } finally {
         setIsLoading(false);
-        
-        // Check if using mock data
         setUsingMockData(isMockData());
       }
-    }
+    };
+    
+    fetchBriefAndProject();
   }, [id]);
 
   const handleFieldChange = (fieldName: keyof GeneratedBrief, value: string) => {
@@ -112,14 +123,20 @@ export default function BriefDetail() {
     setIsSaving(true);
     
     try {
-      const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData, false, false);
-      if (updatedBrief) {
-        setBrief(updatedBrief);
-        setIsEditing(false);
-        setEditedBriefData(updatedBrief.briefData);
-      }
+      // Update brief in Supabase
+      const updatedBrief = await briefService.updateBrief(
+        brief.id, 
+        editedBriefData, 
+        false, 
+        false
+      );
+      
+      setBrief(updatedBrief);
+      setIsEditing(false);
+      setEditedBriefData(updatedBrief.brief_data);
     } catch (error) {
       console.error('Error saving brief:', error);
+      setError('Failed to save changes. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -131,7 +148,7 @@ export default function BriefDetail() {
     setError(null);
     
     try {
-      // Get the feature set for this brief
+      // Get the feature set for this brief (still using local storage for now)
       const featureSet = featureStore.getFeatureSetByBriefId(brief.id);
       if (!featureSet) {
         throw new Error('Please generate features before creating a PRD');
@@ -141,10 +158,10 @@ export default function BriefDetail() {
       const prdContent = await generatePRD(brief, featureSet);
       const parsedPRD = parsePRD(prdContent);
       
-      // Save the PRD
+      // Save the PRD (still using local storage for now)
       const savedPRD = prdStore.savePRD(brief.id, featureSet.id, parsedPRD);
       
-      // Show success message or handle the saved PRD
+      // Navigate to the PRD page
       router.push(`/prd/${savedPRD.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate PRD. Please try again.');
@@ -153,42 +170,71 @@ export default function BriefDetail() {
     }
   };
 
-  const handleEditClick = () => {
+  const handleEditClick = async () => {
     if (!brief) return;
     
     setShowEditButtons(true);
     setIsEditing(true);
-    setEditedBriefData(brief.briefData);
+    setEditedBriefData(brief.brief_data);
     
-    // Update the brief in storage to persist the editing state
-    briefStore.updateBrief(brief.id, brief.briefData, true, true);
+    try {
+      // Update brief in Supabase to persist editing state
+      await briefService.updateBrief(
+        brief.id, 
+        brief.brief_data, 
+        true, 
+        true
+      );
+    } catch (error) {
+      console.error('Error updating brief edit state:', error);
+      setError('Failed to enter edit mode. Please try again.');
+    }
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = async () => {
     if (!brief) return;
     
     setShowEditButtons(false);
     setIsEditing(false);
-    setEditedBriefData(brief.briefData);
+    setEditedBriefData(brief.brief_data);
     
-    // Update the brief in storage to persist the non-editing state
-    briefStore.updateBrief(brief.id, brief.briefData, false, false);
+    try {
+      // Update brief in Supabase to persist non-editing state
+      await briefService.updateBrief(
+        brief.id, 
+        brief.brief_data, 
+        false, 
+        false
+      );
+    } catch (error) {
+      console.error('Error updating brief edit state:', error);
+      setError('Failed to cancel edit mode. Please try again.');
+    }
   };
 
   const handleSaveEdit = async () => {
     if (!brief || !editedBriefData) return;
     
+    setIsSaving(true);
+    
     try {
-      // Update the brief with editing mode disabled
-      const updatedBrief = briefStore.updateBrief(brief.id, editedBriefData, false, false);
-      if (updatedBrief) {
-        setBrief(updatedBrief);
-        setShowEditButtons(false);
-        setIsEditing(false);
-        setEditedBriefData(updatedBrief.briefData);
-      }
+      // Update brief in Supabase with editing mode disabled
+      const updatedBrief = await briefService.updateBrief(
+        brief.id, 
+        editedBriefData, 
+        false, 
+        false
+      );
+      
+      setBrief(updatedBrief);
+      setShowEditButtons(false);
+      setIsEditing(false);
+      setEditedBriefData(updatedBrief.brief_data);
     } catch (error) {
+      console.error('Error saving brief changes:', error);
       setError('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -301,7 +347,7 @@ export default function BriefDetail() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Product Brief</h1>
-              <p className="text-[#6b7280] mt-2">{brief.productName}</p>
+              <p className="text-[#6b7280] mt-2">{brief.product_name}</p>
             </div>
           </div>
         </div>
@@ -337,7 +383,7 @@ export default function BriefDetail() {
                   )}
                 </div>
                 <RenderField 
-                  content={editedBriefData?.executiveSummary || brief.briefData.executiveSummary} 
+                  content={editedBriefData?.executiveSummary || brief.brief_data.executiveSummary} 
                   isEditing={isEditing}
                   fieldName="executiveSummary"
                   onChange={handleFieldChange}
@@ -362,7 +408,7 @@ export default function BriefDetail() {
                   )}
                 </div>
                 <RenderField 
-                  content={editedBriefData?.problemStatement || brief.briefData.problemStatement} 
+                  content={editedBriefData?.problemStatement || brief.brief_data.problemStatement} 
                   isEditing={isEditing}
                   fieldName="problemStatement"
                   onChange={handleFieldChange}
@@ -387,7 +433,7 @@ export default function BriefDetail() {
                   )}
                 </div>
                 <RenderField 
-                  content={editedBriefData?.targetUsers || brief.briefData.targetUsers} 
+                  content={editedBriefData?.targetUsers || brief.brief_data.targetUsers} 
                   isEditing={isEditing}
                   fieldName="targetUsers"
                   onChange={handleFieldChange}
@@ -412,7 +458,7 @@ export default function BriefDetail() {
                   )}
                 </div>
                 <RenderField 
-                  content={editedBriefData?.existingSolutions || brief.briefData.existingSolutions} 
+                  content={editedBriefData?.existingSolutions || brief.brief_data.existingSolutions} 
                   isEditing={isEditing}
                   fieldName="existingSolutions"
                   onChange={handleFieldChange}
@@ -437,7 +483,7 @@ export default function BriefDetail() {
                   )}
                 </div>
                 <RenderField 
-                  content={editedBriefData?.proposedSolution || brief.briefData.proposedSolution} 
+                  content={editedBriefData?.proposedSolution || brief.brief_data.proposedSolution} 
                   isEditing={isEditing}
                   fieldName="proposedSolution"
                   onChange={handleFieldChange}
@@ -462,7 +508,7 @@ export default function BriefDetail() {
                   )}
                 </div>
                 <RenderField 
-                  content={editedBriefData?.productObjectives || brief.briefData.productObjectives} 
+                  content={editedBriefData?.productObjectives || brief.brief_data.productObjectives} 
                   isEditing={isEditing}
                   fieldName="productObjectives"
                   onChange={handleFieldChange}
@@ -487,7 +533,7 @@ export default function BriefDetail() {
                   )}
                 </div>
                 <RenderField 
-                  content={editedBriefData?.keyFeatures || brief.briefData.keyFeatures} 
+                  content={editedBriefData?.keyFeatures || brief.brief_data.keyFeatures} 
                   isEditing={isEditing}
                   fieldName="keyFeatures"
                   onChange={handleFieldChange}
@@ -495,7 +541,7 @@ export default function BriefDetail() {
               </div>
               
               {/* Market Analysis */}
-              {(brief.briefData.marketAnalysis || isEditing) && (
+              {(brief.brief_data.marketAnalysis || isEditing) && (
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Market Analysis</h3>
@@ -513,7 +559,7 @@ export default function BriefDetail() {
                     )}
                   </div>
                   <RenderField 
-                    content={editedBriefData?.marketAnalysis || brief.briefData.marketAnalysis || ''} 
+                    content={editedBriefData?.marketAnalysis || brief.brief_data.marketAnalysis || ''} 
                     isEditing={isEditing}
                     fieldName="marketAnalysis"
                     onChange={handleFieldChange}
@@ -522,7 +568,7 @@ export default function BriefDetail() {
               )}
               
               {/* Technical Risks */}
-              {(brief.briefData.technicalRisks || isEditing) && (
+              {(brief.brief_data.technicalRisks || isEditing) && (
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Technical Risks</h3>
@@ -540,7 +586,7 @@ export default function BriefDetail() {
                     )}
                   </div>
                   <RenderField 
-                    content={editedBriefData?.technicalRisks || brief.briefData.technicalRisks || ''} 
+                    content={editedBriefData?.technicalRisks || brief.brief_data.technicalRisks || ''} 
                     isEditing={isEditing}
                     fieldName="technicalRisks"
                     onChange={handleFieldChange}
@@ -549,7 +595,7 @@ export default function BriefDetail() {
               )}
               
               {/* Business Risks */}
-              {(brief.briefData.businessRisks || isEditing) && (
+              {(brief.brief_data.businessRisks || isEditing) && (
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Business Risks</h3>
@@ -567,7 +613,7 @@ export default function BriefDetail() {
                     )}
                   </div>
                   <RenderField 
-                    content={editedBriefData?.businessRisks || brief.briefData.businessRisks || ''} 
+                    content={editedBriefData?.businessRisks || brief.brief_data.businessRisks || ''} 
                     isEditing={isEditing}
                     fieldName="businessRisks"
                     onChange={handleFieldChange}
@@ -576,7 +622,7 @@ export default function BriefDetail() {
               )}
               
               {/* Implementation Strategy */}
-              {(brief.briefData.implementationStrategy || isEditing) && (
+              {(brief.brief_data.implementationStrategy || isEditing) && (
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Implementation Strategy</h3>
@@ -594,7 +640,7 @@ export default function BriefDetail() {
                     )}
                   </div>
                   <RenderField 
-                    content={editedBriefData?.implementationStrategy || brief.briefData.implementationStrategy || ''} 
+                    content={editedBriefData?.implementationStrategy || brief.brief_data.implementationStrategy || ''} 
                     isEditing={isEditing}
                     fieldName="implementationStrategy"
                     onChange={handleFieldChange}
@@ -603,7 +649,7 @@ export default function BriefDetail() {
               )}
               
               {/* Success Metrics */}
-              {(brief.briefData.successMetrics || isEditing) && (
+              {(brief.brief_data.successMetrics || isEditing) && (
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Success Metrics</h3>
@@ -621,7 +667,7 @@ export default function BriefDetail() {
                     )}
                   </div>
                   <RenderField 
-                    content={editedBriefData?.successMetrics || brief.briefData.successMetrics || ''} 
+                    content={editedBriefData?.successMetrics || brief.brief_data.successMetrics || ''} 
                     isEditing={isEditing}
                     fieldName="successMetrics"
                     onChange={handleFieldChange}

@@ -82,7 +82,7 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
   };
 
   const renderPrioritySelector = (
-    value: 'must' | 'should' | 'could' | 'wont',
+    value: string,
     onChange: (value: 'must' | 'should' | 'could' | 'wont') => void
   ) => {
     return (

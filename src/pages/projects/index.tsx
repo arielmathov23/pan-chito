@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
 import { Project, projectService } from '../../services/projectService';
-import { Brief, briefStore } from '../../utils/briefStore';
+import { Brief, briefService } from '../../services/briefService';
 import { featureStore } from '../../utils/featureStore';
 import { prdStore } from '../../utils/prdStore';
 import { techDocStore } from '../../utils/techDocStore';
@@ -77,8 +77,10 @@ export default function Projects() {
       const briefsByProject: Record<string, Brief[]> = {};
       const featureSetsByProject: Record<string, any[]> = {};
       
-      loadedProjects.forEach(project => {
-        const projectBriefs = briefStore.getBriefs(project.id);
+      // Use Promise.all to fetch briefs for all projects in parallel
+      await Promise.all(loadedProjects.map(async (project) => {
+        // Fetch briefs from Supabase using briefService
+        const projectBriefs = await briefService.getBriefsByProjectId(project.id);
         briefsByProject[project.id] = projectBriefs;
         
         // Load feature sets for each project
@@ -92,7 +94,7 @@ export default function Projects() {
         });
         
         featureSetsByProject[project.id] = allFeatureSets;
-      });
+      }));
       
       setProjectBriefs(briefsByProject);
       setProjectFeatureSets(featureSetsByProject);
@@ -162,9 +164,9 @@ export default function Projects() {
 
   // Helper function to get stage color based on stage ID and status
   const getStageColor = (stageId: string, status: string) => {
-    // Use blue color scheme for all stages
-    if (status === 'completed') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
-    if (status === 'active') return { bg: COLORS.task.light, text: COLORS.task.primary, border: COLORS.task.primary };
+    // Use green color scheme for all stages
+    if (status === 'completed') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
+    if (status === 'active') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
     return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
   };
 
@@ -250,8 +252,8 @@ export default function Projects() {
                           {currentStage > 0 && (
                             <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
                               style={{ 
-                                backgroundColor: COLORS.task.light, 
-                                color: COLORS.task.primary 
+                                backgroundColor: COLORS.project.light, 
+                                color: COLORS.project.primary 
                               }}>
                               {currentStage} / {PROJECT_STAGES.length} completed
                             </span>
@@ -276,9 +278,9 @@ export default function Projects() {
                             }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             style={{ 
-                              borderColor: COLORS.task.border,
-                              color: COLORS.task.primary,
-                              backgroundColor: COLORS.task.light
+                              borderColor: COLORS.project.border,
+                              color: COLORS.project.primary,
+                              backgroundColor: COLORS.project.light
                             }}
                           >
                             View Brief
@@ -368,7 +370,7 @@ export default function Projects() {
                           className="h-2 rounded-full transition-all duration-300 ease-in-out"
                           style={{ 
                             width: `${progress}%`, 
-                            backgroundColor: COLORS.task.primary 
+                            backgroundColor: COLORS.project.primary 
                           }}
                         ></div>
                       </div>
@@ -453,12 +455,12 @@ export default function Projects() {
                             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm text-white hover:opacity-90"
                             style={{ 
                               backgroundColor: !briefs.length ? '#0F533A' : 
-                                              !projectFeatureSets[project.id]?.length ? '#3b82f6' : 
+                                              !projectFeatureSets[project.id]?.length ? '#0F533A' : 
                                               !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ? '#0F533A' :
                                               !briefs.some(brief => {
                                                 const prd = prdStore.getPRDs(brief.id)[0];
                                                 return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                                              }) ? '#8b5cf6' :
+                                              }) ? '#0F533A' :
                                               !briefs.some(brief => {
                                                 const prd = prdStore.getPRDs(brief.id)[0];
                                                 return prd && techDocStore.getTechDocByPrdId(prd.id);

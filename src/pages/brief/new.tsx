@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import BriefForm, { BriefFormData } from '../../components/BriefForm';
 import { Project, projectService } from '../../services/projectService';
-import { briefStore } from '../../utils/briefStore';
+import { Brief, briefService } from '../../services/briefService';
 import { generateBrief, GeneratedBrief } from '../../utils/briefGenerator';
 import MockNotification from '../../components/MockNotification';
 import { isMockData } from '../../utils/mockDetector';
@@ -41,6 +41,7 @@ export default function NewBrief() {
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [generatedBrief, setGeneratedBrief] = useState<string | null>(null);
   const [parsedBrief, setParsedBrief] = useState<GeneratedBrief | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,24 +100,53 @@ export default function NewBrief() {
     }
   };
 
-  const handleSaveBrief = () => {
+  const handleSaveBrief = async () => {
     if (!project || !generatedBrief || !currentFormData) return;
     
     try {
-      // Parse the brief data to ensure it's properly structured
-      const briefData = JSON.parse(generatedBrief);
+      setIsSaving(true);
       
-      // Save the brief with initial states set to false
-      const savedBrief = briefStore.saveBrief(project.id, currentFormData, generatedBrief);
+      // Save the brief to Supabase
+      const savedBrief = await briefService.createBrief(
+        project.id, 
+        currentFormData, 
+        generatedBrief,
+        false,
+        false
+      );
       
-      // Update the brief to ensure proper button states
-      const updatedBrief = briefStore.updateBrief(savedBrief.id, briefData, false, false);
-      
-      // Navigate to the ideation page instead of brief detail
+      // Navigate to the ideation page
       router.push(`/brief/${savedBrief.id}/ideate`);
     } catch (error) {
       console.error('Error saving brief:', error);
       setError('Failed to save brief. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveForEditing = async () => {
+    if (!project || !generatedBrief || !currentFormData) return;
+    
+    try {
+      setIsSaving(true);
+      
+      // Save the brief to Supabase with editing mode enabled
+      const savedBrief = await briefService.createBrief(
+        project.id, 
+        currentFormData, 
+        generatedBrief,
+        true,
+        true
+      );
+      
+      // Navigate to the brief detail page
+      router.push(`/brief/${savedBrief.id}`);
+    } catch (error) {
+      console.error('Error saving brief for editing:', error);
+      setError('Failed to save brief for editing. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -193,35 +223,26 @@ export default function NewBrief() {
               <h2 className="text-xl font-semibold text-[#111827]">{currentFormData?.productName}</h2>
               <div className="flex space-x-4">
                 <button
-                  onClick={() => {
-                    if (!project || !generatedBrief || !currentFormData) return;
-                    
-                    try {
-                      // Parse the brief data to ensure it's properly structured
-                      const briefData = JSON.parse(generatedBrief);
-                      
-                      // Save the brief with editing mode enabled
-                      const savedBrief = briefStore.saveBrief(project.id, currentFormData, generatedBrief);
-                      
-                      // Update the brief to ensure proper button states
-                      const updatedBrief = briefStore.updateBrief(savedBrief.id, briefData, true, true);
-                      
-                      // Navigate to the brief detail page in edit mode
-                      router.push(`/brief/${savedBrief.id}`);
-                    } catch (error) {
-                      console.error('Error saving brief for editing:', error);
-                      setError('Failed to save brief for editing. Please try again.');
-                    }
-                  }}
-                  className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
+                  onClick={handleSaveForEditing}
+                  disabled={isSaving}
+                  className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5] disabled:opacity-50"
                 >
-                  Edit
+                  {isSaving ? 'Saving...' : 'Edit'}
                 </button>
                 <button
                   onClick={handleSaveBrief}
-                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                  disabled={isSaving}
+                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm disabled:opacity-50"
                 >
-                  Continue
+                  {isSaving ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving...
+                    </>
+                  ) : 'Continue'}
                 </button>
               </div>
             </div>

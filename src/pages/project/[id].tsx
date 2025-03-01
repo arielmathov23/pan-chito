@@ -7,7 +7,7 @@ import PRDList from '../../components/PRDList';
 import BriefList from '../../components/BriefList';
 import { Project, projectService } from '../../services/projectService';
 import { PRD, prdStore } from '../../utils/prdStore';
-import { Brief, briefStore } from '../../utils/briefStore';
+import { Brief, briefService } from '../../services/briefService';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { useAuth } from '../../context/AuthContext';
 
@@ -73,7 +73,8 @@ export default function ProjectDetail() {
           setProject(foundProject);
           
           if (foundProject) {
-            const projectBriefs = briefStore.getBriefs(foundProject.id);
+            // Fetch briefs from Supabase using briefService
+            const projectBriefs = await briefService.getBriefsByProjectId(foundProject.id);
             setBriefs(projectBriefs);
             
             // Get all PRDs for all briefs
@@ -122,6 +123,16 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleDeleteBrief = async (briefId: string) => {
+    try {
+      await briefService.deleteBrief(briefId);
+      // Update the UI by filtering out the deleted brief
+      setBriefs(currentBriefs => currentBriefs.filter(b => b.id !== briefId));
+    } catch (error) {
+      console.error('Error deleting brief:', error);
+    }
+  };
+
   // Helper function to get stage color based on stage ID and status
   const getStageColor = (stageId: string, status: string) => {
     // Use green color scheme for all stages
@@ -141,28 +152,28 @@ export default function ProjectDetail() {
     const brief = briefs[0];
     if (brief) {
       markdown += `## Product Brief\n\n`;
-      markdown += `### Executive Summary\n${brief.briefData.executiveSummary}\n\n`;
-      markdown += `### Problem Statement\n${brief.briefData.problemStatement}\n\n`;
-      markdown += `### Target Users\n${brief.briefData.targetUsers}\n\n`;
-      markdown += `### Existing Solutions\n${brief.briefData.existingSolutions}\n\n`;
-      markdown += `### Proposed Solution\n${brief.briefData.proposedSolution}\n\n`;
-      markdown += `### Product Objectives\n${brief.briefData.productObjectives}\n\n`;
-      markdown += `### Key Features\n${brief.briefData.keyFeatures}\n\n`;
+      markdown += `### Executive Summary\n${brief.brief_data.executiveSummary}\n\n`;
+      markdown += `### Problem Statement\n${brief.brief_data.problemStatement}\n\n`;
+      markdown += `### Target Users\n${brief.brief_data.targetUsers}\n\n`;
+      markdown += `### Existing Solutions\n${brief.brief_data.existingSolutions}\n\n`;
+      markdown += `### Proposed Solution\n${brief.brief_data.proposedSolution}\n\n`;
+      markdown += `### Product Objectives\n${brief.brief_data.productObjectives}\n\n`;
+      markdown += `### Key Features\n${brief.brief_data.keyFeatures}\n\n`;
       
-      if (brief.briefData.marketAnalysis) {
-        markdown += `### Market Analysis\n${brief.briefData.marketAnalysis}\n\n`;
+      if (brief.brief_data.marketAnalysis) {
+        markdown += `### Market Analysis\n${brief.brief_data.marketAnalysis}\n\n`;
       }
-      if (brief.briefData.technicalRisks) {
-        markdown += `### Technical Risks\n${brief.briefData.technicalRisks}\n\n`;
+      if (brief.brief_data.technicalRisks) {
+        markdown += `### Technical Risks\n${brief.brief_data.technicalRisks}\n\n`;
       }
-      if (brief.briefData.businessRisks) {
-        markdown += `### Business Risks\n${brief.briefData.businessRisks}\n\n`;
+      if (brief.brief_data.businessRisks) {
+        markdown += `### Business Risks\n${brief.brief_data.businessRisks}\n\n`;
       }
-      if (brief.briefData.implementationStrategy) {
-        markdown += `### Implementation Strategy\n${brief.briefData.implementationStrategy}\n\n`;
+      if (brief.brief_data.implementationStrategy) {
+        markdown += `### Implementation Strategy\n${brief.brief_data.implementationStrategy}\n\n`;
       }
-      if (brief.briefData.successMetrics) {
-        markdown += `### Success Metrics\n${brief.briefData.successMetrics}\n\n`;
+      if (brief.brief_data.successMetrics) {
+        markdown += `### Success Metrics\n${brief.brief_data.successMetrics}\n\n`;
       }
     }
 
@@ -406,7 +417,8 @@ export default function ProjectDetail() {
                 className="inline-flex items-center justify-center text-[#6b7280] hover:text-red-600 transition-colors text-sm"
               >
                 <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14M10.33 16.5H13.66M9.5 12.5H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14M10.33 16.5H13.66M9.5 12.5H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Delete
               </button>
@@ -579,56 +591,92 @@ export default function ProjectDetail() {
           </div>
 
           {/* Briefs section */}
-          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8 mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex items-center">
-                <div className={`w-2 h-2 rounded-full ${briefs.length ? 'bg-[#10b981]' : 'bg-[#3b82f6]'} mr-2`}></div>
-                <h2 className="text-xl font-semibold text-[#111827]">Brief</h2>
-              </div>
-              <div className={`${
-                briefs.length ? 'bg-[#e6f0eb] text-[#0F533A]' : 'bg-[#f0f2f5] text-[#6b7280]'
-              } px-3 py-1 rounded-full text-xs font-medium`}>
-                {briefs.length ? 'Completed' : 'Not Started'}
-              </div>
-            </div>
-            
-            {briefs.length === 0 ? (
-              <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
-                <h3 className="text-lg font-medium text-[#111827] mb-2">Create a Brief to get started</h3>
-                <p className="text-[#6b7280] mb-6 max-w-md mx-auto">A Brief helps define your target audience and their needs</p>
+              <h2 className="text-xl font-semibold text-[#111827]">Product Brief</h2>
+              {briefs.length === 0 && (
                 <Link
                   href={`/brief/new?projectId=${project.id}`}
-                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                 >
-                  Create Brief
-                  <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
+                  Create Brief
                 </Link>
-              </div>
-            ) : (
-              <div className="bg-[#f8f9fa] rounded-lg p-8">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-lg font-medium text-[#111827] mb-2">
-                      Brief Created
-                    </h3>
-                    <p className="text-[#6b7280]">
-                      Your brief has been created and is ready for feature ideation
-                    </p>
-                  </div>
-                  <Link
-                    href={`/brief/${briefs[0].id}`}
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                  >
-                    View Brief
-                    <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              )}
+            </div>
+            
+            <div className="mt-4">
+              {briefs.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-[#111827] mb-1">No brief yet</h3>
+                  <p className="text-[#6b7280] mb-6">Create a brief to get started with your product</p>
+                  
+                  <Link
+                    href={`/brief/new?projectId=${project.id}`}
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Create Brief
                   </Link>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-4">
+                  {briefs.map((brief) => (
+                    <div key={brief.id} className="relative group">
+                      <Link href={`/brief/${brief.id}`} className="block">
+                        <div className="bg-white rounded-xl border border-[#e5e7eb] p-6 hover:shadow-md transition-all cursor-pointer group-hover:border-[#0F533A]/30">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-lg font-medium text-[#111827] group-hover:text-[#0F533A] transition-colors">
+                                {brief.product_name}
+                              </h3>
+                              <p className="text-sm text-[#6b7280] mt-1">
+                                Created {new Date(brief.created_at).toLocaleDateString()}
+                              </p>
+                              <div className="mt-3 text-sm text-[#4b5563] line-clamp-2">
+                                {brief.brief_data.executiveSummary}
+                              </div>
+                            </div>
+                            <div className="bg-[#e6f0eb] text-[#0F533A] text-xs px-2.5 py-1 rounded-full font-medium mr-8">
+                              Completed
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteBrief(brief.id)}
+                        className="absolute top-4 right-4 text-[#6b7280] hover:text-red-500 transition-colors p-1.5 rounded-md hover:bg-[#f0f2f5] opacity-0 group-hover:opacity-100 z-10"
+                        aria-label="Delete brief"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M10.33 16.5H13.66" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M9.5 12.5H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Ideation section */}
@@ -637,14 +685,14 @@ export default function ProjectDetail() {
               <div className="flex items-center">
                 <div className={`w-2 h-2 rounded-full ${
                   featureSets.length > 0 ? 'bg-[#10b981]' : 
-                  briefs.length ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                  briefs.length ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
                 } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Feature Ideation</h2>
               </div>
               <div className={`${
                 !briefs.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
                 featureSets.length > 0 ? 'bg-[#e6f0eb] text-[#0F533A]' : 
-                'bg-[#eff6ff] text-[#3b82f6]'
+                'bg-[#e6f0eb] text-[#0F533A]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
                 {!briefs.length ? 'Locked' : featureSets.length > 0 ? 'Completed' : 'Active'}
               </div>
@@ -688,14 +736,14 @@ export default function ProjectDetail() {
               <div className="flex items-center">
                 <div className={`w-2 h-2 rounded-full ${
                   prds.length > 0 ? 'bg-[#10b981]' : 
-                  featureSets.length > 0 ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                  featureSets.length > 0 ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
                 } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Product Requirement Documents</h2>
               </div>
               <div className={`${
                 !featureSets.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
                 prds.length > 0 ? 'bg-[#e6f0eb] text-[#0F533A]' : 
-                'bg-[#eff6ff] text-[#3b82f6]'
+                'bg-[#e6f0eb] text-[#0F533A]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
                 {!featureSets.length ? 'Locked' : prds.length > 0 ? 'Completed' : 'Active'}
               </div>
@@ -772,7 +820,7 @@ export default function ProjectDetail() {
                     const prd = prdStore.getPRDs(brief.id)[0];
                     return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                   }) ? 'bg-[#10b981]' : 
-                  prds.length > 0 ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                  prds.length > 0 ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
                 } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Screens</h2>
               </div>
@@ -782,7 +830,7 @@ export default function ProjectDetail() {
                   const prd = prdStore.getPRDs(brief.id)[0];
                   return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                 }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
-                'bg-[#eff6ff] text-[#3b82f6]'
+                'bg-[#e6f0eb] text-[#0F533A]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
                 {!prds.length ? 'Locked' : 
                  briefs.some(brief => {
@@ -813,7 +861,7 @@ export default function ProjectDetail() {
                         const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
                         return brief ? prdStore.getPRDs(brief.id)[0].id : '';
                       })()}`}
-                      className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors"
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                     >
                       Generate Screens
                       <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -869,7 +917,7 @@ export default function ProjectDetail() {
                     const prd = prdStore.getPRDs(brief.id)[0];
                     return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                   }) ? 'bg-[#10b981]' : 
-                  prds.length > 0 ? 'bg-[#3b82f6]' : 'bg-[#9ca3af]'
+                  prds.length > 0 ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
                 } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
               </div>
@@ -879,7 +927,7 @@ export default function ProjectDetail() {
                   const prd = prdStore.getPRDs(brief.id)[0];
                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                 }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
-                'bg-[#eff6ff] text-[#3b82f6]'
+                'bg-[#e6f0eb] text-[#0F533A]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
                 {!prds.length ? 'Locked' : 
                  briefs.some(brief => {

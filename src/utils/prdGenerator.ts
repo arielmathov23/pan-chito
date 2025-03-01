@@ -1,6 +1,6 @@
-import OpenAI from 'openai';
-import { Brief } from './briefStore';
+import { Brief } from '../services/briefService';
 import { FeatureSet } from './featureStore';
+import { callOpenAI } from './openAIClient';
 
 // Check if API key is available
 const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
@@ -10,14 +10,32 @@ if (USE_MOCK && typeof window !== 'undefined') {
   console.warn('OpenAI API key is missing. Using mock implementation for testing purposes.');
 }
 
-const openai = new OpenAI({
-  apiKey: apiKey || 'dummy-key',
-  dangerouslyAllowBrowser: true
-});
+// Remove the OpenAI initialization since we're using openAIClient now
+// const openai = new OpenAI({
+//   apiKey: apiKey || 'dummy-key',
+//   dangerouslyAllowBrowser: true
+// });
 
+export interface PRD {
+  overview: string;
+  userStories: string;
+  requirements: string;
+  architecture: string;
+  dataModel: string;
+  api: string;
+  userInterface: string;
+  implementation: string;
+  testing: string;
+  deployment: string;
+  timeline: string;
+  risks: string;
+  appendix: string;
+}
+
+// Define the PRDSection interface
 export interface PRDSection {
   featureName: string;
-  featurePriority: 'must' | 'should' | 'could' | 'wont';
+  featurePriority: string;
   overview: {
     purpose: string;
     successMetrics: string[];
@@ -149,137 +167,113 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
     return generateMockPRD(brief, featureSet);
   }
 
-  // Filter for Must and Should features
-  const priorityFeatures = featureSet.features.filter(
-    feature => feature.priority === 'must' || feature.priority === 'should'
-  );
-
-  const prompt = `You are a PRD generation assistant. Your task is to create a detailed Product Requirements Document (PRD) based on the provided brief and feature list.
-Please respond ONLY with a valid JSON object matching the exact structure below, with no additional text or explanation.
-
-Brief:
-${JSON.stringify(brief.briefData, null, 2)}
-
-Features:
-${JSON.stringify(priorityFeatures, null, 2)}
-
-Required JSON Structure:
-${JSON.stringify({
-  sections: [{
-    featureName: "string",
-    featurePriority: "must or should",
-    overview: {
-      purpose: "string",
-      successMetrics: ["string"]
-    },
-    userStories: ["string"],
-    acceptanceCriteria: {
-      guidelines: "string",
-      criteria: ["string"]
-    },
-    useCases: [{
-      id: "string",
-      title: "string",
-      description: "string",
-      actors: ["string"],
-      preconditions: ["string"],
-      postconditions: ["string"],
-      mainScenario: ["string"],
-      alternateFlows: [{
-        name: "string",
-        steps: ["string"]
-      }],
-      exceptions: [{
-        name: "string",
-        steps: ["string"]
-      }]
-    }],
-    nonFunctionalRequirements: {
-      performance: ["string"],
-      security: ["string"],
-      scalability: ["string"],
-      usability: ["string"],
-      reliability: ["string"],
-      other: ["string"]
-    },
-    dependencies: {
-      dependencies: ["string"],
-      assumptions: ["string"]
-    },
-    openQuestions: {
-      questions: ["string"],
-      risks: ["string"],
-      mitigations: ["string"]
-    },
-    wireframeGuidelines: ["string"]
-  }]
-}, null, 2)}
-
-Important:
-1. Generate a detailed section for EACH of the provided features (all Must and Should priority features)
-2. Each feature section should include the feature's priority (must or should) in the featurePriority field
-3. Ensure each section is detailed and specific to the feature
-4. Include realistic metrics, technical requirements, and clear acceptance criteria
-5. Return ONLY the JSON object with no additional text.`;
-
   try {
-    const completion = await openai.chat.completions.create({
-      messages: [
-        { 
-          role: "system", 
-          content: "You are a PRD generator that only outputs valid JSON matching the specified structure. Never include explanatory text in your response."
-        },
-        { 
-          role: "user", 
-          content: prompt 
-        }
-      ],
-      model: "gpt-4o-mini",
-      temperature: 0.7,
-      max_tokens: 4000,
-      response_format: { type: "json_object" }
-    });
-
-    return completion.choices[0].message.content || '';
+    const briefData = brief.brief_data;
+    const features = featureSet.features;
+    
+    const prompt = `
+      You are a product manager tasked with creating a Product Requirements Document (PRD) for a new product.
+      
+      Here's information about the product from the brief:
+      
+      Product Name: ${brief.product_name}
+      Problem Statement: ${briefData.problemStatement}
+      Target Users: ${briefData.targetUsers}
+      Proposed Solution: ${briefData.proposedSolution}
+      Product Objectives: ${briefData.productObjectives}
+      Key Features: ${briefData.keyFeatures}
+      
+      Here are the features that have been selected for implementation:
+      ${features.map(f => `- ${f.title}: ${f.description}`).join('\n')}
+      
+      Please create a comprehensive PRD in JSON format with the following sections:
+      
+      {
+        "overview": "A high-level overview of the product",
+        "userStories": "User stories for the main features",
+        "requirements": "Functional and non-functional requirements",
+        "architecture": "High-level system architecture",
+        "dataModel": "Data model and database schema",
+        "api": "API endpoints and specifications",
+        "userInterface": "UI/UX guidelines and wireframes description",
+        "implementation": "Implementation details and considerations",
+        "testing": "Testing strategy and test cases",
+        "deployment": "Deployment strategy and considerations",
+        "timeline": "Project timeline and milestones",
+        "risks": "Potential risks and mitigation strategies",
+        "appendix": "Additional information and references"
+      }
+      
+      Make sure the PRD is detailed, comprehensive, and follows best practices for software product development.
+      The output should be valid JSON that can be parsed.
+    `;
+    
+    const response = await callOpenAI(prompt);
+    return response;
   } catch (error) {
     console.error('Error generating PRD:', error);
     throw new Error('Failed to generate PRD. Please try again.');
   }
 }
 
-export function parsePRD(jsonString: string): GeneratedPRD {
+export function parsePRD(prdContent: string): GeneratedPRD {
   try {
-    let cleanedJsonString = jsonString.trim();
+    // First parse as PRD
+    const prdData = JSON.parse(prdContent) as PRD;
     
-    // Remove any potential markdown code block indicators
-    if (cleanedJsonString.includes('```json')) {
-      cleanedJsonString = cleanedJsonString.replace(/```json\n|\n```/g, '');
-    } else if (cleanedJsonString.includes('```')) {
-      cleanedJsonString = cleanedJsonString.replace(/```\n|\n```/g, '');
-    }
-    
-    // Remove any text before the first { and after the last }
-    const firstBrace = cleanedJsonString.indexOf('{');
-    const lastBrace = cleanedJsonString.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      cleanedJsonString = cleanedJsonString.substring(firstBrace, lastBrace + 1);
-    }
-    
-    try {
-      const parsed = JSON.parse(cleanedJsonString);
-      
-      // Validate the structure
-      if (!parsed.sections || !Array.isArray(parsed.sections)) {
-        throw new Error('Invalid PRD structure: missing sections array');
-      }
-      
-      return parsed;
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      throw new Error('Failed to parse the generated PRD. The response was not valid JSON.');
-    }
+    // Convert to GeneratedPRD format
+    return {
+      sections: [{
+        featureName: "Main Product",
+        featurePriority: "must",
+        overview: {
+          purpose: prdData.overview,
+          successMetrics: ["Adoption rate", "User satisfaction"]
+        },
+        userStories: prdData.userStories.split("\n").filter(Boolean),
+        acceptanceCriteria: {
+          guidelines: "The feature should meet all requirements",
+          criteria: prdData.requirements.split("\n").filter(Boolean)
+        },
+        useCases: [{
+          id: "UC-1",
+          title: "Main Use Case",
+          description: prdData.overview,
+          actors: ["User", "System"],
+          preconditions: ["User is authenticated"],
+          postconditions: ["Action is completed"],
+          mainScenario: prdData.implementation.split("\n").filter(Boolean),
+          alternateFlows: [{
+            name: "Error Handling",
+            steps: ["System detects error", "User is notified"]
+          }],
+          exceptions: [{
+            name: "System Unavailable",
+            steps: ["System logs error", "User sees friendly message"]
+          }]
+        }],
+        nonFunctionalRequirements: {
+          performance: prdData.architecture.split("\n").filter(Boolean),
+          security: ["Data encryption at rest"],
+          scalability: ["Support for multiple users"],
+          usability: prdData.userInterface.split("\n").filter(Boolean),
+          reliability: ["99.9% uptime"],
+          other: []
+        },
+        dependencies: {
+          dependencies: prdData.dataModel.split("\n").filter(Boolean),
+          assumptions: ["Modern browser support"]
+        },
+        openQuestions: {
+          questions: ["Integration timeline?"],
+          risks: prdData.risks.split("\n").filter(Boolean),
+          mitigations: ["Regular reviews"]
+        },
+        wireframeGuidelines: prdData.userInterface.split("\n").filter(Boolean)
+      }]
+    };
   } catch (error) {
-    console.error('Error parsing PRD:', error);
+    console.error('Error parsing PRD JSON:', error);
     throw new Error('Failed to parse the generated PRD. Please try again.');
   }
 } 
