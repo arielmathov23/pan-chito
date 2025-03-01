@@ -72,43 +72,60 @@ Guidelines:
 6. Organize content logically within each screen
 7. Include all necessary navigation paths between screens`;
 
-    // Call OpenAI API with optimized parameters
-    const response = await fetch('/api/openai', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt,
-        max_tokens: 2000,
-        temperature: 0.7
-      }),
-    });
+    // Improved timeout handling with AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2-minute timeout
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Full error response:', errorData);
-      throw new Error(`API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('Full API response:', data);
-      throw new Error('Invalid API response format');
-    }
-
-    const content = data.choices[0].message.content;
-    
-    // Ensure the content is valid JSON before parsing
     try {
-      JSON.parse(content);
-    } catch (error) {
-      console.error('Invalid JSON in API response:', content);
-      throw new Error('Invalid JSON response from API');
-    }
+      // Call OpenAI API with optimized parameters
+      const response = await fetch('/api/openai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          max_tokens: 2000,
+          temperature: 0.7
+        }),
+        signal: controller.signal
+      });
 
-    return parseScreenResponse(content, prd.id);
+      clearTimeout(timeoutId); // Clear the timeout if the request completes
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Full error response:', errorData);
+        throw new Error(`API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.choices?.[0]?.message?.content) {
+        console.error('Full API response:', data);
+        throw new Error('Invalid API response format');
+      }
+
+      const content = data.choices[0].message.content;
+      
+      // Ensure the content is valid JSON before parsing
+      try {
+        JSON.parse(content);
+      } catch (error) {
+        console.error('Invalid JSON in API response:', content);
+        throw new Error('Invalid JSON response from API');
+      }
+
+      return parseScreenResponse(content, prd.id);
+    } catch (error) {
+      clearTimeout(timeoutId); // Ensure timeout is cleared on error
+      
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. The operation took too long to complete. Please try again.');
+      }
+      
+      throw error;
+    }
   } catch (error) {
     console.error('Error generating screens:', error);
     throw error;
