@@ -867,16 +867,18 @@ export default function ProjectDetail() {
                     <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
                       Generate technical documentation based on your PRD to guide your development team
                     </p>
-                    <button
-                      onClick={downloadProjectDocs}
+                    <Link
+                      href={`/docs/${(() => {
+                        const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
+                        return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                      })()}`}
                       className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                     >
-                      Download Documentation
+                      Create Tech Documents
                       <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M8 21H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                    </button>
+                    </Link>
                   </div>
                 ) : (
                   <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -888,27 +890,39 @@ export default function ProjectDetail() {
                         Your technical documentation has been created and is ready for your development team
                       </p>
                     </div>
-                    <Link
-                      href={`/docs/${(() => {
-                        const brief = briefs.find(brief => {
-                          const prd = prdStore.getPRDs(brief.id)[0];
-                          return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                        });
-                        if (brief) {
-                          const prds = prdStore.getPRDs(brief.id);
-                          if (prds.length > 0) {
-                            return prds[0].id;
+                    <div className="flex space-x-3">
+                      <Link
+                        href={`/docs/${(() => {
+                          const brief = briefs.find(brief => {
+                            const prd = prdStore.getPRDs(brief.id)[0];
+                            return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
+                          });
+                          if (brief) {
+                            const prds = prdStore.getPRDs(brief.id);
+                            if (prds.length > 0) {
+                              return prds[0].id;
+                            }
                           }
-                        }
-                        return '';
-                      })()}`}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                    >
-                      View Documentation
-                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </Link>
+                          return '';
+                        })()}`}
+                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                      >
+                        View Documentation
+                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </Link>
+                      <button
+                        onClick={downloadProjectDocs}
+                        className="inline-flex items-center justify-center bg-white text-[#0F533A] border border-[#0F533A] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+                      >
+                        Download Documentation
+                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 21H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

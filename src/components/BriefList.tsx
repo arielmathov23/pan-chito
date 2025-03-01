@@ -20,29 +20,29 @@ export default function BriefList({ briefs, onDelete, projectId }: BriefListProp
     <div className="w-full">
       {briefs.length === 0 ? (
         <div className="text-center py-8">
-          <div className="bg-[#f0f2f5] rounded-lg p-8 max-w-2xl mx-auto">
-            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mx-auto mb-6 shadow-sm">
-              <svg className="w-7 h-7 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="bg-white border border-gray-100 rounded-xl p-10 max-w-2xl mx-auto shadow-sm">
+            <div className="w-16 h-16 rounded-full bg-[#f0f2f5] flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <svg className="w-8 h-8 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-[#111827] mb-2">
-              No Briefs yet
+            <h3 className="text-xl font-medium text-[#111827] mb-3">
+              Document your first product idea
             </h3>
-            <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
-              Start creating your Product Briefs to document and share your product ideas.
+            <p className="text-[#6b7280] mb-8 max-w-md mx-auto">
+              Create a Product Brief to capture your vision, target audience, and key features before moving to development.
             </p>
             <Link 
               href={projectId ? `/brief/new?projectId=${projectId}` : "/brief/new"}
-              className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+              className="inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-all duration-200 shadow-sm group"
             >
-              <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              Create Brief
+              Create your first brief
             </Link>
           </div>
         </div>

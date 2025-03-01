@@ -4,8 +4,9 @@ import PRDViewer from '../components/PRDViewer';
 import LoadingPRD from '../components/LoadingPRD';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { withAuth } from '../middleware/withAuth';
 
-export default function Home() {
+const Home = () => {
   const router = useRouter();
   const [showPRD, setShowPRD] = useState(false);
   const [prdContent, setPrdContent] = useState<string>('');
@@ -28,4 +29,6 @@ export default function Home() {
   };
 
   return null;
-} 
+};
+
+export default withAuth(Home); 

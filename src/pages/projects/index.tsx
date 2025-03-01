@@ -174,7 +174,7 @@ export default function Projects() {
 
         {projects.length === 0 ? (
           <div className="mt-16 bg-white rounded-2xl shadow-sm p-12 text-center">
-            <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-8">
               <svg className="w-8 h-8 text-[#4b5563]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -182,13 +182,16 @@ export default function Projects() {
                 <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-3">Ready to build your digital product?</h2>
-            <p className="text-[#4b5563] mb-8 max-w-md mx-auto">Get all the essential documentation you need before development. Remember: 80% planning, 20% execution is the key to success.</p>
+            <h2 className="text-xl font-semibold text-[#111827] mb-4">Start building your next great product</h2>
+            <p className="text-[#4b5563] mb-10 max-w-md mx-auto">Create comprehensive documentation that transforms your ideas into well-structured products. Plan smarter, build faster.</p>
             <Link
               href="/project/new"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm text-white bg-[#0F533A]"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-all duration-200 shadow-sm text-white bg-[#0F533A] group"
             >
-              Create project
+              <svg className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Create your first project
             </Link>
           </div>
         ) : (

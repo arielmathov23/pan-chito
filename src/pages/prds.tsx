@@ -3,8 +3,9 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import PRDList from '../components/PRDList';
 import { prdStore, PRD } from '../utils/prdStore';
+import { withAuth } from '../middleware/withAuth';
 
-export default function PRDsPage() {
+const PRDsPage = () => {
   const [prds, setPrds] = useState<PRD[]>([]);
 
   useEffect(() => {
@@ -41,4 +42,6 @@ export default function PRDsPage() {
       </main>
     </div>
   );
-} 
+};
+
+export default withAuth(PRDsPage); 

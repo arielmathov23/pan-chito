@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import PRDList from '../components/PRDList';
 import { prdStore, PRD } from '../utils/prdStore';
+import { withAuth } from '../middleware/withAuth';
 
-export default function Dashboard() {
+const Dashboard = () => {
   const [prds, setPrds] = useState<PRD[]>([]);
   
   useEffect(() => {
@@ -24,4 +25,6 @@ export default function Dashboard() {
       </main>
     </div>
   );
-} 
+};
+
+export default withAuth(Dashboard); 
