@@ -86,8 +86,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
       
-      // Redirect to home page after successful login
-      router.push('/');
+      // Redirect to stored path or home page after successful login
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+      sessionStorage.removeItem('redirectAfterLogin');
+      router.push(redirectPath);
     } catch (error) {
       setAuthState(prev => ({
         ...prev,
@@ -110,8 +112,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
       
-      // Redirect to home page after successful signup
-      router.push('/');
+      // Redirect to stored path or home page after successful signup
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+      sessionStorage.removeItem('redirectAfterLogin');
+      router.push(redirectPath);
     } catch (error) {
       setAuthState(prev => ({
         ...prev,

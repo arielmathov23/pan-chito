@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, isLoading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -30,10 +30,14 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    logout();
-    router.push('/login');
     setDropdownOpen(false);
+    logout();
   };
+
+  // Don't render navbar during authentication loading
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <nav className="sticky top-0 z-40 w-full backdrop-blur-sm bg-white/90 border-b border-[#e5e7eb] supports-[backdrop-filter]:bg-white/80 shadow-sm">

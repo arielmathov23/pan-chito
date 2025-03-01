@@ -3,6 +3,7 @@ import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '../styles/globals.css';
 import { AuthProvider } from '../context/AuthContext';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
@@ -12,7 +13,9 @@ function MyApp({ Component, pageProps }: AppProps) {
         <link rel="icon" href="data:," />
       </Head>
       <AuthProvider>
-        <Component {...pageProps} />
+        <ProtectedRoute>
+          <Component {...pageProps} />
+        </ProtectedRoute>
       </AuthProvider>
     </>
   );
