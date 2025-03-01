@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import Navbar from '../../../components/Navbar';
-import { Project, projectStore } from '../../../utils/projectStore';
-import { Brief, briefStore } from '../../../utils/briefStore';
-import { Feature, FeatureSet, featureStore } from '../../../utils/featureStore';
+import { Project, projectService } from '../../../services/projectService';
+import { Brief, briefService } from '../../../services/briefService';
+import { Feature, FeatureSet } from '../../../utils/featureStore';
+import { featureService } from '../../../services/featureService';
 import { generateFeatures } from '../../../utils/featureGenerator';
 import Modal from '../../../components/Modal';
+import { Brief as BriefStore } from '../../../utils/briefStore';
 
 interface EditingFeature {
   id: string;
@@ -23,6 +25,25 @@ interface EditingFeature {
   createdAt: string;
 }
 
+// Helper function to convert Supabase Brief to the format expected by generateFeatures
+const convertBriefForGenerator = (brief: Brief): BriefStore => {
+  return {
+    id: brief.id,
+    projectId: brief.project_id,
+    productName: brief.product_name,
+    problemStatement: brief.form_data.problemStatement,
+    targetUsers: brief.form_data.targetUsers,
+    proposedSolution: brief.form_data.proposedSolution,
+    productObjectives: brief.form_data.productObjectives,
+    createdAt: brief.created_at,
+    content: JSON.stringify(brief.brief_data),
+    briefData: brief.brief_data,
+    formData: brief.form_data,
+    isEditing: brief.is_editing || false,
+    showEditButtons: brief.show_edit_buttons || false
+  };
+};
+
 export default function IdeateFeatures() {
   const router = useRouter();
   const { id } = router.query;
@@ -32,153 +53,252 @@ export default function IdeateFeatures() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showMvpInfo, setShowMvpInfo] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    const stored = localStorage.getItem('mvpInfoCollapsed');
-    return stored ? stored === 'false' : true;
-  });
+  const [showMvpInfo, setShowMvpInfo] = useState(true);
   const [showDragHint, setShowDragHint] = useState(true);
-  const [editingFeature, setEditingFeature] = useState<EditingFeature | null>(null);
+  const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [featureToDelete, setFeatureToDelete] = useState<Feature | null>(null);
 
-  // Load data
   useEffect(() => {
-    if (id) {
-      const foundBrief = briefStore.getBrief(id as string);
-      setBrief(foundBrief);
+    const loadData = async () => {
+      if (typeof id !== 'string') return;
       
-      if (foundBrief) {
-        const foundProject = projectStore.getProject(foundBrief.projectId);
-        setProject(foundProject);
+      try {
+        setIsLoading(true);
+        setError(null);
         
-        const existingFeatureSet = featureStore.getFeatureSetByBriefId(foundBrief.id);
-          setFeatureSet(existingFeatureSet);
+        // Fetch brief
+        const briefData = await briefService.getBriefById(id);
+        if (!briefData) {
+          setError('Brief not found');
+          setIsLoading(false);
+          return;
+        }
+        setBrief(briefData);
+        
+        // Fetch project
+        const projectData = await projectService.getProjectById(briefData.project_id);
+        setProject(projectData);
+        
+        // Fetch feature set
+        const featureSetData = await featureService.getFeatureSetByBriefId(id);
+        setFeatureSet(featureSetData);
+        
+        // Check local storage for UI preferences
+        const mvpInfoCollapsed = localStorage.getItem('mvpInfoCollapsed');
+        if (mvpInfoCollapsed !== null) {
+          setShowMvpInfo(mvpInfoCollapsed === 'true');
+        }
+        
+        const dragHintDismissed = localStorage.getItem('dragHintDismissed');
+        if (dragHintDismissed !== null) {
+          setShowDragHint(dragHintDismissed !== 'true');
+        }
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError('Failed to load data. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
-      
-      // Check if MVP info and drag hint have been dismissed before
-      const mvpInfoDismissed = localStorage.getItem('mvpInfoDismissed');
-      const dragHintShown = localStorage.getItem('dragHintShown');
-      
-      if (mvpInfoDismissed) {
-        setShowMvpInfo(false);
-      }
-      if (dragHintShown) {
-        setShowDragHint(false);
-      }
-    }
+    };
+    
+    loadData();
   }, [id]);
 
   const handleGenerateFeatures = async () => {
     if (!brief) return;
     
-    setIsGenerating(true);
-    setError(null);
-    
     try {
-      const features = await generateFeatures(brief);
-      const savedFeatureSet = featureStore.saveFeatureSet(brief.id, features, []);
-      setFeatureSet(savedFeatureSet);
+      setIsGenerating(true);
+      setError(null);
+      
+      // Convert brief to the format expected by generateFeatures
+      const briefForGenerator = convertBriefForGenerator(brief);
+      
+      // Generate features using OpenAI
+      const generatedFeatures = await generateFeatures(briefForGenerator);
+      
+      // Save features to Supabase
+      const newFeatureSet = await featureService.saveFeatureSet(
+        brief.id,
+        brief.project_id,
+        generatedFeatures,
+        [] // Empty key questions for now
+      );
+      
+      setFeatureSet(newFeatureSet);
+      
+      // Show drag hint
+      setShowDragHint(true);
+      localStorage.removeItem('dragHintDismissed');
     } catch (err) {
       console.error('Error generating features:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError('Failed to generate features. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleEditClick = (feature: Feature) => {
-    setEditingFeature({
-      id: feature.id,
-      briefId: feature.briefId,
-      title: feature.title || '',
-      name: feature.name,
-      description: feature.description,
-      userStories: feature.userStories,
-      priority: (feature.priority as 'must' | 'should' | 'could' | 'wont') || 'should',
-      complexity: (feature.complexity as 'low' | 'medium' | 'high') || 'medium',
-      status: (feature.status as 'pending' | 'in-progress' | 'completed') || 'pending',
-      difficulty: feature.difficulty,
-      createdAt: feature.createdAt
+  const handleDragEnd = async (result: DropResult) => {
+    if (!featureSet) return;
+    
+    const { destination, source, draggableId } = result;
+    
+    // If dropped outside a droppable area
+    if (!destination) return;
+    
+    // If dropped in the same place
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+    
+    // Find the feature
+    const feature = featureSet.features.find(f => f.id === draggableId);
+    if (!feature) return;
+    
+    // Update feature priority
+    const updatedFeature = {
+      ...feature,
+      priority: destination.droppableId as 'must' | 'should' | 'could' | 'wont'
+    };
+    
+    // Update local state immediately for a smooth UI experience
+    const updatedFeatures = featureSet.features.map(f => 
+      f.id === feature.id ? updatedFeature : f
+    );
+    
+    setFeatureSet({
+      ...featureSet,
+      features: updatedFeatures
     });
+    
+    // Dismiss drag hint after first drag
+    if (showDragHint) {
+      setShowDragHint(false);
+      localStorage.setItem('dragHintDismissed', 'true');
+    }
+    
+    // Then update in Supabase (in the background)
+    try {
+      await featureService.updateFeature(feature.id, updatedFeature);
+    } catch (err) {
+      console.error('Error updating feature priority:', err);
+      setError('Failed to update feature priority. Please try again.');
+      
+      // Revert to original state if the API call fails
+      setFeatureSet({
+        ...featureSet,
+        features: featureSet.features
+      });
+    }
+  };
+
+  const handleEditFeature = (feature: Feature) => {
+    setEditingFeature(feature);
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = () => {
-    if (!featureSet || !editingFeature) return;
+  const handleSaveEdit = async () => {
+    if (!editingFeature || !featureSet || !brief) return;
     
-    const updatedFeatures = featureSet.features.map(f => 
-      f.id === editingFeature.id ? editingFeature : f
-    );
-    
-    const updatedFeatureSet = featureStore.updateFeatureSet(featureSet.id, {
-      ...featureSet,
-      features: updatedFeatures
-    });
-    
-      setFeatureSet(updatedFeatureSet);
-    setIsEditModalOpen(false);
+    try {
+      // Check if it's a new feature (no ID) or an edit
+      if (!editingFeature.id) {
+        await handleSaveNewFeature();
+      } else {
+        // Update in Supabase
+        await featureService.updateFeature(editingFeature.id, editingFeature);
+        
+        // Update local state
+        const updatedFeatures = featureSet.features.map(f => 
+          f.id === editingFeature.id ? editingFeature : f
+        );
+        
+        setFeatureSet({
+          ...featureSet,
+          features: updatedFeatures
+        });
+      }
+      
+      setIsEditModalOpen(false);
       setEditingFeature(null);
+    } catch (err) {
+      console.error('Error updating feature:', err);
+      setError('Failed to update feature. Please try again.');
+    }
   };
 
-  const handleDeleteFeature = () => {
-    if (!featureSet || !featureToDelete) return;
+  const handleDeleteFeature = async () => {
+    if (!featureToDelete || !featureSet) return;
     
-    const updatedFeatures = featureSet.features.filter(f => f.id !== featureToDelete.id);
-    
-    const updatedFeatureSet = featureStore.updateFeatureSet(featureSet.id, {
-      ...featureSet,
-      features: updatedFeatures
-    });
-    
-      setFeatureSet(updatedFeatureSet);
-    setIsDeleteModalOpen(false);
-    setFeatureToDelete(null);
-    setIsEditModalOpen(false);
-    setEditingFeature(null);
+    try {
+      // Delete from Supabase
+      await featureService.deleteFeature(featureToDelete.id);
+      
+      // Update local state
+      const updatedFeatures = featureSet.features.filter(f => f.id !== featureToDelete.id);
+      
+      setFeatureSet({
+        ...featureSet,
+        features: updatedFeatures
+      });
+      
+      setIsDeleteModalOpen(false);
+      setFeatureToDelete(null);
+      
+      // If editing, close edit modal
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false);
+        setEditingFeature(null);
+      }
+    } catch (err) {
+      console.error('Error deleting feature:', err);
+      setError('Failed to delete feature. Please try again.');
+    }
   };
 
   const handleAddFeature = (priority: 'must' | 'should' | 'could' | 'wont') => {
-    const newFeature: EditingFeature = {
-      id: crypto.randomUUID(),
-      briefId: brief?.id || '',
-      title: '',
+    if (!brief) return;
+    
+    const newFeature: Omit<Feature, 'id' | 'createdAt'> = {
+      briefId: brief.id,
       name: '',
+      title: '',
       description: '',
       priority,
-      complexity: 'medium',
-      status: 'pending',
-      difficulty: 'medium',
-      createdAt: new Date().toISOString()
+      difficulty: 'medium'
     };
-    setEditingFeature(newFeature);
+    
+    setEditingFeature(newFeature as Feature);
     setIsEditModalOpen(true);
   };
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination || !featureSet) return;
-
-    const { source, destination, draggableId } = result;
-    const newPriority = destination.droppableId as 'must' | 'should' | 'could' | 'wont';
+  const handleSaveNewFeature = async () => {
+    if (!editingFeature || !featureSet || !brief) return;
     
-    const updatedFeatures = featureSet.features.map(feature =>
-      feature.id === draggableId ? { ...feature, priority: newPriority } : feature
-    );
-
-    const updatedFeatureSet = featureStore.updateFeatureSet(featureSet.id, {
-      ...featureSet,
-      features: updatedFeatures
-    });
-
-      setFeatureSet(updatedFeatureSet);
-    
-    // Mark drag hint as shown
-    if (showDragHint) {
-      localStorage.setItem('dragHintShown', 'true');
-      setShowDragHint(false);
+    try {
+      // Add to Supabase
+      const newFeature = await featureService.addFeature(
+        brief.id,
+        brief.project_id,
+        editingFeature
+      );
+      
+      // Update local state
+      setFeatureSet({
+        ...featureSet,
+        features: [...featureSet.features, newFeature]
+      });
+      
+      setIsEditModalOpen(false);
+      setEditingFeature(null);
+    } catch (err) {
+      console.error('Error adding feature:', err);
+      setError('Failed to add feature. Please try again.');
     }
   };
 
@@ -208,24 +328,24 @@ export default function IdeateFeatures() {
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColor(feature.difficulty)}`}>
                     {feature.difficulty}
                   </span>
-            </div>
-          </div>
-            <button
-                onClick={() => handleEditClick(feature)}
+                </div>
+              </div>
+              <button
+                onClick={() => handleEditFeature(feature)}
                 className="text-[#6b7280] hover:text-[#111827] transition-colors"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+                </svg>
+              </button>
             </div>
             <p className="text-[#6b7280] text-sm">{feature.description}</p>
           </div>
         </div>
       )}
     </Draggable>
-    );
+  );
 
   const renderFeatureSection = (priority: 'must' | 'should' | 'could' | 'wont') => {
     const features = featureSet?.features.filter(f => f.priority === priority) || [];
@@ -247,7 +367,7 @@ export default function IdeateFeatures() {
         <div className={`rounded-lg ${colors[priority]} border p-4 h-[calc(100vh-300px)]`}>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-[#111827]">{titles[priority]}</h2>
-          <button
+            <button
               onClick={() => handleAddFeature(priority)}
               className="text-[#6b7280] hover:text-[#111827] transition-colors"
             >
@@ -256,21 +376,21 @@ export default function IdeateFeatures() {
                 <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-          </button>
-        </div>
-        <Droppable droppableId={priority}>
+            </button>
+          </div>
+          <Droppable droppableId={priority}>
             {(provided) => (
-            <div 
-              ref={provided.innerRef}
-              {...provided.droppableProps}
+              <div 
+                ref={provided.innerRef}
+                {...provided.droppableProps}
                 className="space-y-3 overflow-y-auto h-full pr-2"
                 style={{ scrollbarWidth: 'thin' }}
               >
                 {features.map((feature, index) => renderFeatureCard(feature, index))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
         </div>
       </div>
     );
@@ -308,7 +428,7 @@ export default function IdeateFeatures() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Feature Ideation</h1>
-              <p className="text-[#6b7280] mt-2">Define and prioritize features for {brief?.productName}</p>
+              <p className="text-[#6b7280] mt-2">Define and prioritize features for {brief?.product_name}</p>
             </div>
             {featureSet && (
               <Link
@@ -318,7 +438,7 @@ export default function IdeateFeatures() {
                 Continue
               </Link>
             )}
-        </div>
+          </div>
 
           <div className="mb-6 bg-white rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden">
             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#0F533A]/5 to-transparent cursor-pointer" onClick={toggleMvpInfo}>
@@ -338,8 +458,8 @@ export default function IdeateFeatures() {
               >
                 <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              </div>
-              
+            </div>
+            
             <div 
               className={`transition-all duration-300 ease-in-out ${showMvpInfo ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}
             >
@@ -399,12 +519,12 @@ export default function IdeateFeatures() {
           </div>
         )}
                 
-                {error && (
+        {error && (
           <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
-                    <p className="font-medium">Error</p>
-                    <p>{error}</p>
-                  </div>
-                )}
+            <p className="font-medium">Error</p>
+            <p>{error}</p>
+          </div>
+        )}
                 
         {!featureSet ? (
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
@@ -417,24 +537,24 @@ export default function IdeateFeatures() {
               </div>
             </div>
             
-                  <button
-                    onClick={handleGenerateFeatures}
-                    disabled={isGenerating}
-                    className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating Features...
-                      </>
-                    ) : (
+            <button
+              onClick={handleGenerateFeatures}
+              disabled={isGenerating}
+              className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {isGenerating ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating Features...
+                </>
+              ) : (
                 'Generate Features'
-                    )}
-                  </button>
-                </div>
+              )}
+            </button>
+          </div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -473,7 +593,7 @@ export default function IdeateFeatures() {
                   <label className="block text-sm font-medium text-[#374151] mb-1">
                     Description
                   </label>
-                      <textarea
+                  <textarea
                     value={editingFeature.description}
                     onChange={(e) => setEditingFeature({ ...editingFeature, description: e.target.value })}
                     rows={4}
@@ -484,16 +604,16 @@ export default function IdeateFeatures() {
                   <label className="block text-sm font-medium text-[#374151] mb-1">
                     Priority
                   </label>
-                      <select
+                  <select
                     value={editingFeature.priority}
                     onChange={(e) => setEditingFeature({ ...editingFeature, priority: e.target.value as 'must' | 'should' | 'could' | 'wont' })}
                     className="w-full px-3 py-2 border border-[#d1d5db] rounded-md shadow-sm focus:ring-[#0F533A] focus:border-[#0F533A]"
-                      >
-                        <option value="must">Must Have</option>
-                        <option value="should">Should Have</option>
-                        <option value="could">Could Have</option>
-                        <option value="wont">Won't Have</option>
-                      </select>
+                  >
+                    <option value="must">Must Have</option>
+                    <option value="should">Should Have</option>
+                    <option value="could">Could Have</option>
+                    <option value="wont">Won't Have</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#374151] mb-1">
@@ -526,24 +646,24 @@ export default function IdeateFeatures() {
                   Delete
                 </button>
                 <div className="flex space-x-3">
-                        <button
+                  <button
                     onClick={() => {
                       setIsEditModalOpen(false);
                       setEditingFeature(null);
                     }}
                     className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button
+                  >
+                    Cancel
+                  </button>
+                  <button
                     onClick={handleSaveEdit}
                     className="px-4 py-2 text-sm font-medium text-white bg-[#0F533A] rounded-lg hover:bg-[#0a3f2c] transition-colors"
-                        >
+                  >
                     Save Changes
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  </button>
+                </div>
+              </div>
+            </div>
           </Modal>
         )}
 
@@ -579,7 +699,7 @@ export default function IdeateFeatures() {
               </div>
             </div>
           </Modal>
-          )}
+        )}
       </div>
     </div>
   );

@@ -36,4 +36,34 @@ export async function callOpenAI(prompt: string): Promise<string> {
     console.error('Error calling OpenAI:', error);
     throw new Error('Failed to generate content. Please check your OpenAI API key and try again.');
   }
+}
+
+/**
+ * Specialized method for generating features with OpenAI
+ * Uses a specific system prompt and response format optimized for feature generation
+ */
+export async function generateFeaturesWithAI(prompt: string): Promise<string> {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        { 
+          role: "system", 
+          content: "You are a feature generator that only outputs valid JSON arrays. Never include explanatory text in your response."
+        },
+        { 
+          role: "user", 
+          content: prompt 
+        }
+      ],
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      max_tokens: 4000,
+      response_format: { type: "json_object" }
+    });
+
+    return completion.choices[0].message.content || '';
+  } catch (error) {
+    console.error('Error generating features with OpenAI:', error);
+    throw new Error('Failed to generate features. Please check your OpenAI API key and try again.');
+  }
 } 

@@ -1,7 +1,7 @@
 import { Brief } from './briefStore';
 import { Feature } from './featureStore';
-import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
+import { generateFeaturesWithAI } from './openAIClient';
 
 // Check if API key is available
 const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
@@ -10,11 +10,6 @@ const USE_MOCK = !apiKey && typeof window !== 'undefined';
 if (USE_MOCK && typeof window !== 'undefined') {
   console.warn('OpenAI API key is missing. Using mock implementation for testing purposes.');
 }
-
-const openai = new OpenAI({
-  apiKey: apiKey || 'dummy-key', // Prevent initialization error, will fail on actual API call
-  dangerouslyAllowBrowser: true
-});
 
 export interface GeneratedFeatureSet {
   features: {
@@ -129,23 +124,8 @@ Example format:
 ]`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { 
-          role: "system", 
-          content: "You are a feature generator that only outputs valid JSON arrays. Never include explanatory text in your response."
-        },
-        { 
-          role: "user", 
-          content: prompt 
-        }
-      ],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    });
-
-    const response = completion.choices[0].message.content;
+    // Use the specialized method for feature generation
+    const response = await generateFeaturesWithAI(prompt);
     if (!response) {
       throw new Error('No content received from OpenAI');
     }
