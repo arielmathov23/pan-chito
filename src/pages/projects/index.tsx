@@ -8,6 +8,7 @@ import { featureStore } from '../../utils/featureStore';
 import { prdStore } from '../../utils/prdStore';
 import { techDocStore } from '../../utils/techDocStore';
 import { useAuth } from '../../context/AuthContext';
+import { featureService } from '../../services/featureService';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -83,15 +84,20 @@ export default function Projects() {
         const projectBriefs = await briefService.getBriefsByProjectId(project.id);
         briefsByProject[project.id] = projectBriefs;
         
-        // Load feature sets for each project
+        // Load feature sets for each project from Supabase instead of local storage
         let allFeatureSets: any[] = [];
         
-        projectBriefs.forEach(brief => {
-          const briefFeatureSet = featureStore.getFeatureSetByBriefId(brief.id);
-          if (briefFeatureSet) {
-            allFeatureSets.push(briefFeatureSet);
+        // Use Promise.all to fetch feature sets for all briefs in parallel
+        await Promise.all(projectBriefs.map(async (brief) => {
+          try {
+            const briefFeatureSet = await featureService.getFeatureSetByBriefId(brief.id);
+            if (briefFeatureSet) {
+              allFeatureSets.push(briefFeatureSet);
+            }
+          } catch (error) {
+            console.error(`Error loading feature set for brief ${brief.id}:`, error);
           }
-        });
+        }));
         
         featureSetsByProject[project.id] = allFeatureSets;
       }));

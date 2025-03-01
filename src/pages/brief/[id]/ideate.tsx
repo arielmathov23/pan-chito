@@ -512,12 +512,6 @@ export default function IdeateFeatures() {
           </div>
         </div>
 
-        {showDragHint && featureSet && (
-          <div className="bg-blue-50 text-blue-700 p-4 rounded-lg mb-6">
-            <p className="font-medium">Pro tip: Drag and Drop</p>
-            <p>You can drag features between columns to change their priority level.</p>
-          </div>
-        )}
                 
         {error && (
           <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">

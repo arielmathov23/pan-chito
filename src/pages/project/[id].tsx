@@ -10,6 +10,7 @@ import { PRD, prdStore } from '../../utils/prdStore';
 import { Brief, briefService } from '../../services/briefService';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { useAuth } from '../../context/AuthContext';
+import { featureService } from '../../services/featureService';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -63,41 +64,58 @@ export default function ProjectDetail() {
   const [featureSets, setFeatureSets] = useState<FeatureSet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadProject = async () => {
-      if (id && user) {
-        setIsLoading(true);
+  const loadProject = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Fetch project
+      const projectData = await projectService.getProjectById(id as string);
+      setProject(projectData);
+      
+      // Fetch briefs
+      const briefsData = await briefService.getBriefsByProjectId(id as string);
+      setBriefs(briefsData);
+      
+      // Fetch feature sets from Supabase instead of local storage
+      const allFeatureSets: any[] = [];
+      
+      // Use Promise.all to fetch feature sets for all briefs in parallel
+      await Promise.all(briefsData.map(async (brief) => {
         try {
-          const foundProject = await projectService.getProjectById(id as string);
-          setProject(foundProject);
-          
-          if (foundProject) {
-            // Fetch briefs from Supabase using briefService
-            const projectBriefs = await briefService.getBriefsByProjectId(foundProject.id);
-            setBriefs(projectBriefs);
-            
-            // Get all PRDs for all briefs
-            const allPRDs = projectBriefs.flatMap(brief => prdStore.getPRDs(brief.id));
-            setPrds(allPRDs);
-            
-            // Get feature sets for each brief
-            if (projectBriefs.length > 0) {
-              const briefFeatureSets = projectBriefs.map(brief => 
-                featureStore.getFeatureSetByBriefId(brief.id)
-              ).filter(fs => fs !== null) as FeatureSet[];
-              
-              setFeatureSets(briefFeatureSets);
-            }
+          const briefFeatureSet = await featureService.getFeatureSetByBriefId(brief.id);
+          if (briefFeatureSet) {
+            allFeatureSets.push(briefFeatureSet);
           }
         } catch (error) {
-          console.error('Error loading project:', error);
-        } finally {
-          setIsLoading(false);
+          console.error(`Error loading feature set for brief ${brief.id}:`, error);
         }
-      }
-    };
+      }));
+      
+      setFeatureSets(allFeatureSets);
+      
+      // Fetch PRDs
+      const allPRDs: any[] = [];
+      briefsData.forEach(brief => {
+        const briefPRDs = prdStore.getPRDs(brief.id);
+        if (briefPRDs.length > 0) {
+          allPRDs.push(...briefPRDs);
+        }
+      });
+      setPrds(allPRDs);
+      
+    } catch (error) {
+      console.error('Error loading project:', error);
+      setError('Failed to load project data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (!authLoading && user && id) {
       loadProject();
     }
