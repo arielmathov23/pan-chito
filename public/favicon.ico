@@ -1,0 +1,9 @@
+<!-- 
+To create a proper favicon.ico file:
+1. Use the SVG file (favicon.svg) to generate a multi-size ICO file
+2. You can use online converters like https://convertio.co/svg-ico/ or https://favicon.io/
+3. Upload the SVG and download the ICO file
+4. Replace this placeholder file with the downloaded ICO file
+
+The ICO format is needed for older browsers that don't support SVG favicons.
+--> 

@@ -1,0 +1,17 @@
+{
+  "name": "021 - From Zero to One",
+  "short_name": "021",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64 192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#0F533A",
+  "background_color": "#ffffff",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait"
+} 
