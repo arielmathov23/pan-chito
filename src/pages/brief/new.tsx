@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import BriefForm, { BriefFormData } from '../../components/BriefForm';
-import { Project, projectStore } from '../../utils/projectStore';
+import { Project, projectService } from '../../services/projectService';
 import { briefStore } from '../../utils/briefStore';
 import { generateBrief, GeneratedBrief } from '../../utils/briefGenerator';
 import MockNotification from '../../components/MockNotification';
@@ -55,10 +55,20 @@ export default function NewBrief() {
       return;
     }
 
-    // Fetch project from store
-    const foundProject = projectStore.getProject(projectId as string);
-    setProject(foundProject);
-    setIsLoading(false);
+    // Fetch project from Supabase
+    const fetchProject = async () => {
+      try {
+        const foundProject = await projectService.getProjectById(projectId as string);
+        setProject(foundProject);
+      } catch (error) {
+        console.error('Error fetching project:', error);
+        setError('Failed to fetch project. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProject();
   }, [projectId, router]);
 
   useEffect(() => {

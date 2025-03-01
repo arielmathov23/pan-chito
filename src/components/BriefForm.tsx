@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { projectStore } from '../utils/projectStore';
+import { projectService } from '../services/projectService';
 
 interface BriefFormProps {
   projectId: string;
@@ -42,12 +42,20 @@ export default function BriefForm({ projectId, onSubmit, isGenerating = false, e
 
   useEffect(() => {
     // Get project name when component mounts
-    const project = projectStore.getProject(projectId);
-    if (project) {
-      setProjectName(project.name);
-      // Pre-fill the product name with project name
-      setFormData(prev => ({ ...prev, productName: project.name }));
-    }
+    const fetchProject = async () => {
+      try {
+        const project = await projectService.getProjectById(projectId);
+        if (project) {
+          setProjectName(project.name);
+          // Pre-fill the product name with project name
+          setFormData(prev => ({ ...prev, productName: project.name }));
+        }
+      } catch (error) {
+        console.error('Error fetching project:', error);
+      }
+    };
+    
+    fetchProject();
   }, [projectId]);
 
   const questions = [
