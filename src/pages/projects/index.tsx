@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
-import { Project, projectStore } from '../../utils/projectStore';
+import { Project, projectService } from '../../services/projectService';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { featureStore } from '../../utils/featureStore';
 import { prdStore } from '../../utils/prdStore';
 import { techDocStore } from '../../utils/techDocStore';
+import { useAuth } from '../../context/AuthContext';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -58,42 +59,57 @@ const COLORS = {
 
 export default function Projects() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectBriefs, setProjectBriefs] = useState<Record<string, Brief[]>>({});
   const [projectFeatureSets, setProjectFeatureSets] = useState<Record<string, any[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const loadProjects = () => {
-    const loadedProjects = projectStore.getProjects();
-    setProjects(loadedProjects);
+  const loadProjects = async () => {
+    if (!user) return;
     
-    // Load briefs for each project
-    const briefsByProject: Record<string, Brief[]> = {};
-    const featureSetsByProject: Record<string, any[]> = {};
-    
-    loadedProjects.forEach(project => {
-      const projectBriefs = briefStore.getBriefs(project.id);
-      briefsByProject[project.id] = projectBriefs;
+    setIsLoading(true);
+    try {
+      const loadedProjects = await projectService.getProjects();
+      setProjects(loadedProjects);
       
-      // Load feature sets for each project
-      let allFeatureSets: any[] = [];
+      // Load briefs for each project
+      const briefsByProject: Record<string, Brief[]> = {};
+      const featureSetsByProject: Record<string, any[]> = {};
       
-      projectBriefs.forEach(brief => {
-        const briefFeatureSet = featureStore.getFeatureSetByBriefId(brief.id);
-        if (briefFeatureSet) {
-          allFeatureSets.push(briefFeatureSet);
-        }
+      loadedProjects.forEach(project => {
+        const projectBriefs = briefStore.getBriefs(project.id);
+        briefsByProject[project.id] = projectBriefs;
+        
+        // Load feature sets for each project
+        let allFeatureSets: any[] = [];
+        
+        projectBriefs.forEach(brief => {
+          const briefFeatureSet = featureStore.getFeatureSetByBriefId(brief.id);
+          if (briefFeatureSet) {
+            allFeatureSets.push(briefFeatureSet);
+          }
+        });
+        
+        featureSetsByProject[project.id] = allFeatureSets;
       });
       
-      featureSetsByProject[project.id] = allFeatureSets;
-    });
-    
-    setProjectBriefs(briefsByProject);
-    setProjectFeatureSets(featureSetsByProject);
+      setProjectBriefs(briefsByProject);
+      setProjectFeatureSets(featureSetsByProject);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadProjects();
+    if (!authLoading && user) {
+      loadProjects();
+    }
+  }, [user, authLoading]);
 
+  useEffect(() => {
     // Add event listener for focus to refresh projects
     window.addEventListener('focus', loadProjects);
     
@@ -105,7 +121,7 @@ export default function Projects() {
       window.removeEventListener('focus', loadProjects);
       router.events.off('routeChangeComplete', loadProjects);
     };
-  }, [router.events]);
+  }, [router.events, user]);
 
   const getProjectStage = (project: Project, briefs: Brief[]) => {
     if (!briefs.length) return 0; // No brief yet
@@ -152,6 +168,19 @@ export default function Projects() {
     return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0F533A]"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <Navbar />
@@ -172,7 +201,11 @@ export default function Projects() {
           </Link>
         </header>
 
-        {projects.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0F533A]"></div>
+          </div>
+        ) : projects.length === 0 ? (
           <div className="mt-16 bg-white rounded-2xl shadow-sm p-12 text-center">
             <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-8">
               <svg className="w-8 h-8 text-[#4b5563]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

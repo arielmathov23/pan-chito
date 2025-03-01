@@ -5,10 +5,11 @@ import Navbar from '../../components/Navbar';
 import EmptyState from '../../components/EmptyState';
 import PRDList from '../../components/PRDList';
 import BriefList from '../../components/BriefList';
-import { Project, projectStore } from '../../utils/projectStore';
+import { Project, projectService } from '../../services/projectService';
 import { PRD, prdStore } from '../../utils/prdStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
+import { useAuth } from '../../context/AuthContext';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -55,6 +56,7 @@ const COLORS = {
 export default function ProjectDetail() {
   const router = useRouter();
   const { id } = router.query;
+  const { user, isLoading: authLoading } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [prds, setPrds] = useState<PRD[]>([]);
   const [briefs, setBriefs] = useState<Brief[]>([]);
@@ -63,37 +65,52 @@ export default function ProjectDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      const foundProject = projectStore.getProject(id as string);
-      setProject(foundProject);
-      
-      if (foundProject) {
-        const projectBriefs = briefStore.getBriefs(foundProject.id);
-        setBriefs(projectBriefs);
-        
-        // Get all PRDs for all briefs
-        const allPRDs = projectBriefs.flatMap(brief => prdStore.getPRDs(brief.id));
-        setPrds(allPRDs);
-        
-        // Get feature sets for each brief
-        if (projectBriefs.length > 0) {
-          const briefFeatureSets = projectBriefs.map(brief => 
-            featureStore.getFeatureSetByBriefId(brief.id)
-          ).filter(fs => fs !== null) as FeatureSet[];
+    const loadProject = async () => {
+      if (id && user) {
+        setIsLoading(true);
+        try {
+          const foundProject = await projectService.getProjectById(id as string);
+          setProject(foundProject);
           
-          setFeatureSets(briefFeatureSets);
+          if (foundProject) {
+            const projectBriefs = briefStore.getBriefs(foundProject.id);
+            setBriefs(projectBriefs);
+            
+            // Get all PRDs for all briefs
+            const allPRDs = projectBriefs.flatMap(brief => prdStore.getPRDs(brief.id));
+            setPrds(allPRDs);
+            
+            // Get feature sets for each brief
+            if (projectBriefs.length > 0) {
+              const briefFeatureSets = projectBriefs.map(brief => 
+                featureStore.getFeatureSetByBriefId(brief.id)
+              ).filter(fs => fs !== null) as FeatureSet[];
+              
+              setFeatureSets(briefFeatureSets);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading project:', error);
+        } finally {
+          setIsLoading(false);
         }
       }
-      
-      setIsLoading(false);
-    }
-  }, [id]);
+    };
 
-  const handleDeleteProject = () => {
+    if (!authLoading && user && id) {
+      loadProject();
+    }
+  }, [id, user, authLoading]);
+
+  const handleDeleteProject = async () => {
     if (project) {
-      const deleted = projectStore.deleteProject(project.id);
-      if (deleted) {
-        router.push('/projects');
+      try {
+        const deleted = await projectService.deleteProject(project.id);
+        if (deleted) {
+          router.push('/projects');
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
       }
     }
   };
@@ -297,6 +314,27 @@ export default function ProjectDetail() {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa]">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F533A]"></div>
+              <p className="mt-4 text-[#6b7280]">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   if (isLoading) {
     return (

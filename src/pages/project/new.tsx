@@ -1,27 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
-import { projectStore } from '../../utils/projectStore';
+import { projectService } from '../../services/projectService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function NewProject() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
+    setError('');
 
     try {
-      const project = projectStore.saveProject({ name, description });
-      router.push(`/project/${project.id}`);
+      const project = await projectService.createProject({ 
+        name, 
+        description,
+        content: {}
+      });
+      
+      if (project) {
+        router.push(`/project/${project.id}`);
+      } else {
+        setError('Failed to create project. Please try again.');
+        setIsCreating(false);
+      }
     } catch (error) {
       console.error('Failed to create project:', error);
+      setError('An error occurred while creating the project. Please try again.');
       setIsCreating(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa]">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F533A]"></div>
+              <p className="mt-4 text-[#6b7280]">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Router will redirect to login
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -37,6 +78,21 @@ export default function NewProject() {
             <h1 className="text-3xl font-bold text-[#111827]">Create a new project</h1>
             <p className="text-[#6b7280] mt-2">Set up a new project to organize your product documentation</p>
           </div>
+
+          {error && (
+            <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
