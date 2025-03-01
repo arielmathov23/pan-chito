@@ -5,18 +5,35 @@ import ReactMarkdown from 'react-markdown';
 import Navbar from '../../components/Navbar';
 import EmptyState from '../../components/EmptyState';
 import { Project, projectStore } from '../../utils/projectStore';
-import { Brief, briefStore } from '../../utils/briefStore';
+import { Brief as BriefStore, briefStore } from '../../utils/briefStore';
+import { Brief as BriefService } from '../../services/briefService';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { prdStore } from '../../utils/prdStore';
 import { generatePRD, parsePRD } from '../../utils/prdGenerator';
 import MockNotification from '../../components/MockNotification';
-import { isMockData } from '../../utils/mockDetector';
+import isMockData from '../../utils/mockDetector';
+
+// Helper function to convert from briefStore.Brief to briefService.Brief
+const convertBriefForPRDGenerator = (brief: BriefStore): BriefService => {
+  return {
+    id: brief.id,
+    project_id: brief.projectId,
+    product_name: brief.productName,
+    form_data: brief.formData,
+    brief_data: brief.briefData,
+    created_at: brief.createdAt,
+    updated_at: brief.createdAt, // Use createdAt as a fallback
+    user_id: 'local-user', // Use a placeholder for local storage
+    is_editing: brief.isEditing,
+    show_edit_buttons: brief.showEditButtons
+  };
+};
 
 export default function NewPRD() {
   const router = useRouter();
   const { projectId } = router.query;
   const [project, setProject] = useState<Project | null>(null);
-  const [briefs, setBriefs] = useState<Brief[]>([]);
+  const [briefs, setBriefs] = useState<BriefStore[]>([]);
   const [selectedBriefId, setSelectedBriefId] = useState<string>('');
   const [featureSet, setFeatureSet] = useState<FeatureSet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +82,7 @@ export default function NewPRD() {
 
   const handleGeneratePRD = async () => {
     if (!selectedBriefId || !featureSet) {
-      setError('Please select a brief with features to generate a PRD');
+      setError('Please select a brief and ensure features are available');
       return;
     }
     
@@ -79,7 +96,10 @@ export default function NewPRD() {
       setError(null);
       setIsGenerating(true);
       
-      const response = await generatePRD(brief, featureSet);
+      // Convert brief to the format expected by generatePRD
+      const briefForGenerator = convertBriefForPRDGenerator(brief);
+      
+      const response = await generatePRD(briefForGenerator, featureSet);
       setGeneratedPRD(response);
     } catch (error) {
       console.error('Error generating PRD:', error);

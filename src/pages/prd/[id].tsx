@@ -4,18 +4,35 @@ import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import MockNotification from '../../components/MockNotification';
 import { Project, projectStore } from '../../utils/projectStore';
-import { Brief, briefStore } from '../../utils/briefStore';
+import { Brief as BriefStore, briefStore } from '../../utils/briefStore';
+import { Brief as BriefService } from '../../services/briefService';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { PRD, prdStore } from '../../utils/prdStore';
-import { generatePRD, parsePRD } from '../../utils/prdGenerator';
+import { generatePRD, parsePRD, GeneratedPRD } from '../../utils/prdGenerator';
 import PRDViewer from '../../components/PRDViewer';
 import { techDocStore } from '../../utils/techDocStore';
 import isMockData from '../../utils/mockDetector';
 
+// Helper function to convert from briefStore.Brief to briefService.Brief
+const convertBriefForPRDGenerator = (brief: BriefStore): BriefService => {
+  return {
+    id: brief.id,
+    project_id: brief.projectId,
+    product_name: brief.productName,
+    form_data: brief.formData,
+    brief_data: brief.briefData,
+    created_at: brief.createdAt,
+    updated_at: brief.createdAt, // Use createdAt as a fallback
+    user_id: 'local-user', // Use a placeholder for local storage
+    is_editing: brief.isEditing,
+    show_edit_buttons: brief.showEditButtons
+  };
+};
+
 export default function PRDPage() {
   const router = useRouter();
   const { id } = router.query;
-  const [brief, setBrief] = useState<Brief | null>(null);
+  const [brief, setBrief] = useState<BriefStore | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [featureSet, setFeatureSet] = useState<FeatureSet | null>(null);
   const [prd, setPRD] = useState<PRD | null>(null);
@@ -78,7 +95,10 @@ export default function PRDPage() {
     setError(null);
     
     try {
-      const response = await generatePRD(brief, featureSet);
+      // Convert brief to the format expected by generatePRD
+      const briefForGenerator = convertBriefForPRDGenerator(brief);
+      
+      const response = await generatePRD(briefForGenerator, featureSet);
       const parsedPRD = parsePRD(response);
       
       // Save the generated PRD
