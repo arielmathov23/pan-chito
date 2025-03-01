@@ -64,14 +64,14 @@ const Signup = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-10 bg-white/95 backdrop-blur-sm p-10 rounded-2xl shadow-lg">
+        <div className="max-w-md w-full space-y-10 glass-card p-10 rounded-2xl">
           <div className="space-y-6">
             <div className="flex justify-center">
               <svg className="w-14 h-14 logo-pulse" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{ stopColor: '#0F533A' }} />
-                    <stop offset="100%" style={{ stopColor: '#16a34a' }} />
+                    <stop offset="0%" style={{ stopColor: '#052e1d' }} />
+                    <stop offset="100%" style={{ stopColor: '#10b945' }} />
                   </linearGradient>
                 </defs>
                 <path d="M4.5 16.5L12 3L19.5 16.5H4.5Z" stroke="url(#logo-gradient)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -83,7 +83,7 @@ const Signup = () => {
             </div>
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-                Join <span className="animated-gradient-text">021</span>
+                Join <span className="animated-gradient-text text-4xl">021</span>
               </h2>
               <p className="text-base md:text-lg text-gray-600 mt-2 max-w-md mx-auto">
                 Create your account to start building your products
@@ -95,7 +95,7 @@ const Signup = () => {
             <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                 </div>
@@ -117,14 +117,14 @@ const Signup = () => {
                   autoComplete="email"
                   required
                   className={`appearance-none block w-full px-4 py-3 border ${
-                    validationErrors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0F533A] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
+                    validationErrors.email ? 'border-red-500' : 'border-gray-300'
+                  } bg-white rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b945] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 {validationErrors.email && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
+                  <p className="mt-1 text-sm text-red-400">{validationErrors.email}</p>
                 )}
               </div>
               <div>
@@ -136,14 +136,14 @@ const Signup = () => {
                   autoComplete="new-password"
                   required
                   className={`appearance-none block w-full px-4 py-3 border ${
-                    validationErrors.password ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0F533A] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
+                    validationErrors.password ? 'border-red-500' : 'border-gray-300'
+                  } bg-white rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b945] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 {validationErrors.password && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
+                  <p className="mt-1 text-sm text-red-400">{validationErrors.password}</p>
                 )}
               </div>
               <div>
@@ -155,14 +155,14 @@ const Signup = () => {
                   autoComplete="new-password"
                   required
                   className={`appearance-none block w-full px-4 py-3 border ${
-                    validationErrors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0F533A] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
+                    validationErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                  } bg-white rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b945] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
                 {validationErrors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.confirmPassword}</p>
+                  <p className="mt-1 text-sm text-red-400">{validationErrors.confirmPassword}</p>
                 )}
               </div>
             </div>
@@ -171,7 +171,7 @@ const Signup = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#0F533A] hover:bg-[#0a3f2c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F533A] transition-all duration-200 hover:translate-y-[-2px] shadow-sm hover:shadow-md"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#0F533A] hover:bg-[#10b945] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F533A] transition-all duration-200 hover:translate-y-[-2px] shadow-sm hover:shadow-md"
               >
                 {isLoading ? (
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -187,7 +187,7 @@ const Signup = () => {
             <div className="text-sm text-center">
               <p className="text-gray-500">
                 Already have an account?{' '}
-                <Link href="/login" className="font-medium text-[#0F533A] hover:text-[#0a3f2c] transition-colors duration-200">
+                <Link href="/login" className="font-medium text-[#0F533A] hover:text-[#10b945] transition-colors duration-200">
                   Sign in
                 </Link>
               </p>

@@ -31,22 +31,67 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ children }) => 
       size: number;
       speed: number;
       opacity: number;
+      color: string;
+      sequence: string[];
+      sequenceIndex: number;
+      lastUpdate: number;
+      updateInterval: number;
     }[] = [];
     
     // Initialize numbers
     const initNumbers = () => {
       numbers.length = 0;
-      const density = Math.floor(canvas.width * canvas.height / 20000); // Reduced density
+      const density = Math.floor(canvas.width * canvas.height / 10000); // Slightly reduced density for white background
       
-      for (let i = 0; i < density; i++) {
-        numbers.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          value: Math.random() < 0.33 ? '0' : Math.random() < 0.66 ? '2' : '1',
-          size: Math.random() * 16 + 8,
-          speed: Math.random() * 0.8 + 0.2, // Slightly faster
-          opacity: Math.random() * 0.15 + 0.05 // More subtle
-        });
+      // Only use 0, 1, 2 for the Matrix effect
+      const digits = ['0', '1', '2'];
+      
+      // Define color variations (green shades with better contrast for white background)
+      const colors = [
+        '#0F533A', // Dark green
+        '#0a3f2c', // Darker green
+        '#084024', // Very dark green
+        '#052e1d', // Extremely dark green
+        '#031b11', // Almost black green
+      ];
+      
+      // Create columns of numbers
+      const columnCount = Math.floor(canvas.width / 25); // One column every ~25px
+      const columnPositions = Array.from({ length: columnCount }, (_, i) => 
+        (i * canvas.width / columnCount) + (Math.random() * 10 - 5) // Add slight randomness
+      );
+      
+      // Create multiple streams of numbers
+      for (let col = 0; col < columnPositions.length; col++) {
+        const x = columnPositions[col];
+        const streamLength = Math.floor(Math.random() * 10) + 3; // 3-12 numbers per stream
+        
+        // Create a stream of numbers at this column position
+        for (let i = 0; i < streamLength; i++) {
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          const baseOpacity = Math.random() * 0.4 + 0.2; // Higher base opacity for white background
+          
+          // Head of the stream is darker (now at the top of the stream for upward movement)
+          const opacity = i === 0 ? baseOpacity + 0.4 : baseOpacity - (i / streamLength * 0.1);
+          
+          // Position numbers in a column with the lead number at the bottom
+          // This creates a better effect for upward movement
+          const yPosition = canvas.height - (i * 20) - Math.random() * 50;
+          
+          numbers.push({
+            x,
+            y: yPosition,
+            value: digits[Math.floor(Math.random() * digits.length)],
+            size: Math.random() * 14 + 10, // Size variation
+            speed: Math.random() * 0.6 + 0.3, // Slower speed for upward movement
+            opacity,
+            color,
+            sequence: digits, // Just use the digits array
+            sequenceIndex: 0,
+            lastUpdate: Date.now() - (i * 200), // Stagger updates
+            updateInterval: Math.random() * 600 + 400, // Slightly slower updates
+          });
+        }
       }
     };
     
@@ -60,10 +105,11 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ children }) => 
     const render = (time: number) => {
       const deltaTime = time - lastTime;
       lastTime = time;
+      const currentTime = Date.now();
       
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw subtle gradient background
+      // Draw white background
       const gradient = ctx.createRadialGradient(
         canvas.width / 2, 
         canvas.height / 2, 
@@ -73,26 +119,50 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ children }) => 
         canvas.width * 0.8
       );
       
-      const t = Date.now() * 0.0001;
-      gradient.addColorStop(0, `rgba(249, 250, 251, 0.2)`); // Very light gray
-      gradient.addColorStop(1, `rgba(243, 244, 246, 0.1)`); // Light gray
+      gradient.addColorStop(0, `rgba(255, 255, 255, 1)`); // Pure white
+      gradient.addColorStop(1, `rgba(245, 245, 245, 1)`); // Slightly off-white
       
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
+      // Sort numbers by y position to handle opacity correctly
+      numbers.sort((a, b) => a.y - b.y);
+      
       // Draw numbers
       numbers.forEach(number => {
-        ctx.font = `${number.size}px monospace`;
-        ctx.fillStyle = `rgba(15, 83, 58, ${number.opacity})`;
-        ctx.fillText(number.value, number.x, number.y);
+        // Update sequence if it's time
+        if (currentTime - number.lastUpdate > number.updateInterval) {
+          number.value = number.sequence[Math.floor(Math.random() * number.sequence.length)];
+          number.lastUpdate = currentTime;
+        }
         
-        // Move number up
+        ctx.font = `${number.size}px monospace`;
+        
+        // Create a subtle shadow effect for the leading number in each stream
+        if (number.opacity > 0.5) {
+          ctx.shadowColor = number.color;
+          ctx.shadowBlur = 3;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+        
+        // Use full opacity for better contrast on white
+        ctx.fillStyle = number.color;
+        // Apply opacity through globalAlpha instead
+        ctx.globalAlpha = number.opacity;
+        ctx.fillText(number.value, number.x, number.y);
+        ctx.globalAlpha = 1.0; // Reset global alpha
+        
+        // Move number up instead of down
         number.y -= number.speed;
         
-        // Reset position if off screen
+        // Reset position if off screen (now checking top instead of bottom)
         if (number.y < -number.size) {
           number.y = canvas.height + number.size;
-          number.x = Math.random() * canvas.width;
+          // Keep the same x position to maintain column effect
+          number.speed = Math.random() * 0.6 + 0.3; // Slower randomized speed
+          number.opacity = Math.random() * 0.4 + 0.2; // Randomize opacity
+          number.size = Math.random() * 14 + 10; // Randomize size
         }
       });
       
@@ -121,4 +191,4 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ children }) => 
   );
 };
 
-export default AnimatedBackground; 
+export default AnimatedBackground;
