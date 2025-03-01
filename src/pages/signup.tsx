@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { withAuth } from '../middleware/withAuth';
 import AnimatedBackground from '../components/AnimatedBackground';
+import PasswordInput from '../components/PasswordInput';
+import ConfirmPasswordInput from '../components/ConfirmPasswordInput';
 
 const Signup = () => {
   const { signup, error, isLoading, clearError } = useAuth();
@@ -127,44 +129,26 @@ const Signup = () => {
                   <p className="mt-1 text-sm text-red-400">{validationErrors.email}</p>
                 )}
               </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    validationErrors.password ? 'border-red-500' : 'border-gray-300'
-                  } bg-white rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b945] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                {validationErrors.password && (
-                  <p className="mt-1 text-sm text-red-400">{validationErrors.password}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                <input
-                  id="confirm-password"
-                  name="confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    validationErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                  } bg-white rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#10b945] focus:border-transparent transition-all duration-200 sm:text-sm hover:translate-y-[-2px]`}
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-                {validationErrors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-400">{validationErrors.confirmPassword}</p>
-                )}
-              </div>
+              
+              <PasswordInput
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                hasError={!!validationErrors.password}
+                errorMessage={validationErrors.password}
+                autoComplete="new-password"
+              />
+              
+              <ConfirmPasswordInput
+                id="confirm-password"
+                name="confirm-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                hasError={!!validationErrors.confirmPassword}
+                errorMessage={validationErrors.confirmPassword}
+                autoComplete="new-password"
+              />
             </div>
 
             <div>

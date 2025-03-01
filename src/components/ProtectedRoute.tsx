@@ -1,55 +1,57 @@
-import { useEffect } from 'react';
+import React, { useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import LoadingScreen from './LoadingScreen';
+import authDebug from '../utils/authDebug';
 
 // List of public routes that don't require authentication
 const publicRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  
+  // Check if the current route is a public route
+  const isPublicRoute = publicRoutes.includes(router.pathname);
+
+  // Log current route status for debugging
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      authDebug.logNavigation(router.pathname);
+      authDebug.isPublicRoute(router.pathname, publicRoutes);
+      authDebug.logAuthState();
+    }
+  }, [router.pathname]);
 
   useEffect(() => {
-    // Skip redirect during initial loading
-    if (isLoading) return;
-
-    // If user is not authenticated and trying to access a protected route
-    if (!isAuthenticated && !publicRoutes.includes(router.pathname)) {
-      // Store the intended URL to redirect back after login
-      if (router.pathname !== '/') {
-        sessionStorage.setItem('redirectAfterLogin', router.asPath);
+    // Only redirect to login if not authenticated AND not on a public route
+    if (!isLoading && !isAuthenticated && !isPublicRoute) {
+      // Store the current path to redirect back after login
+      sessionStorage.setItem('redirectAfterLogin', router.pathname);
+      
+      if (process.env.NODE_ENV === 'development') {
+        authDebug.logRedirect(
+          router.pathname, 
+          '/login', 
+          'User not authenticated on protected route'
+        );
       }
       
-      // Redirect to login page
       router.push('/login');
     }
-    
-    // If user is authenticated and trying to access login/signup pages
-    if (isAuthenticated && publicRoutes.includes(router.pathname)) {
-      // Redirect to home or stored redirect path
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
-      sessionStorage.removeItem('redirectAfterLogin');
-      router.push(redirectPath);
-    }
-  }, [isAuthenticated, isLoading, router.pathname]);
+  }, [isAuthenticated, isLoading, router, isPublicRoute]);
 
-  // Show loading screen while checking authentication or redirecting
+  // Show loading screen while checking authentication
   if (isLoading) {
     return <LoadingScreen />;
   }
 
-  // Show nothing during redirect
-  if (!isAuthenticated && !publicRoutes.includes(router.pathname)) {
-    return null;
-  }
-
-  // Render children only when authenticated or on public routes
-  return <>{children}</>;
+  // Always render children for public routes, otherwise only when authenticated
+  return isPublicRoute || isAuthenticated ? <>{children}</> : null;
 };
 
 export default ProtectedRoute; 

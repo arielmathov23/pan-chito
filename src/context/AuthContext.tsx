@@ -7,13 +7,7 @@ import {
   LoginCredentials, 
   SignupCredentials 
 } from '../types/auth';
-import { 
-  loginUser, 
-  signupUser, 
-  getUserFromStorage, 
-  clearAuthFromStorage, 
-  isAuthenticated as checkIsAuthenticated 
-} from '../utils/authUtils';
+import { supabase } from '../lib/supabaseClient';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType>({
@@ -44,19 +38,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   const router = useRouter();
 
-  // Initialize auth state from localStorage on mount
+  // Initialize auth state from Supabase session on mount
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       try {
-        const isUserAuthenticated = checkIsAuthenticated();
-        const user = getUserFromStorage();
+        // Get the current session
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        setAuthState({
-          user,
-          isAuthenticated: isUserAuthenticated,
-          isLoading: false,
-          error: null,
-        });
+        if (error) {
+          throw error;
+        }
+
+        if (session) {
+          const user: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            createdAt: session.user.created_at || new Date().toISOString(),
+          };
+
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
+        }
       } catch (error) {
         console.error('Error initializing auth:', error);
         setAuthState({
@@ -68,9 +81,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    // Add a small delay to simulate loading and avoid flickering
-    const timer = setTimeout(initializeAuth, 500);
-    return () => clearTimeout(timer);
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          const user: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            createdAt: session.user.created_at || new Date().toISOString(),
+          };
+
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
+        }
+      }
+    );
+
+    // Initialize auth
+    initializeAuth();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Login function
@@ -78,23 +122,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const user = await loginUser(credentials);
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
       });
       
-      // Redirect to stored path or home page after successful login
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
-      sessionStorage.removeItem('redirectAfterLogin');
-      router.push(redirectPath);
-    } catch (error) {
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        const user: User = {
+          id: data.user.id,
+          email: data.user.email || '',
+          createdAt: data.user.created_at || new Date().toISOString(),
+        };
+
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        
+        // Redirect to stored path or home page after successful login
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+        sessionStorage.removeItem('redirectAfterLogin');
+        router.push(redirectPath);
+      }
+    } catch (error: any) {
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Login failed',
+        error: error.message || 'Login failed',
       }));
     }
   };
@@ -104,39 +164,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const user = await signupUser(credentials);
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
+      const { data, error } = await supabase.auth.signUp({
+        email: credentials.email,
+        password: credentials.password,
       });
       
-      // Redirect to stored path or home page after successful signup
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
-      sessionStorage.removeItem('redirectAfterLogin');
-      router.push(redirectPath);
-    } catch (error) {
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        const user: User = {
+          id: data.user.id,
+          email: data.user.email || '',
+          createdAt: data.user.created_at || new Date().toISOString(),
+        };
+
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        
+        // Redirect to stored path or home page after successful signup
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+        sessionStorage.removeItem('redirectAfterLogin');
+        router.push(redirectPath);
+      }
+    } catch (error: any) {
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Signup failed',
+        error: error.message || 'Signup failed',
       }));
     }
   };
 
   // Logout function
-  const logout = () => {
-    clearAuthFromStorage();
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-    });
-    
-    // Redirect to login page after logout
-    router.push('/login');
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      });
+      
+      // Redirect to login page after logout
+      router.push('/login');
+    } catch (error: any) {
+      console.error('Error during logout:', error);
+      setAuthState(prev => ({
+        ...prev,
+        error: error.message || 'Logout failed',
+      }));
+    }
   };
 
   // Clear error function

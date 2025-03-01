@@ -61,22 +61,26 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ children }) => 
         (i * canvas.width / columnCount) + (Math.random() * 10 - 5) // Add slight randomness
       );
       
-      // Create multiple streams of numbers
+      // Create multiple streams of numbers distributed across the entire screen
       for (let col = 0; col < columnPositions.length; col++) {
         const x = columnPositions[col];
-        const streamLength = Math.floor(Math.random() * 10) + 3; // 3-12 numbers per stream
+        const streamLength = Math.floor(Math.random() * 10) + 5; // 5-14 numbers per stream for more density
+        
+        // Distribute the stream across the entire height of the canvas
+        const streamHeight = canvas.height + 100; // Add extra height to ensure full coverage
+        const segmentHeight = streamHeight / streamLength;
         
         // Create a stream of numbers at this column position
         for (let i = 0; i < streamLength; i++) {
           const color = colors[Math.floor(Math.random() * colors.length)];
           const baseOpacity = Math.random() * 0.4 + 0.2; // Higher base opacity for white background
           
-          // Head of the stream is darker (now at the top of the stream for upward movement)
+          // Randomize opacity slightly but keep the pattern of brighter numbers at the top of each stream
           const opacity = i === 0 ? baseOpacity + 0.4 : baseOpacity - (i / streamLength * 0.1);
           
-          // Position numbers in a column with the lead number at the bottom
-          // This creates a better effect for upward movement
-          const yPosition = canvas.height - (i * 20) - Math.random() * 50;
+          // Distribute numbers evenly across the entire height with some randomness
+          // This ensures numbers appear everywhere from the start
+          const yPosition = (i * segmentHeight) + (Math.random() * segmentHeight * 0.5);
           
           numbers.push({
             x,
