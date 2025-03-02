@@ -12,6 +12,7 @@ import { projectService } from '../../services/projectService';
 import { Brief, briefService } from '../../services/briefService';
 import { featureService } from '../../services/featureService';
 import { techDocStore } from '../../utils/techDocStore';
+import { techDocService } from '../../services/techDocService';
 import isMockData from '../../utils/mockDetector';
 import screenService from '../../services/screenService';
 
@@ -94,15 +95,25 @@ export default function Projects() {
       if (!hasScreens) return 3; // Has PRD, next is screens
       
       // Check if tech docs exist for any PRD
-      const hasTechDocs = prds.some(prd => {
+      // First check Supabase using techDocService
+      const techDocPromises = prds.map(prd => techDocService.getTechDocByPrdId(prd.id));
+      const techDocResults = await Promise.all(techDocPromises);
+      const hasTechDocsInSupabase = techDocResults.some(result => result !== null);
+      
+      if (hasTechDocsInSupabase) {
+        return 5; // Has tech docs in Supabase, all stages completed
+      }
+      
+      // Fallback to local storage if not found in Supabase
+      const hasTechDocsInLocalStorage = prds.some(prd => {
         return techDocStore.getTechDoc(prd.id);
       });
       
-      if (!hasTechDocs) return 4; // Has screens, next is tech docs
+      if (!hasTechDocsInLocalStorage && !hasTechDocsInSupabase) return 4; // Has screens, next is tech docs
       
       return 5; // Has tech docs, all stages completed
     } catch (error) {
-      console.error('Error checking for screens:', error);
+      console.error('Error checking for screens or tech docs:', error);
       return 3; // Default to PRD stage if there's an error
     }
   };
@@ -452,52 +463,80 @@ export default function Projects() {
                             </svg>
                           </button>
                         )}
-                        {/* Add Tech Docs Link */}
-                        {nextStage > 4 && (
+                        {/* View Tech Docs Button */}
+                        {nextStage === 5 && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={async () => {
+                              let url = `/project/${project.id}`;
                               
-                              // Use an IIFE to handle the async operation
-                              (async () => {
-                                // Find a PRD associated with any brief in this project
-                                const brief = briefs[0];
-                                if (brief) {
-                                  try {
-                                    // Try to find a PRD for this brief
-                                    const prds = await prdService.getPRDsByBriefId(brief.id);
-                                    if (prds && prds.length > 0) {
-                                      console.log(`Found PRD with ID ${prds[0].id} for brief ${brief.id}`);
-                                      router.push(`/docs/${prds[0].id}`);
-                                      return;
+                              // Find a PRD associated with any brief in this project
+                              const brief = briefs[0];
+                              if (brief) {
+                                try {
+                                  // Try to find a PRD for this brief
+                                  const prds = await prdService.getPRDsByBriefId(brief.id);
+                                  if (prds && prds.length > 0) {
+                                    // Check if tech doc exists in Supabase
+                                    const techDoc = await techDocService.getTechDocByPrdId(prds[0].id);
+                                    if (techDoc) {
+                                      console.log(`Found tech doc for PRD ${prds[0].id}`);
+                                      url = `/docs/${prds[0].id}`;
+                                    } else {
+                                      // Fallback to local storage
+                                      const localTechDoc = techDocStore.getTechDocByPrdId(prds[0].id);
+                                      if (localTechDoc) {
+                                        console.log(`Found local tech doc for PRD ${prds[0].id}`);
+                                        url = `/docs/${prds[0].id}`;
+                                      } else {
+                                        console.error('No tech doc found for PRD:', prds[0].id);
+                                        url = `/project/${project.id}`;
+                                      }
                                     }
-                                    
+                                  } else {
                                     // Fallback to local store if not found in Supabase
                                     const localPrd = prdStore.getPRDByBriefId(brief.id);
                                     if (localPrd) {
-                                      console.log(`Found local PRD with ID ${localPrd.id} for brief ${brief.id}`);
-                                      router.push(`/docs/${localPrd.id}`);
-                                      return;
+                                      // Check if tech doc exists in Supabase
+                                      const techDoc = await techDocService.getTechDocByPrdId(localPrd.id);
+                                      if (techDoc) {
+                                        console.log(`Found tech doc for local PRD ${localPrd.id}`);
+                                        url = `/docs/${localPrd.id}`;
+                                      } else {
+                                        // Fallback to local storage
+                                        const localTechDoc = techDocStore.getTechDocByPrdId(localPrd.id);
+                                        if (localTechDoc) {
+                                          console.log(`Found local tech doc for local PRD ${localPrd.id}`);
+                                          url = `/docs/${localPrd.id}`;
+                                        } else {
+                                          console.error('No tech doc found for local PRD:', localPrd.id);
+                                          url = `/project/${project.id}`;
+                                        }
+                                      }
+                                    } else {
+                                      console.error('No PRD found for brief:', brief.id);
+                                      url = `/project/${project.id}`;
                                     }
-                                  } catch (error) {
-                                    console.error('Error finding PRD for Tech Docs:', error);
                                   }
+                                } catch (error) {
+                                  console.error('Error finding tech doc:', error);
+                                  url = `/project/${project.id}`;
                                 }
-                                console.error('No PRD found for any brief in this project');
-                                router.push(`/project/${project.id}`);
-                              })();
+                              } else {
+                                console.error('No brief found for this project');
+                                url = `/project/${project.id}`;
+                              }
+                              
+                              router.push(url);
                             }}
-                            className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            style={{ 
-                              borderColor: COLORS.docs.border,
-                              color: COLORS.docs.primary,
-                              backgroundColor: COLORS.docs.light
-                            }}
+                            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm bg-white text-[#0F533A] border border-[#0F533A] hover:bg-[#f0f2f5]"
                           >
-                            View Tech Docs
-                            <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
+                            View Tech Docs
                           </button>
                         )}
                         <button

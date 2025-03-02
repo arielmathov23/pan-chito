@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { Brief } from './briefStore';
 import { PRD } from './prdStore';
-import { TechDoc } from './techDocStore';
+import { TechDoc } from '../services/techDocService';
 
 // Check if API key is available
 const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;

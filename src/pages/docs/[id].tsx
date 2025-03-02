@@ -6,7 +6,7 @@ import TechDocViewer from '../../components/TechDocViewer';
 import { Project, projectStore } from '../../utils/projectStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { PRD, prdStore } from '../../utils/prdStore';
-import { TechDoc, techDocStore } from '../../utils/techDocStore';
+import { techDocStore } from '../../utils/techDocStore';
 import { generateTechDocumentation, parseTechDoc } from '../../utils/techDocGenerator';
 import MockNotification from '../../components/MockNotification';
 import { isMockData } from '../../utils/mockDetector';
@@ -14,6 +14,7 @@ import Modal from '../../components/Modal';
 import { prdService } from '../../services/prdService';
 import { briefService } from '../../services/briefService';
 import { projectService } from '../../services/projectService';
+import { techDocService, TechDoc } from '../../services/techDocService';
 
 // Create a simple logger function since the actual logger module might not exist
 const logger = {
@@ -23,6 +24,17 @@ const logger = {
   error: (message: string, error?: any) => {
     console.error(message, error);
   }
+};
+
+// Helper function to convert local tech doc to Supabase format
+const convertLocalTechDocToSupabase = (localTechDoc: any): Omit<TechDoc, 'id' | 'createdAt' | 'updatedAt'> => {
+  return {
+    prdId: localTechDoc.prdId,
+    techStack: localTechDoc.techStack,
+    frontend: localTechDoc.frontend,
+    backend: localTechDoc.backend,
+    content: localTechDoc.content
+  };
 };
 
 export default function TechDocPage() {
@@ -125,11 +137,20 @@ export default function TechDocPage() {
               }
               
               // Check for existing tech doc
-              const techDoc = techDocStore.getTechDoc(supabasePRD.id);
+              const techDoc = await techDocService.getTechDocByPrdId(supabasePRD.id);
               if (techDoc) {
                 setTechDoc(techDoc);
               } else {
-                logger.log('No tech doc found, will need to generate one');
+                // Fallback to local storage if not found in Supabase
+                const localTechDoc = techDocStore.getTechDocByPrdId(supabasePRD.id);
+                if (localTechDoc) {
+                  // Convert local tech doc to Supabase format and save it
+                  const convertedTechDoc = convertLocalTechDocToSupabase(localTechDoc);
+                  const savedTechDoc = await techDocService.saveTechDoc(convertedTechDoc);
+                  setTechDoc(savedTechDoc);
+                } else {
+                  logger.log('No tech doc found, will need to generate one');
+                }
               }
             } else {
               logger.error('No brief found for PRD:', supabasePRD.id);
@@ -179,9 +200,18 @@ export default function TechDocPage() {
               
               // Check for existing tech doc
               if (localPRD) {
-                const techDoc = techDocStore.getTechDoc(localPRD.id);
+                const techDoc = await techDocService.getTechDocByPrdId(localPRD.id);
                 if (techDoc) {
                   setTechDoc(techDoc);
+                } else {
+                  // Fallback to local storage if not found in Supabase
+                  const localTechDoc = techDocStore.getTechDocByPrdId(localPRD.id);
+                  if (localTechDoc) {
+                    // Convert local tech doc to Supabase format and save it
+                    const convertedTechDoc = convertLocalTechDocToSupabase(localTechDoc);
+                    const savedTechDoc = await techDocService.saveTechDoc(convertedTechDoc);
+                    setTechDoc(savedTechDoc);
+                  }
                 }
               }
             } else {
@@ -274,8 +304,16 @@ export default function TechDocPage() {
       const response = await generateTechDocumentation(brief, prd);
       const parsedTechDoc = parseTechDoc(response);
       
-      // Save the generated tech doc
-      const savedTechDoc = techDocStore.saveTechDoc(prd.id, parsedTechDoc);
+      // Save the generated tech doc to Supabase
+      const techDocData = {
+        prdId: prd.id,
+        techStack: parsedTechDoc.techStack,
+        frontend: parsedTechDoc.frontend,
+        backend: parsedTechDoc.backend,
+        content: parsedTechDoc.content
+      };
+      
+      const savedTechDoc = await techDocService.saveTechDoc(techDocData);
       setTechDoc(savedTechDoc);
     } catch (err) {
       console.error('Error generating tech documentation:', err);
@@ -290,12 +328,23 @@ export default function TechDocPage() {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!techDoc) return;
-    const deleted = techDocStore.deleteTechDoc(techDoc.id);
-    if (deleted) {
-      setTechDoc(null);
+    
+    try {
+      const deleted = await techDocService.deleteTechDoc(techDoc.id);
+      if (deleted) {
+        setTechDoc(null);
+      }
+    } catch (error) {
+      console.error('Error deleting tech doc:', error);
+      // Fallback to local storage
+      const localDeleted = techDocStore.deleteTechDoc(techDoc.id);
+      if (localDeleted) {
+        setTechDoc(null);
+      }
     }
+    
     setShowDeleteModal(false);
   };
 

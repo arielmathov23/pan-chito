@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { TechDoc, techDocStore } from '../utils/techDocStore';
+import { TechDoc } from '../services/techDocService';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { prdStore } from '../utils/prdStore';
 import { briefStore } from '../utils/briefStore';
+import { techDocService } from '../services/techDocService';
 
 interface TechDocViewerProps {
   techDoc: TechDoc;
@@ -315,36 +316,21 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         console.log("Updated backend content");
       }
       
-      // Save the updated tech doc
-      if (projectId) {
-        const response = await fetch(`/api/projects/${projectId}/tech-doc`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updatedTechDoc),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to save tech doc: ${response.statusText}`);
-        }
-        
-        // Update the local state with the new tech doc
-        onUpdate(updatedTechDoc);
-        console.log("Successfully saved tech doc");
-        
-        // Reset editing state
-        setIsEditing(false);
-        setEditingSection(null);
-        setEditedContent('');
-        
-        // Refresh the parsed content
-        const refreshedContent = parseDocContent();
-        setParsedContent(refreshedContent);
-      } else {
-        console.error("Cannot save tech doc: No project ID available");
-        alert("Cannot save tech doc: No project ID available");
-      }
+      // Save the updated tech doc using the techDocService
+      const savedTechDoc = await techDocService.saveTechDoc(updatedTechDoc);
+      
+      // Update the local state with the new tech doc
+      onUpdate(savedTechDoc);
+      console.log("Successfully saved tech doc to Supabase");
+      
+      // Reset editing state
+      setIsEditing(false);
+      setEditingSection(null);
+      setEditedContent('');
+      
+      // Refresh the parsed content
+      const refreshedContent = parseDocContent();
+      setParsedContent(refreshedContent);
     } catch (error) {
       console.error("Error saving tech doc:", error);
       alert(`Error saving tech doc: ${error.message}`);
