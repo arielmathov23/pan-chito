@@ -13,6 +13,7 @@ import { Brief, briefService } from '../../services/briefService';
 import { featureService } from '../../services/featureService';
 import { techDocStore } from '../../utils/techDocStore';
 import isMockData from '../../utils/mockDetector';
+import screenService from '../../services/screenService';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -72,7 +73,7 @@ export default function Projects() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Calculate project progress based on completed stages
-  const calculateProjectProgress = (
+  const calculateProjectProgress = async (
     briefs: any[], 
     featureSets: any[], 
     prds: any[]
@@ -84,28 +85,33 @@ export default function Projects() {
     // Check if PRD exists
     if (!prds.length) return 2; // Has features, next is PRD
     
-    // For now, we'll stop at PRD stage since screens and tech docs 
-    // haven't been migrated to Supabase yet
-    return 3; // Has PRD, next is screens
-    
-    // TODO: Update these checks when screens and tech docs are migrated to Supabase
-    /*
     // Check if screens exist for any PRD
-    const hasScreens = prds.some(prd => {
-      return require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-    });
-    
-    if (!hasScreens) return 3; // Has PRD, next is screens
-    
-    // Check if tech docs exist for any PRD
-    const hasTechDocs = prds.some(prd => {
-      return techDocStore.getTechDocByPrdId(prd.id);
-    });
-    
-    if (!hasTechDocs) return 4; // Has screens, next is tech docs
-    
-    return 5; // Has tech docs, all stages completed
-    */
+    try {
+      const screenPromises = prds.map(prd => screenService.getScreenSetByPrdId(prd.id));
+      const screenResults = await Promise.all(screenPromises);
+      const hasScreens = screenResults.some(result => result !== null);
+      
+      if (!hasScreens) return 3; // Has PRD, next is screens
+      
+      // For now, we'll stop at screens stage since tech docs 
+      // haven't been migrated to Supabase yet
+      return 4; // Has screens, next is tech docs
+      
+      // TODO: Update tech docs check when migrated to Supabase
+      /*
+      // Check if tech docs exist for any PRD
+      const hasTechDocs = prds.some(prd => {
+        return techDocStore.getTechDocByPrdId(prd.id);
+      });
+      
+      if (!hasTechDocs) return 4; // Has screens, next is tech docs
+      
+      return 5; // Has tech docs, all stages completed
+      */
+    } catch (error) {
+      console.error('Error checking for screens:', error);
+      return 3; // Default to PRD stage if there's an error
+    }
   };
 
   const loadProjects = async () => {
@@ -165,7 +171,7 @@ export default function Projects() {
           const briefResults = await Promise.all(briefPromises);
           
           // Calculate project progress
-          const projectProgress = calculateProjectProgress(
+          const projectProgress = await calculateProjectProgress(
             briefResults.map(r => r.brief),
             briefResults.map(r => r.featureSet).filter(Boolean),
             briefResults.flatMap(r => r.prds)
@@ -202,15 +208,26 @@ export default function Projects() {
   }, [user, authLoading]);
 
   useEffect(() => {
-    // Add event listener for focus to refresh projects
-    window.addEventListener('focus', loadProjects);
-    
-    // Add router event handlers
+    // Add router event handlers for navigation
     router.events.on('routeChangeComplete', loadProjects);
+    
+    // Use a flag to prevent multiple reloads when switching tabs
+    let lastFocusTime = 0;
+    const handleFocus = () => {
+      const now = Date.now();
+      // Only reload if it's been at least 30 seconds since the last reload
+      if (now - lastFocusTime > 30000) {
+        lastFocusTime = now;
+        loadProjects();
+      }
+    };
+    
+    // Add event listener for focus with debounce
+    window.addEventListener('focus', handleFocus);
     
     // Cleanup
     return () => {
-      window.removeEventListener('focus', loadProjects);
+      window.removeEventListener('focus', handleFocus);
       router.events.off('routeChangeComplete', loadProjects);
     };
   }, [router.events, user]);
@@ -399,10 +416,35 @@ export default function Projects() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const brief = briefs[0];
-                              if (brief) {
-                                router.push(`/screens/${brief.id}`);
-                              }
+                              
+                              // Use an IIFE to handle the async operation
+                              (async () => {
+                                // Find a PRD associated with any brief in this project
+                                const brief = briefs[0];
+                                if (brief) {
+                                  try {
+                                    // Try to find a PRD for this brief
+                                    const prds = await prdService.getPRDsByBriefId(brief.id);
+                                    if (prds && prds.length > 0) {
+                                      console.log(`Found PRD with ID ${prds[0].id} for brief ${brief.id}`);
+                                      router.push(`/screens/${prds[0].id}`);
+                                      return;
+                                    }
+                                    
+                                    // Fallback to local store if not found in Supabase
+                                    const localPrd = prdStore.getPRDByBriefId(brief.id);
+                                    if (localPrd) {
+                                      console.log(`Found local PRD with ID ${localPrd.id} for brief ${brief.id}`);
+                                      router.push(`/screens/${localPrd.id}`);
+                                      return;
+                                    }
+                                  } catch (error) {
+                                    console.error('Error finding PRD:', error);
+                                  }
+                                }
+                                console.error('No PRD found for any brief in this project');
+                                router.push(`/project/${project.id}`);
+                              })();
                             }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             style={{ 
@@ -498,18 +540,53 @@ export default function Projects() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const url = nextStage === 0 ? 
-                                `/brief/new?projectId=${project.id}` : 
-                                nextStage === 1 ? 
-                                `/brief/${briefs[0].id}/ideate` :
-                                nextStage === 2 ?
-                                `/prd/new?projectId=${project.id}` :
-                                nextStage === 3 ?
-                                `/screens/${briefs[0].id}` :
-                                nextStage === 4 ?
-                                `/docs/${briefs[0].id}` :
-                                `/project/${project.id}`;
-                              router.push(url);
+                              
+                              // Use an IIFE to handle the async operation
+                              (async () => {
+                                let url;
+                                if (nextStage === 0) {
+                                  url = `/brief/new?projectId=${project.id}`;
+                                } else if (nextStage === 1) {
+                                  url = `/brief/${briefs[0].id}/ideate`;
+                                } else if (nextStage === 2) {
+                                  url = `/prd/new?projectId=${project.id}`;
+                                } else if (nextStage === 3) {
+                                  // Find a PRD associated with any brief in this project
+                                  const brief = briefs[0];
+                                  if (brief) {
+                                    try {
+                                      // Try to find a PRD for this brief
+                                      const prds = await prdService.getPRDsByBriefId(brief.id);
+                                      if (prds && prds.length > 0) {
+                                        console.log(`Found PRD with ID ${prds[0].id} for brief ${brief.id}`);
+                                        url = `/screens/${prds[0].id}`;
+                                      } else {
+                                        // Fallback to local store if not found in Supabase
+                                        const localPrd = prdStore.getPRDByBriefId(brief.id);
+                                        if (localPrd) {
+                                          console.log(`Found local PRD with ID ${localPrd.id} for brief ${brief.id}`);
+                                          url = `/screens/${localPrd.id}`;
+                                        } else {
+                                          console.error('No PRD found for any brief in this project');
+                                          url = `/project/${project.id}`;
+                                        }
+                                      }
+                                    } catch (error) {
+                                      console.error('Error finding PRD:', error);
+                                      url = `/project/${project.id}`;
+                                    }
+                                  } else {
+                                    console.error('No brief found for this project');
+                                    url = `/project/${project.id}`;
+                                  }
+                                } else if (nextStage === 4) {
+                                  url = `/docs/${briefs[0].id}`;
+                                } else {
+                                  url = `/project/${project.id}`;
+                                }
+                                
+                                router.push(url);
+                              })();
                             }}
                             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm text-white hover:opacity-90"
                             style={{ 

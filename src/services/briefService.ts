@@ -130,5 +130,38 @@ export const briefService = {
       console.error('Error deleting brief:', error);
       throw new Error(error.message);
     }
+  },
+
+  // Function to fetch a brief directly from Supabase by ID
+  async fetchBriefFromSupabase(briefId: string): Promise<Brief | null> {
+    console.log(`Fetching brief directly from Supabase with ID: ${briefId}`);
+    
+    try {
+      const { data, error } = await supabase
+        .from('briefs')
+        .select('*')
+        .eq('id', briefId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching brief from Supabase:', error);
+        return null;
+      }
+      
+      if (!data) {
+        console.log('No brief found in Supabase with ID:', briefId);
+        return null;
+      }
+      
+      console.log('Brief found in Supabase:', data);
+      
+      // Return the brief directly without mapping
+      return data;
+    } catch (error) {
+      console.error('Exception fetching brief from Supabase:', error);
+      return null;
+    }
   }
-}; 
+};
+
+export default briefService; 

@@ -12,6 +12,8 @@ import { isMockData } from '../../utils/mockDetector';
 import { v4 as uuidv4 } from 'uuid';
 import { AppFlow, FlowStep } from '../../utils/screenStore';
 import Modal from '../../components/Modal';
+import briefService from '../../services/briefService';
+import screenService from '../../services/screenService';
 
 export default function ScreensPage() {
   const router = useRouter();
@@ -36,42 +38,126 @@ export default function ScreensPage() {
     setUsingMockData(isMockData());
     
     if (id) {
+      console.log(`Screens page: Loading data for ID: ${id}`);
+      
       // First, try to find a PRD with this ID
       const foundPRD = prdStore.getPRD(id as string);
+      console.log(`Screens page: PRD lookup result:`, foundPRD);
       
       if (foundPRD) {
         // If we found a PRD, use it
+        console.log(`Screens page: Using PRD with ID: ${foundPRD.id}`);
         setPRD(foundPRD);
+        
+        // Get the brief using the briefId from the PRD
         const foundBrief = briefStore.getBrief(foundPRD.briefId);
-        setBrief(foundBrief);
+        console.log(`Screens page: Brief lookup result for briefId ${foundPRD.briefId}:`, foundBrief);
         
         if (foundBrief) {
+          setBrief(foundBrief);
           const foundProject = projectStore.getProject(foundBrief.projectId);
+          console.log(`Screens page: Project lookup result:`, foundProject);
           setProject(foundProject);
+        } else {
+          console.error(`Screens page: Brief not found for briefId: ${foundPRD.briefId}`);
+          // Try to load the brief directly from local storage as a fallback
+          const allBriefs = briefStore.getBriefs();
+          console.log(`Screens page: Checking all briefs:`, allBriefs);
+          const matchingBrief = allBriefs.find(b => b.id === foundPRD.briefId);
           
-          // Check if screens exist for this PRD
-          const existingScreenSet = screenStore.getScreenSetByPrdId(foundPRD.id);
-          setScreenSet(existingScreenSet);
-        }
-      } else {
-        // If no PRD found, check if this is a brief ID
-        const foundBrief = briefStore.getBrief(id as string);
-        setBrief(foundBrief);
-        
-        if (foundBrief) {
-          const foundProject = projectStore.getProject(foundBrief.projectId);
-          setProject(foundProject);
-          
-          // Check if a PRD exists for this brief
-          const existingPRD = prdStore.getPRDByBriefId(foundBrief.id);
-          if (existingPRD) {
-            setPRD(existingPRD);
+          if (matchingBrief) {
+            console.log(`Screens page: Found matching brief in all briefs:`, matchingBrief);
+            setBrief(matchingBrief);
+            const foundProject = projectStore.getProject(matchingBrief.projectId);
+            setProject(foundProject);
+          } else {
+            // If not found in localStorage, try to fetch from Supabase
+            console.log(`Screens page: Brief not found in localStorage, trying to fetch from Supabase`);
             
-            // Check if screens exist for this PRD
-            const existingScreenSet = screenStore.getScreenSetByPrdId(existingPRD.id);
-            setScreenSet(existingScreenSet);
+            // Use an IIFE to allow async/await in useEffect
+            (async () => {
+              try {
+                const supabaseBrief = await briefService.fetchBriefFromSupabase(foundPRD.briefId);
+                
+                if (supabaseBrief) {
+                  console.log(`Screens page: Brief found in Supabase:`, supabaseBrief);
+                  
+                  // Convert Supabase brief to local format
+                  const localBrief: Brief = {
+                    id: supabaseBrief.id,
+                    projectId: supabaseBrief.project_id,
+                    productName: supabaseBrief.product_name,
+                    problemStatement: supabaseBrief.brief_data?.problemStatement || '',
+                    targetUsers: supabaseBrief.brief_data?.targetUsers || '',
+                    proposedSolution: supabaseBrief.brief_data?.proposedSolution || '',
+                    productObjectives: supabaseBrief.brief_data?.productObjectives || '',
+                    createdAt: supabaseBrief.created_at,
+                    content: JSON.stringify(supabaseBrief.brief_data),
+                    briefData: supabaseBrief.brief_data,
+                    formData: supabaseBrief.form_data,
+                    isEditing: false,
+                    showEditButtons: false
+                  };
+                  
+                  setBrief(localBrief);
+                  
+                  // Also save to localStorage for future use
+                  briefStore.updateBrief(localBrief.id, localBrief.briefData);
+                  
+                  const foundProject = projectStore.getProject(localBrief.projectId);
+                  setProject(foundProject);
+                } else {
+                  console.error(`Screens page: Brief not found in Supabase for briefId: ${foundPRD.briefId}`);
+                  setError("Brief not found. Please ensure you have created a brief before accessing this page.");
+                }
+              } catch (error) {
+                console.error(`Screens page: Error fetching brief from Supabase:`, error);
+                setError("Error loading brief. Please try again later.");
+              }
+            })();
           }
         }
+        
+        // Load screen set from Supabase
+        (async () => {
+          try {
+            console.log(`Screens page: Loading screen set for PRD ID: ${foundPRD.id}`);
+            const supabaseScreenSet = await screenService.getScreenSetByPrdId(foundPRD.id);
+            
+            if (supabaseScreenSet) {
+              console.log(`Screens page: Screen set found in Supabase:`, supabaseScreenSet);
+              setScreenSet(supabaseScreenSet);
+            } else {
+              // If not found in Supabase, try local storage
+              console.log(`Screens page: Screen set not found in Supabase, checking local storage`);
+              const localScreenSet = screenStore.getScreenSetByPrdId(foundPRD.id);
+              
+              if (localScreenSet) {
+                console.log(`Screens page: Screen set found in local storage:`, localScreenSet);
+                setScreenSet(localScreenSet);
+                
+                // Save to Supabase for future use
+                try {
+                  await screenService.saveScreenSet(
+                    foundPRD.id, 
+                    localScreenSet.screens, 
+                    localScreenSet.appFlow
+                  );
+                  console.log(`Screens page: Local screen set saved to Supabase`);
+                } catch (saveError) {
+                  console.error(`Screens page: Error saving local screen set to Supabase:`, saveError);
+                }
+              } else {
+                console.log(`Screens page: No screen set found for PRD ID: ${foundPRD.id}`);
+              }
+            }
+          } catch (error) {
+            console.error(`Screens page: Error loading screen set:`, error);
+          }
+        })();
+      } else {
+        console.error(`Screens page: Neither PRD nor brief found with ID: ${id}`);
+        setError("PRD not found. Please ensure you have created a PRD before accessing this page.");
       }
       
       setIsLoading(false);
@@ -79,32 +165,123 @@ export default function ScreensPage() {
   }, [id]);
 
   const handleGenerateScreens = async () => {
-    if (!brief || !prd) return;
+    console.log("handleGenerateScreens called");
+    console.log("brief:", brief);
+    console.log("prd:", prd);
+    
+    if (!brief || !prd) {
+      console.error("Cannot generate screens: brief or prd is missing");
+      
+      if (!brief && prd) {
+        console.log("Attempting to fetch brief again for briefId:", prd.briefId);
+        
+        // First try to get from localStorage
+        const foundBrief = briefStore.getBrief(prd.briefId);
+        
+        if (foundBrief) {
+          console.log("Successfully retrieved brief from localStorage:", foundBrief);
+          setBrief(foundBrief);
+          // Continue with screen generation after setting the brief
+          setTimeout(() => handleGenerateScreens(), 100);
+          return;
+        } else {
+          // If not in localStorage, try to fetch from Supabase
+          console.log("Brief not found in localStorage, trying to fetch from Supabase");
+          try {
+            const supabaseBrief = await briefService.fetchBriefFromSupabase(prd.briefId);
+            
+            if (supabaseBrief) {
+              console.log("Successfully retrieved brief from Supabase:", supabaseBrief);
+              
+              // Convert Supabase brief to local format if needed
+              const localBrief: Brief = {
+                id: supabaseBrief.id,
+                projectId: supabaseBrief.project_id,
+                productName: supabaseBrief.product_name,
+                problemStatement: supabaseBrief.brief_data?.problemStatement || '',
+                targetUsers: supabaseBrief.brief_data?.targetUsers || '',
+                proposedSolution: supabaseBrief.brief_data?.proposedSolution || '',
+                productObjectives: supabaseBrief.brief_data?.productObjectives || '',
+                createdAt: supabaseBrief.created_at,
+                content: JSON.stringify(supabaseBrief.brief_data),
+                briefData: supabaseBrief.brief_data,
+                formData: supabaseBrief.form_data,
+                isEditing: false,
+                showEditButtons: false
+              };
+              
+              // Save to localStorage for future use
+              briefStore.updateBrief(localBrief.id, localBrief.briefData);
+              
+              // Set the brief in state
+              setBrief(localBrief);
+              
+              // Continue with screen generation after setting the brief
+              setTimeout(() => handleGenerateScreens(), 100);
+              return;
+            } else {
+              setError("Brief not found in database. Please ensure the brief exists before generating screens.");
+              return;
+            }
+          } catch (error) {
+            console.error("Error fetching brief from Supabase:", error);
+            setError("Error fetching brief from database. Please try again later.");
+            return;
+          }
+        }
+      }
+      
+      return;
+    }
+    
+    // Check if we're in development mode and need to warn about API key
+    if (process.env.NODE_ENV === 'development' && !process.env.OPENAI_API_KEY && !process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+      console.warn("OpenAI API key might be missing. Make sure OPENAI_API_KEY or NEXT_PUBLIC_OPENAI_API_KEY is set in .env.local");
+      setError("OpenAI API key might be missing. Check the console for more information.");
+      return;
+    }
     
     setIsGenerating(true);
     setError(null);
+    console.log("Starting screen generation...");
     
     try {
+      console.log("Calling generateScreens with brief and prd");
       const { screens, appFlow } = await generateScreens(brief, prd);
+      console.log("Screen generation successful:", { screens, appFlow });
       
-      // Save the generated screens
-      const savedScreenSet = screenStore.saveScreenSet(prd.id, screens, appFlow);
+      // Save the generated screens to Supabase
+      console.log("Saving screen set to Supabase");
+      const savedScreenSet = await screenService.saveScreenSet(prd.id, screens, appFlow);
+      console.log("Screen set saved to Supabase:", savedScreenSet);
+      
+      // Also save to local store for backward compatibility
+      screenStore.saveScreenSet(prd.id, screens, appFlow);
+      
       setScreenSet(savedScreenSet);
-    } catch (err) {
-      console.error('Error generating screens:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
+      setIsGenerating(false);
+    } catch (error) {
+      console.error("Error generating screens:", error);
+      setError("Failed to generate screens. Please try again later.");
       setIsGenerating(false);
     }
   };
 
-  const handleDeleteScreens = () => {
+  const handleDeleteScreens = async () => {
     if (!screenSet || !prd) return;
     
     if (window.confirm(`Are you sure you want to delete these screens?\n\nThis action cannot be undone.`)) {
-      const deleted = screenStore.deleteScreenSet(screenSet.appFlow.id);
-      if (deleted) {
+      try {
+        // Delete from Supabase
+        await screenService.deleteScreenSet(screenSet.appFlow.id);
+        
+        // Also delete from local storage for backward compatibility
+        screenStore.deleteScreenSet(screenSet.appFlow.id);
+        
         setScreenSet(null);
+      } catch (error) {
+        console.error('Error deleting screens:', error);
+        setError('Failed to delete screens. Please try again.');
       }
     }
   };
@@ -130,11 +307,23 @@ export default function ScreensPage() {
     if (stepToDelete && screenSet && screenSet.appFlow) {
       const updatedSteps = screenSet.appFlow.steps.filter(step => step.id !== stepToDelete);
       const updatedAppFlow = { ...screenSet.appFlow, steps: updatedSteps };
-      screenStore.updateAppFlow(updatedAppFlow);
-      setScreenSet({
-        ...screenSet,
-        appFlow: updatedAppFlow
-      });
+      
+      try {
+        // Update in Supabase
+        await screenService.updateAppFlow(updatedAppFlow);
+        
+        // Also update in local store for backward compatibility
+        screenStore.updateAppFlow(updatedAppFlow);
+        
+        setScreenSet({
+          ...screenSet,
+          appFlow: updatedAppFlow
+        });
+      } catch (error) {
+        console.error('Error deleting step:', error);
+        setError('Failed to delete step. Please try again.');
+      }
+      
       setIsDeleteModalOpen(false);
       setStepToDelete(null);
     }
@@ -163,19 +352,16 @@ export default function ScreensPage() {
 
       const updatedAppFlow = { ...screenSet.appFlow, steps: updatedSteps };
       
+      // Update in Supabase
+      await screenService.updateAppFlow(updatedAppFlow);
+      
+      // Also update in local store for backward compatibility
+      screenStore.updateAppFlow(updatedAppFlow);
+      
       // Update the screenSet state
       setScreenSet({
         ...screenSet,
         appFlow: updatedAppFlow
-      });
-
-      // Save to backend
-      await fetch(`/api/screens/${screenSet.appFlow.id}/steps${editingStep ? `/${editingStep.id}` : ''}`, {
-        method: editingStep ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(stepData)
       });
 
       setIsStepModalOpen(false);
@@ -262,45 +448,46 @@ export default function ScreensPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa]">
-        <Navbar />
-        <div className="container mx-auto px-6 py-10">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="flex items-center space-x-3 text-[#6b7280]">
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Loading...</span>
-            </div>
-          </div>
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F533A] mx-auto mb-4"></div>
+          <p className="text-[#4b5563]">Loading screens...</p>
         </div>
       </div>
     );
   }
 
-  if (!brief || !project || !prd) {
+  if (error || !prd) {
     return (
       <div className="min-h-screen bg-[#f8f9fa]">
         <Navbar />
-        <div className="container mx-auto px-6 py-10">
-          <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-            <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+        <div className="container mx-auto px-6 py-10 max-w-5xl">
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8 text-center">
+            <svg className="w-16 h-16 text-[#f87171] mx-auto mb-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 8V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M11.9945 16H12.0035" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <h2 className="text-2xl font-bold text-[#111827] mb-2">PRD Not Found</h2>
+            <p className="text-[#4b5563] mb-6">
+              {error || "We couldn't find the PRD you're looking for. It may have been deleted or the ID is incorrect."}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/projects"
+                className="inline-flex items-center justify-center bg-white border border-[#d1d5db] text-[#111827] px-5 py-2.5 rounded-lg font-medium hover:bg-[#f3f4f6] transition-colors"
+              >
+                Go to projects
+              </Link>
+              {brief && (
+                <Link
+                  href={`/prd/${brief.id}`}
+                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                >
+                  Go to PRD generation
+                </Link>
+              )}
             </div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-3">PRD not found</h2>
-            <p className="text-[#4b5563] mb-8 max-w-md mx-auto">Please create a PRD before generating screens</p>
-            <Link
-              href="/projects"
-              className="inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-            >
-              Go to projects
-            </Link>
           </div>
         </div>
       </div>
@@ -320,14 +507,22 @@ export default function ScreensPage() {
               Projects
             </Link>
             <span>/</span>
-            <Link href={`/project/${project.id}`} className="hover:text-[#111827] transition-colors">
-              {project.name}
-            </Link>
-            <span>/</span>
-            <Link href={`/brief/${brief.id}`} className="hover:text-[#111827] transition-colors">
-              Brief
-            </Link>
-            <span>/</span>
+            {project && (
+              <>
+                <Link href={`/project/${project.id}`} className="hover:text-[#111827] transition-colors">
+                  {project.name}
+                </Link>
+                <span>/</span>
+              </>
+            )}
+            {brief && (
+              <>
+                <Link href={`/brief/${brief.id}`} className="hover:text-[#111827] transition-colors">
+                  Brief
+                </Link>
+                <span>/</span>
+              </>
+            )}
             <Link href={`/prd/${prd.id}`} className="hover:text-[#111827] transition-colors">
               PRD
             </Link>
@@ -340,7 +535,7 @@ export default function ScreensPage() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold text-[#111827] tracking-tight">App Screens</h1>
-              <p className="text-[#6b7280] mt-2">Screen designs and app flow for {brief.productName}</p>
+              <p className="text-[#6b7280] mt-2">Screen designs and app flow for {brief ? brief.productName : 'your product'}</p>
             </div>
             <div className="flex items-center space-x-3 self-start">
               {screenSet && (
@@ -443,7 +638,7 @@ export default function ScreensPage() {
                   </div>
                 )}
                 
-                <div className="flex justify-end">
+                <div className="flex justify-end space-x-3">
                   <button
                     onClick={handleGenerateScreens}
                     disabled={isGenerating}

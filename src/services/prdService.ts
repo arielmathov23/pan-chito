@@ -162,10 +162,21 @@ export const prdService = {
   // Get a specific PRD by ID
   getPRDById: async (prdId: string): Promise<PRD | null> => {
     try {
-      console.log(`Fetching PRD with ID: ${prdId}`);
+      console.log(`prdService.getPRDById: Fetching PRD with ID: ${prdId}`);
+      
+      if (!prdId) {
+        console.error('prdService.getPRDById: Invalid PRD ID provided');
+        return null;
+      }
       
       // First check local storage for faster response
       const localPRD = getLocalPRDs().find(p => p.id === prdId);
+      
+      if (localPRD) {
+        console.log('prdService.getPRDById: PRD found in local storage:', localPRD);
+      } else {
+        console.log('prdService.getPRDById: PRD not found in local storage');
+      }
       
       // Try to fetch from Supabase
       const { data, error } = await supabase
@@ -178,16 +189,16 @@ export const prdService = {
         if (error.code === 'PGRST116') {
           // No rows returned, use local storage if available
           if (localPRD) {
-            console.log('PRD found in local storage:', localPRD);
+            console.log('prdService.getPRDById: PRD found in local storage but not in Supabase');
             return localPRD;
           }
-          console.log('PRD not found in Supabase or local storage');
+          console.log('prdService.getPRDById: PRD not found in Supabase or local storage');
           return null;
         }
-        console.error('Error fetching PRD from Supabase:', error);
+        console.error('prdService.getPRDById: Error fetching PRD from Supabase:', error);
         // Fall back to local storage
         if (localPRD) {
-          console.log('Using local PRD due to Supabase error:', localPRD);
+          console.log('prdService.getPRDById: Using local PRD due to Supabase error');
           return localPRD;
         }
         return null;
@@ -195,20 +206,27 @@ export const prdService = {
 
       if (data) {
         const mappedPRD = mapSupabasePRDToPRD(data);
-        console.log('PRD found in Supabase:', mappedPRD);
+        console.log('prdService.getPRDById: PRD found in Supabase:', mappedPRD);
         
         // Update local storage with the latest data
         addOrUpdateLocalPRD(mappedPRD);
+        console.log('prdService.getPRDById: Updated local storage with Supabase data');
         
         return mappedPRD;
       }
       
-      return localPRD || null;
+      if (localPRD) {
+        console.log('prdService.getPRDById: Using local PRD as fallback');
+        return localPRD;
+      }
+      
+      console.log('prdService.getPRDById: No PRD found with ID:', prdId);
+      return null;
     } catch (error) {
-      console.error('Error in getPRDById:', error);
+      console.error('prdService.getPRDById: Error:', error);
       // Fall back to local storage
       const localPRD = getLocalPRDs().find(p => p.id === prdId);
-      console.log('Using local PRD due to error:', localPRD);
+      console.log('prdService.getPRDById: Using local PRD due to error:', localPRD);
       return localPRD || null;
     }
   },
@@ -216,22 +234,28 @@ export const prdService = {
   // Save a PRD (create or update)
   savePRD: async (prd: PRD): Promise<PRD> => {
     try {
-      console.log('Saving PRD:', prd);
+      console.log('prdService.savePRD: Saving PRD:', prd.id);
       
       // Validate PRD object
       if (!prd.id || !prd.briefId || !prd.content) {
+        console.error('prdService.savePRD: Invalid PRD object: missing required fields');
         throw new Error('Invalid PRD object: missing required fields');
       }
       
       // First, save to local storage as a backup
       const localPRD = addOrUpdateLocalPRD(prd);
-      console.log('PRD saved to local storage');
+      console.log('prdService.savePRD: PRD saved to local storage');
+      
+      // Log all PRDs in local storage for debugging
+      const allLocalPRDs = getLocalPRDs();
+      console.log(`prdService.savePRD: Total PRDs in local storage: ${allLocalPRDs.length}`);
+      console.log('prdService.savePRD: All PRD IDs in local storage:', allLocalPRDs.map(p => p.id));
       
       // Then try to save to Supabase
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData.user) {
-        console.warn('User not authenticated, using local storage only');
+        console.warn('prdService.savePRD: User not authenticated, using local storage only');
         return localPRD;
       }
       
@@ -249,7 +273,7 @@ export const prdService = {
       
       if (existingPRD) {
         // Update existing PRD
-        console.log('Updating existing PRD in Supabase');
+        console.log('prdService.savePRD: Updating existing PRD in Supabase');
         const { data, error } = await supabase
           .from('prds')
           .update(supabasePRD)
@@ -258,15 +282,15 @@ export const prdService = {
           .single();
         
         if (error) {
-          console.error('Error updating PRD in Supabase:', error);
+          console.error('prdService.savePRD: Error updating PRD in Supabase:', error);
           return localPRD;
         }
         
         result = data;
-        console.log('PRD updated in Supabase');
+        console.log('prdService.savePRD: PRD updated in Supabase');
       } else {
         // Create new PRD
-        console.log('Creating new PRD in Supabase');
+        console.log('prdService.savePRD: Creating new PRD in Supabase');
         const { data, error } = await supabase
           .from('prds')
           .insert(supabasePRD)
@@ -274,22 +298,23 @@ export const prdService = {
           .single();
         
         if (error) {
-          console.error('Error creating PRD in Supabase:', error);
+          console.error('prdService.savePRD: Error creating PRD in Supabase:', error);
           return localPRD;
         }
         
         result = data;
-        console.log('PRD created in Supabase');
+        console.log('prdService.savePRD: PRD created in Supabase');
       }
       
       const mappedResult = mapSupabasePRDToPRD(result);
       
       // Update local storage with the latest data from Supabase
       addOrUpdateLocalPRD(mappedResult);
+      console.log('prdService.savePRD: Updated local storage with Supabase data');
       
       return mappedResult;
     } catch (error) {
-      console.error('Error in savePRD:', error);
+      console.error('prdService.savePRD: Error:', error);
       // Return the locally saved PRD
       return prd;
     }

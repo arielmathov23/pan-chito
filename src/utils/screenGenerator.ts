@@ -5,15 +5,21 @@ import { AppFlow, Screen, ScreenElement, FlowStep } from './screenStore';
 
 // Function to generate screens using OpenAI
 export async function generateScreens(brief: Brief, prd: PRD): Promise<{ screens: Screen[], appFlow: AppFlow }> {
+  console.log("generateScreens function called with:", { 
+    briefId: brief?.id, 
+    prdId: prd?.id,
+    productName: brief?.productName
+  });
+  
   try {
+    console.log("Preparing prompt for OpenAI");
     const prompt = `
 You are a senior UX designer creating detailed screen specifications for a mobile/web application. Based on the following product brief and PRD, generate a user interface design specification in JSON format.
 
 Context:
 Product: ${brief.productName}
-Problem: ${brief.briefData.problemStatement}
-Users: ${brief.briefData.targetUsers}
-Key Features: ${brief.briefData.keyFeatures}
+Problem: ${brief.briefData?.problemStatement || 'Not specified'}
+Users: ${brief.briefData?.targetUsers || 'Not specified'}
 
 PRD Summary:
 ${JSON.stringify(prd.content).slice(0, 800)}...
@@ -77,6 +83,13 @@ Guidelines:
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2-minute timeout
 
     try {
+      console.log("Making API request to OpenAI");
+      
+      // Check if we're in development mode and warn about API key
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Development mode detected. Make sure OPENAI_API_KEY or NEXT_PUBLIC_OPENAI_API_KEY is set in .env.local");
+      }
+      
       // Call OpenAI API with optimized parameters
       const response = await fetch('/api/openai', {
         method: 'POST',
@@ -92,6 +105,7 @@ Guidelines:
       });
 
       clearTimeout(timeoutId); // Clear the timeout if the request completes
+      console.log("API response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

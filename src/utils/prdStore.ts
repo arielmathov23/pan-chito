@@ -33,21 +33,55 @@ export const prdStore = {
   },
 
   getPRD: (id: string): PRD | null => {
+    console.log(`prdStore.getPRD: Looking for PRD with ID: ${id}`);
+    if (!id) {
+      console.error('prdStore.getPRD: Invalid ID provided');
+      return null;
+    }
+    
     const prds = prdStore.getPRDs();
-    return prds.find(p => p.id === id) || null;
+    console.log(`prdStore.getPRD: Found ${prds.length} PRDs in storage`);
+    
+    // Log all PRD IDs for debugging
+    if (prds.length > 0) {
+      console.log('prdStore.getPRD: Available PRD IDs:', prds.map(p => p.id));
+    }
+    
+    const foundPRD = prds.find(p => p.id === id);
+    console.log(`prdStore.getPRD: PRD ${foundPRD ? 'found' : 'not found'} for ID: ${id}`);
+    
+    return foundPRD || null;
   },
 
   getPRDByBriefId: (briefId: string): PRD | null => {
+    console.log(`prdStore.getPRDByBriefId: Looking for PRD with briefId: ${briefId}`);
+    if (!briefId) {
+      console.error('prdStore.getPRDByBriefId: Invalid briefId provided');
+      return null;
+    }
+    
     const prds = prdStore.getPRDs();
-    return prds.find(p => p.briefId === briefId) || null;
+    console.log(`prdStore.getPRDByBriefId: Found ${prds.length} PRDs in storage`);
+    
+    const foundPRD = prds.find(p => p.briefId === briefId);
+    console.log(`prdStore.getPRDByBriefId: PRD ${foundPRD ? 'found' : 'not found'} for briefId: ${briefId}`);
+    
+    return foundPRD || null;
   },
 
   savePRD: (briefId: string, featureSetId: string, content: GeneratedPRD): PRD => {
+    console.log(`prdStore.savePRD: Saving PRD for briefId: ${briefId}`);
+    
     const prds = prdStore.getPRDs();
     const brief = briefStore.getBrief(briefId);
     
+    if (!brief) {
+      console.warn(`prdStore.savePRD: Brief not found for ID: ${briefId}`);
+    }
+    
     // Check if a PRD already exists for this brief
     const existingIndex = prds.findIndex(p => p.briefId === briefId);
+    console.log(`prdStore.savePRD: Existing PRD ${existingIndex >= 0 ? 'found' : 'not found'} for briefId: ${briefId}`);
     
     const now = new Date().toISOString();
     const newPRD: PRD = {
@@ -65,12 +99,16 @@ export const prdStore = {
       newPRD.id = prds[existingIndex].id;
       newPRD.createdAt = prds[existingIndex].createdAt;
       prds[existingIndex] = newPRD;
+      console.log(`prdStore.savePRD: Updated existing PRD with ID: ${newPRD.id}`);
     } else {
       // Add new PRD
       prds.push(newPRD);
+      console.log(`prdStore.savePRD: Added new PRD with ID: ${newPRD.id}`);
     }
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prds));
+    console.log(`prdStore.savePRD: Saved PRDs to localStorage, total count: ${prds.length}`);
+    
     return newPRD;
   },
 

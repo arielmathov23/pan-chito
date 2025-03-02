@@ -120,13 +120,13 @@ function generateMockPRD(brief: Brief, featureSet: FeatureSet): string {
       },
       useCases: [
         {
-          id: `UC-${index + 1}`,
+        id: `UC-${index + 1}`,
           title: `Using ${feature.name}`,
           description: `This use case describes how a user interacts with the ${feature.name} feature to ${feature.description.toLowerCase()}.`,
           actors: ["User", "System"],
           preconditions: ["User is authenticated", "User has necessary permissions"],
           postconditions: [`${feature.name} action is completed`, "Data is saved to the database"],
-          mainScenario: [
+        mainScenario: [
             "User navigates to the feature",
             `User initiates the ${feature.name.toLowerCase()} action`,
             "System validates the input",
