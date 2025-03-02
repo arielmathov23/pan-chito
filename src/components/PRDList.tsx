@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { PRD } from '../utils/prdStore';
+import { PRD } from '../services/prdService';
 
 interface PRDListProps {
   prds: PRD[];

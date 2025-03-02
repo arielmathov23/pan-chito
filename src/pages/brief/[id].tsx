@@ -10,6 +10,8 @@ import { GeneratedBrief } from '../../utils/briefGenerator';
 import { isMockData } from '../../utils/mockDetector';
 import { generatePRD, parsePRD } from '../../utils/prdGenerator';
 import { prdStore } from '../../utils/prdStore';
+import { featureService } from '../../services/featureService';
+import { prdService } from '../../services/prdService';
 
 // Helper function to safely render potentially stringified JSON
 function RenderField({ 
@@ -144,12 +146,13 @@ export default function BriefDetail() {
 
   const handleGeneratePRD = async () => {
     if (!brief) return;
+    
     setIsGeneratingPRD(true);
     setError(null);
     
     try {
-      // Get the feature set for this brief (still using local storage for now)
-      const featureSet = featureStore.getFeatureSetByBriefId(brief.id);
+      // Get the feature set for this brief from Supabase
+      const featureSet = await featureService.getFeatureSetByBriefId(brief.id);
       if (!featureSet) {
         throw new Error('Please generate features before creating a PRD');
       }
@@ -158,8 +161,19 @@ export default function BriefDetail() {
       const prdContent = await generatePRD(brief, featureSet);
       const parsedPRD = parsePRD(prdContent);
       
-      // Save the PRD (still using local storage for now)
-      const savedPRD = prdStore.savePRD(brief.id, featureSet.id, parsedPRD);
+      // Create a new PRD object
+      const newPRD = {
+        id: crypto.randomUUID(),
+        briefId: brief.id,
+        featureSetId: featureSet.id,
+        title: brief.product_name || 'Untitled PRD',
+        content: parsedPRD,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save the PRD using the PRD service
+      const savedPRD = await prdService.savePRD(newPRD);
       
       // Navigate to the PRD page
       router.push(`/prd/${savedPRD.id}`);

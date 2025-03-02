@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { PRD } from '../utils/prdStore';
+import React, { useState, useEffect } from 'react';
+import { PRD } from '../services/prdService';
 import { PRDSection } from '../utils/prdGenerator';
 
 interface PRDViewerProps {
@@ -11,7 +11,49 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editingFeature, setEditingFeature] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<PRDSection | null>(null);
-  const [selectedFeature, setSelectedFeature] = useState<string>(prd.content.sections[0]?.featureName || '');
+  const [selectedFeature, setSelectedFeature] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Helper function to safely render content that might be an object
+  // This ensures objects are properly stringified before rendering
+  const safeRender = (content: any): string => {
+    if (content === null || content === undefined) {
+      return '';
+    }
+    if (typeof content === 'string') {
+      return content;
+    }
+    return JSON.stringify(content, null, 2);
+  };
+
+  // Initialize the selected feature when the PRD changes or on first load
+  useEffect(() => {
+    if (prd && prd.content && prd.content.sections && prd.content.sections.length > 0) {
+      // Set the first feature as selected by default if none is selected
+      if (!selectedFeature) {
+        setSelectedFeature(prd.content.sections[0].featureName);
+      } else {
+        // Check if the currently selected feature exists in the new PRD
+        const featureExists = prd.content.sections.some(
+          section => section.featureName === selectedFeature
+        );
+        
+        // If not, select the first feature
+        if (!featureExists && prd.content.sections.length > 0) {
+          setSelectedFeature(prd.content.sections[0].featureName);
+        }
+      }
+    }
+  }, [prd, selectedFeature]);
+
+  // Get all sections from the PRD
+  const getSections = (): PRDSection[] => {
+    if (!prd || !prd.content || !prd.content.sections) {
+      return [];
+    }
+    return prd.content.sections;
+  };
 
   const handleEdit = (featureName: string, section: PRDSection) => {
     setEditingFeature(featureName);
@@ -22,11 +64,12 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
   const handleSave = () => {
     if (!editedContent || !editingFeature) return;
 
+    try {
     const updatedPRD: PRD = {
       ...prd,
       content: {
         ...prd.content,
-        sections: prd.content.sections.map(section =>
+          sections: getSections().map(section =>
           section.featureName === editingFeature ? editedContent : section
         )
       }
@@ -35,6 +78,11 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
     onUpdate(updatedPRD);
     setEditingFeature(null);
     setEditedContent(null);
+      setError(null);
+    } catch (err) {
+      console.error('Error saving PRD updates:', err);
+      setError('Failed to save changes. Please try again.');
+    }
   };
 
   const handleCancel = () => {
@@ -44,15 +92,23 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
 
   const handleDeleteFeature = (featureName: string) => {
     if (window.confirm('Are you sure you want to delete this feature? This action cannot be undone.')) {
+      const sections = getSections();
       const updatedPRD: PRD = {
         ...prd,
         content: {
           ...prd.content,
-          sections: prd.content.sections.filter(section => section.featureName !== featureName)
+          sections: sections.filter(section => section.featureName !== featureName)
         }
       };
       onUpdate(updatedPRD);
-      setSelectedFeature(prd.content.sections[0]?.featureName || '');
+      
+      // Select another feature if available
+      const remainingSections = updatedPRD.content.sections;
+      if (remainingSections.length > 0) {
+        setSelectedFeature(remainingSections[0].featureName);
+      } else {
+        setSelectedFeature('');
+      }
     }
   };
 
@@ -140,8 +196,17 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
   );
 
   const renderNavigation = () => {
+    const sections = getSections();
+    if (sections.length === 0) {
+      return (
+        <div className="w-64 bg-white border-r border-[#e5e7eb] h-[calc(100vh-16rem)] overflow-y-auto p-4">
+          <p className="text-[#6b7280]">No features available</p>
+        </div>
+      );
+    }
+
     const priorityOrder = { must: 0, should: 1, could: 2, wont: 3 };
-    const sortedSections = [...prd.content.sections].sort((a, b) => 
+    const sortedSections = [...sections].sort((a, b) => 
       priorityOrder[a.featurePriority] - priorityOrder[b.featurePriority]
     );
 
@@ -169,9 +234,16 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="truncate">{section.featureName}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${priorityColors[section.featurePriority]}`}>
-                      {section.featurePriority.toUpperCase()}
+                    <span className="truncate">{safeRender(section.featureName)}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                      {
+                        must: 'bg-red-100 text-red-800',
+                        should: 'bg-blue-100 text-blue-800',
+                        could: 'bg-green-100 text-green-800',
+                        wont: 'bg-gray-100 text-gray-800'
+                      }[section.featurePriority]
+                    }`}>
+                      {safeRender(section.featurePriority?.toUpperCase() || '')}
                     </span>
                   </div>
                 </button>
@@ -184,24 +256,158 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
   };
 
   const renderContent = () => {
-    const section = prd.content.sections.find(s => s.featureName === selectedFeature);
-    if (!section) return null;
+    const sections = getSections();
+    if (sections.length === 0) {
+      return (
+        <div className="flex-1 overflow-y-auto h-[calc(100vh-16rem)] p-8">
+          <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg">
+            <p className="font-medium">No content available</p>
+            <p>The PRD doesn't contain any feature sections. This may be due to an error in PRD generation or parsing.</p>
+            <div className="mt-4">
+              <p className="font-medium">Raw PRD Content:</p>
+              <pre className="mt-2 p-4 bg-white rounded border border-yellow-200 text-xs overflow-auto max-h-96">
+                {safeRender(prd)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
+    const section = sections.find(s => s.featureName === selectedFeature);
+    if (!section) {
+      return (
+        <div className="flex-1 overflow-y-auto h-[calc(100vh-16rem)] p-8">
+          <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg">
+            <p className="font-medium">Feature not found</p>
+            <p>The selected feature "{selectedFeature}" could not be found in the PRD.</p>
+            <button 
+              onClick={() => sections.length > 0 && setSelectedFeature(sections[0].featureName)}
+              className="mt-4 px-4 py-2 bg-[#0F533A] text-white rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors"
+            >
+              View First Feature
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Check if we're in edit mode
+    if (editingFeature === section.featureName && editedContent) {
+      // Render edit form
+      return (
+        <div className="flex-1 overflow-y-auto h-[calc(100vh-16rem)] p-8">
+          <div className="space-y-8">
+            {/* Edit form fields */}
+            <div>
+              <h3 className="text-lg font-semibold text-[#111827] mb-4">Feature Information</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Feature Name</label>
+                  {renderEditableField(
+                    editedContent.featureName,
+                    (value) => setEditedContent({
+                      ...editedContent,
+                      featureName: value
+                    })
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Priority</label>
+                  {renderPrioritySelector(
+                    editedContent.featurePriority,
+                    (value) => setEditedContent({
+                      ...editedContent,
+                      featurePriority: value
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Overview section */}
+            <div>
+              <h3 className="text-lg font-semibold text-[#111827] mb-4">Overview</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Purpose</label>
+                  {renderEditableField(
+                    editedContent.overview?.purpose || '',
+                    (value) => setEditedContent({
+                      ...editedContent,
+                      overview: {
+                        ...editedContent.overview,
+                        purpose: value
+                      }
+                    }),
+                    true
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Success Metrics</label>
+                  {renderEditableList(
+                    editedContent.overview?.successMetrics || [],
+                    (items) => setEditedContent({
+                      ...editedContent,
+                      overview: {
+                        ...editedContent.overview,
+                        successMetrics: items
+                      }
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* User Stories section */}
+            <div>
+              <h3 className="text-lg font-semibold text-[#111827] mb-4">User Stories</h3>
+              {renderEditableList(
+                editedContent.userStories || [],
+                (items) => setEditedContent({
+                  ...editedContent,
+                  userStories: items
+                })
+              )}
+            </div>
+            
+            {/* Other edit fields can be added here */}
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 text-[#6b7280] hover:text-[#111827] font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-[#0F533A] text-white rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render view mode
     return (
       <div className="flex-1 overflow-y-auto h-[calc(100vh-16rem)]">
         <div className="max-w-4xl mx-auto p-8">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-[#111827]">{section.featureName}</h1>
+              <h1 className="text-2xl font-bold text-[#111827]">{safeRender(section.featureName)}</h1>
               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
                 {
                   must: 'bg-red-100 text-red-800',
                   should: 'bg-blue-100 text-blue-800',
-                  could: 'bg-yellow-100 text-yellow-800',
+                  could: 'bg-green-100 text-green-800',
                   wont: 'bg-gray-100 text-gray-800'
                 }[section.featurePriority]
               }`}>
-                {section.featurePriority.toUpperCase()}
+                {safeRender(section.featurePriority?.toUpperCase() || '')}
               </span>
             </div>
             <div className="flex items-center space-x-3">
@@ -229,298 +435,276 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
 
           {/* Render section content */}
           <div className="space-y-8">
-            {/* Feature Priority */}
-            <div>
-              <h3 className="text-lg font-semibold text-[#111827] mb-4">Feature Priority</h3>
-              <div>
-                <label className="block text-sm font-medium text-[#4b5563] mb-2">Priority</label>
-                {renderPrioritySelector(
-                  section.featurePriority,
-                  (value) => setEditedContent({
-                    ...section,
-                    featurePriority: value
-                  })
-                )}
-              </div>
-            </div>
-
             {/* Overview */}
-            <div>
+            <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
               <h3 className="text-lg font-semibold text-[#111827] mb-4">Overview</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Purpose</label>
-                  {editingFeature === section.featureName ? (
-                    renderEditableField(
-                      section.overview.purpose,
-                      (value) => setEditedContent({
-                        ...section,
-                        overview: { ...section.overview, purpose: value }
-                      }),
-                      true
-                    )
-                  ) : (
-                    <p className="text-[#111827]">{section.overview.purpose}</p>
-                  )}
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Purpose</h4>
+                  <p className="text-[#111827]">{safeRender(section.overview?.purpose) || "No purpose specified"}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Success Metrics</label>
-                  {editingFeature === section.featureName ? (
-                    renderEditableList(
-                      section.overview.successMetrics,
-                      (metrics) => setEditedContent({
-                        ...section,
-                        overview: { ...section.overview, successMetrics: metrics }
-                      })
-                    )
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1 text-[#111827]">
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Success Metrics</h4>
+                  {section.overview?.successMetrics && section.overview.successMetrics.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
                       {section.overview.successMetrics.map((metric, index) => (
-                        <li key={index}>{metric}</li>
+                        <li key={index}>{safeRender(metric)}</li>
                       ))}
                     </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No success metrics specified</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* User Stories */}
-            <div>
+            <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
               <h3 className="text-lg font-semibold text-[#111827] mb-4">User Stories</h3>
-              {editingFeature === section.featureName ? (
-                renderEditableList(
-                  section.userStories,
-                  (stories) => setEditedContent({ ...section, userStories: stories })
-                )
-              ) : (
-                <ul className="list-disc list-inside space-y-2 text-[#111827]">
+              {section.userStories && section.userStories.length > 0 ? (
+                <ul className="list-disc pl-5 space-y-2 text-[#111827]">
                   {section.userStories.map((story, index) => (
-                    <li key={index}>{story}</li>
+                    <li key={index} className="pl-1">{safeRender(story)}</li>
                   ))}
                 </ul>
+              ) : (
+                <p className="text-[#6b7280] italic">No user stories specified</p>
               )}
             </div>
 
             {/* Acceptance Criteria */}
-            <div>
+            <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
               <h3 className="text-lg font-semibold text-[#111827] mb-4">Acceptance Criteria</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Guidelines</label>
-                  {editingFeature === section.featureName ? (
-                    renderEditableField(
-                      section.acceptanceCriteria.guidelines,
-                      (value) => setEditedContent({
-                        ...section,
-                        acceptanceCriteria: { ...section.acceptanceCriteria, guidelines: value }
-                      }),
-                      true
-                    )
-                  ) : (
-                    <p className="text-[#111827]">{section.acceptanceCriteria.guidelines}</p>
-                  )}
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Guidelines</h4>
+                  <p className="text-[#111827]">{safeRender(section.acceptanceCriteria?.guidelines) || "No guidelines specified"}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#4b5563] mb-2">Criteria</label>
-                  {editingFeature === section.featureName ? (
-                    renderEditableList(
-                      section.acceptanceCriteria.criteria,
-                      (criteria) => setEditedContent({
-                        ...section,
-                        acceptanceCriteria: { ...section.acceptanceCriteria, criteria }
-                      })
-                    )
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1 text-[#111827]">
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Criteria</h4>
+                  {section.acceptanceCriteria?.criteria && section.acceptanceCriteria.criteria.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
                       {section.acceptanceCriteria.criteria.map((criterion, index) => (
-                        <li key={index}>{criterion}</li>
+                        <li key={index}>{safeRender(criterion)}</li>
                       ))}
                     </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No criteria specified</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Use Cases */}
-            <div>
+            {section.useCases && section.useCases.length > 0 && (
+              <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
               <h3 className="text-lg font-semibold text-[#111827] mb-4">Use Cases</h3>
+                <div className="space-y-6">
               {section.useCases.map((useCase, index) => (
-                <div key={useCase.id} className="bg-[#f8f9fa] p-4 rounded-lg mb-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-medium text-[#111827]">{useCase.title}</h4>
-                    <span className="text-sm text-[#6b7280]">#{useCase.id}</span>
+                    <div key={index} className="border-b border-[#e5e7eb] pb-6 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="text-xs font-medium bg-[#f0f2f5] text-[#6b7280] px-2 py-1 rounded mr-2">
+                            {useCase.id}
+                          </span>
+                          <h4 className="text-md font-medium text-[#111827] inline">{safeRender(useCase.title)}</h4>
+                        </div>
                   </div>
-                  <div className="space-y-4">
-                    <p className="text-[#4b5563]">{useCase.description}</p>
+                      <p className="text-[#4b5563] mb-4">{safeRender(useCase.description)}</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <h5 className="font-medium text-[#111827] mb-2">Actors</h5>
-                      <ul className="list-disc list-inside text-[#4b5563]">
-                        {useCase.actors.map((actor, i) => (
-                          <li key={i}>{actor}</li>
+                          <h5 className="text-sm font-medium text-[#4b5563] mb-2">Actors</h5>
+                          <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                            {useCase.actors.map((actor, idx) => (
+                              <li key={idx}>{safeRender(actor)}</li>
                         ))}
                       </ul>
                     </div>
                     <div>
-                      <h5 className="font-medium text-[#111827] mb-2">Main Scenario</h5>
-                      <ol className="list-decimal list-inside text-[#4b5563]">
-                        {useCase.mainScenario.map((step, i) => (
-                          <li key={i}>{step}</li>
+                          <h5 className="text-sm font-medium text-[#4b5563] mb-2">Preconditions</h5>
+                          <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                            {useCase.preconditions.map((precondition, idx) => (
+                              <li key={idx}>{safeRender(precondition)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <h5 className="text-sm font-medium text-[#4b5563] mb-2">Main Scenario</h5>
+                        <ol className="list-decimal pl-5 space-y-1 text-[#111827]">
+                          {useCase.mainScenario.map((step, idx) => (
+                            <li key={idx}>{safeRender(step)}</li>
                         ))}
                       </ol>
                     </div>
-                  </div>
+                      
+                      {useCase.alternateFlows && useCase.alternateFlows.length > 0 && (
+                        <div className="mt-4">
+                          <h5 className="text-sm font-medium text-[#4b5563] mb-2">Alternate Flows</h5>
+                          {useCase.alternateFlows.map((flow, idx) => (
+                            <div key={idx} className="mb-3 last:mb-0">
+                              <h6 className="text-sm font-medium text-[#111827] mb-1">{safeRender(flow.name)}</h6>
+                              <ol className="list-decimal pl-5 space-y-1 text-[#111827]">
+                                {flow.steps.map((step, stepIdx) => (
+                                  <li key={stepIdx}>{safeRender(step)}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {useCase.exceptions && useCase.exceptions.length > 0 && (
+                        <div className="mt-4">
+                          <h5 className="text-sm font-medium text-[#4b5563] mb-2">Exceptions</h5>
+                          {useCase.exceptions.map((exception, idx) => (
+                            <div key={idx} className="mb-3 last:mb-0">
+                              <h6 className="text-sm font-medium text-[#111827] mb-1">{safeRender(exception.name)}</h6>
+                              <ol className="list-decimal pl-5 space-y-1 text-[#111827]">
+                                {exception.steps.map((step, stepIdx) => (
+                                  <li key={stepIdx}>{safeRender(step)}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
 
             {/* Non-Functional Requirements */}
-            <div>
+            <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
               <h3 className="text-lg font-semibold text-[#111827] mb-4">Non-Functional Requirements</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Object.entries(section.nonFunctionalRequirements).map(([category, requirements]) => (
-                  <div key={category}>
-                    <h4 className="font-medium text-[#111827] capitalize mb-2">{category}</h4>
-                    {editingFeature === section.featureName ? (
-                      renderEditableList(
-                        requirements,
-                        (newReqs) => setEditedContent({
-                          ...section,
-                          nonFunctionalRequirements: {
-                            ...section.nonFunctionalRequirements,
-                            [category]: newReqs
-                          }
-                        })
-                      )
-                    ) : (
-                      <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
-                        {requirements.map((req, index) => (
-                          <li key={index}>{req}</li>
+                <div>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Performance</h4>
+                  {section.nonFunctionalRequirements?.performance && section.nonFunctionalRequirements.performance.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.nonFunctionalRequirements.performance.map((item, index) => (
+                        <li key={index}>{item}</li>
                         ))}
                       </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No performance requirements specified</p>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Dependencies and Assumptions */}
-            <div>
-              <h3 className="text-lg font-semibold text-[#111827] mb-4">Dependencies and Assumptions</h3>
-              <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-[#111827] mb-2">Dependencies</h4>
-                  {editingFeature === section.featureName ? (
-                    renderEditableList(
-                      section.dependencies.dependencies,
-                      (deps) => setEditedContent({
-                        ...section,
-                        dependencies: { ...section.dependencies, dependencies: deps }
-                      })
-                    )
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
-                      {section.dependencies.dependencies.map((dep, index) => (
-                        <li key={index}>{dep}</li>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Security</h4>
+                  {section.nonFunctionalRequirements?.security && section.nonFunctionalRequirements.security.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.nonFunctionalRequirements.security.map((item, index) => (
+                        <li key={index}>{item}</li>
                       ))}
                     </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No security requirements specified</p>
                   )}
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#111827] mb-2">Assumptions</h4>
-                  {editingFeature === section.featureName ? (
-                    renderEditableList(
-                      section.dependencies.assumptions,
-                      (assumptions) => setEditedContent({
-                        ...section,
-                        dependencies: { ...section.dependencies, assumptions }
-                      })
-                    )
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
-                      {section.dependencies.assumptions.map((assumption, index) => (
-                        <li key={index}>{assumption}</li>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Scalability</h4>
+                  {section.nonFunctionalRequirements?.scalability && section.nonFunctionalRequirements.scalability.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.nonFunctionalRequirements.scalability.map((item, index) => (
+                        <li key={index}>{item}</li>
                       ))}
                     </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No scalability requirements specified</p>
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Usability</h4>
+                  {section.nonFunctionalRequirements?.usability && section.nonFunctionalRequirements.usability.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.nonFunctionalRequirements.usability.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No usability requirements specified</p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Open Questions and Risks */}
-            <div>
-              <h3 className="text-lg font-semibold text-[#111827] mb-4">Open Questions and Risks</h3>
-              <div className="space-y-4">
+            {/* Dependencies */}
+            <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
+              <h3 className="text-lg font-semibold text-[#111827] mb-4">Dependencies & Assumptions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-medium text-[#111827] mb-2">Questions</h4>
-                  {editingFeature === section.featureName ? (
-                    renderEditableList(
-                      section.openQuestions.questions,
-                      (questions) => setEditedContent({
-                        ...section,
-                        openQuestions: { ...section.openQuestions, questions }
-                      })
-                    )
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
-                      {section.openQuestions.questions.map((question, index) => (
-                        <li key={index}>{question}</li>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Dependencies</h4>
+                  {section.dependencies?.dependencies && section.dependencies.dependencies.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.dependencies.dependencies.map((item, index) => (
+                        <li key={index}>{item}</li>
                       ))}
                     </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No dependencies specified</p>
                   )}
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#111827] mb-2">Risks</h4>
-                  {editingFeature === section.featureName ? (
-                    renderEditableList(
-                      section.openQuestions.risks,
-                      (risks) => setEditedContent({
-                        ...section,
-                        openQuestions: { ...section.openQuestions, risks }
-                      })
-                    )
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
-                      {section.openQuestions.risks.map((risk, index) => (
-                        <li key={index}>{risk}</li>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Assumptions</h4>
+                  {section.dependencies?.assumptions && section.dependencies.assumptions.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.dependencies.assumptions.map((item, index) => (
+                        <li key={index}>{item}</li>
                       ))}
                     </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No assumptions specified</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Open Questions */}
+            <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
+              <h3 className="text-lg font-semibold text-[#111827] mb-4">Open Questions & Risks</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Open Questions</h4>
+                  {section.openQuestions?.questions && section.openQuestions.questions.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.openQuestions.questions.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No open questions specified</p>
                   )}
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#111827] mb-2">Mitigations</h4>
-                  {editingFeature === section.featureName ? (
-                    renderEditableList(
-                      section.openQuestions.mitigations,
-                      (mitigations) => setEditedContent({
-                        ...section,
-                        openQuestions: { ...section.openQuestions, mitigations }
-                      })
-                    )
-                  ) : (
-                    <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
-                      {section.openQuestions.mitigations.map((mitigation, index) => (
-                        <li key={index}>{mitigation}</li>
+                  <h4 className="text-sm font-medium text-[#4b5563] mb-2">Risks</h4>
+                  {section.openQuestions?.risks && section.openQuestions.risks.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                      {section.openQuestions.risks.map((item, index) => (
+                        <li key={index}>{item}</li>
                       ))}
                     </ul>
+                  ) : (
+                    <p className="text-[#6b7280] italic">No risks specified</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Wireframe Guidelines */}
-            <div>
+            <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
               <h3 className="text-lg font-semibold text-[#111827] mb-4">Wireframe Guidelines</h3>
-              {editingFeature === section.featureName ? (
-                renderEditableList(
-                  section.wireframeGuidelines,
-                  (guidelines) => setEditedContent({ ...section, wireframeGuidelines: guidelines })
-                )
-              ) : (
-                <ul className="list-disc list-inside space-y-1 text-[#4b5563]">
-                  {section.wireframeGuidelines.map((guideline, index) => (
-                    <li key={index}>{guideline}</li>
+              {section.wireframeGuidelines && section.wireframeGuidelines.length > 0 ? (
+                <ul className="list-disc pl-5 space-y-1 text-[#111827]">
+                  {section.wireframeGuidelines.map((item, index) => (
+                    <li key={index}>{item}</li>
                   ))}
                 </ul>
+              ) : (
+                <p className="text-[#6b7280] italic">No wireframe guidelines specified</p>
               )}
             </div>
           </div>
@@ -528,6 +712,27 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
       </div>
     );
   };
+
+  if (error) {
+    return (
+      <div className="bg-red-50 text-red-700 p-4 rounded-lg">
+        <p className="font-medium">Error displaying PRD</p>
+        <p>{error}</p>
+        <div className="mt-4">
+          <p className="font-medium">PRD Content:</p>
+          <pre className="mt-2 p-4 bg-white rounded border border-red-200 text-xs overflow-auto max-h-96">
+            {safeRender(prd)}
+          </pre>
+        </div>
+        <button 
+          onClick={() => setError(null)}
+          className="mt-4 px-4 py-2 bg-white border border-red-300 text-red-700 rounded-lg font-medium hover:bg-red-50 transition-colors"
+        >
+          Try to Display PRD Anyway
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex">

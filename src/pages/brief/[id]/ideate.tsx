@@ -432,7 +432,7 @@ export default function IdeateFeatures() {
             </div>
             {featureSet && (
               <Link
-                href={`/prd/${brief?.id}`}
+                href={`/prd/new?projectId=${project?.id}`}
                 className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
               >
                 Continue

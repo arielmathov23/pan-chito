@@ -2,13 +2,17 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
-import { Project, projectService } from '../../services/projectService';
-import { Brief, briefService } from '../../services/briefService';
-import { featureStore } from '../../utils/featureStore';
-import { prdStore } from '../../utils/prdStore';
-import { techDocStore } from '../../utils/techDocStore';
+import { Project, projectStore } from '../../utils/projectStore';
+import { FeatureSet, featureStore } from '../../utils/featureStore';
+import { PRD, prdStore } from '../../utils/prdStore';
+import { prdService } from '../../services/prdService';
+import { withAuth } from '../../middleware/withAuth';
 import { useAuth } from '../../context/AuthContext';
+import { projectService } from '../../services/projectService';
+import { Brief, briefService } from '../../services/briefService';
 import { featureService } from '../../services/featureService';
+import { techDocStore } from '../../utils/techDocStore';
+import isMockData from '../../utils/mockDetector';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -62,48 +66,128 @@ export default function Projects() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [projectBriefs, setProjectBriefs] = useState<Record<string, Brief[]>>({});
+  const [projectBriefs, setProjectBriefs] = useState<Record<string, any[]>>({});
   const [projectFeatureSets, setProjectFeatureSets] = useState<Record<string, any[]>>({});
+  const [projectProgress, setProjectProgress] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
+
+  // Calculate project progress based on completed stages
+  const calculateProjectProgress = (
+    briefs: any[], 
+    featureSets: any[], 
+    prds: any[]
+  ) => {
+    if (!briefs.length) return 0; // No brief yet
+    
+    if (!featureSets.length) return 1; // Has brief, next is ideation
+    
+    // Check if PRD exists
+    if (!prds.length) return 2; // Has features, next is PRD
+    
+    // For now, we'll stop at PRD stage since screens and tech docs 
+    // haven't been migrated to Supabase yet
+    return 3; // Has PRD, next is screens
+    
+    // TODO: Update these checks when screens and tech docs are migrated to Supabase
+    /*
+    // Check if screens exist for any PRD
+    const hasScreens = prds.some(prd => {
+      return require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+    });
+    
+    if (!hasScreens) return 3; // Has PRD, next is screens
+    
+    // Check if tech docs exist for any PRD
+    const hasTechDocs = prds.some(prd => {
+      return techDocStore.getTechDocByPrdId(prd.id);
+    });
+    
+    if (!hasTechDocs) return 4; // Has screens, next is tech docs
+    
+    return 5; // Has tech docs, all stages completed
+    */
+  };
 
   const loadProjects = async () => {
     if (!user) return;
     
-    setIsLoading(true);
     try {
-      const loadedProjects = await projectService.getProjects();
-      setProjects(loadedProjects);
+      setIsLoading(true);
       
-      // Load briefs for each project
-      const briefsByProject: Record<string, Brief[]> = {};
+      // Fetch projects
+      const projectsData = await projectService.getProjects();
+      setProjects(projectsData);
+      
+      // Initialize state objects
+      const briefsByProject: Record<string, any[]> = {};
       const featureSetsByProject: Record<string, any[]> = {};
       
-      // Use Promise.all to fetch briefs for all projects in parallel
-      await Promise.all(loadedProjects.map(async (project) => {
-        // Fetch briefs from Supabase using briefService
-        const projectBriefs = await briefService.getBriefsByProjectId(project.id);
-        briefsByProject[project.id] = projectBriefs;
-        
-        // Load feature sets for each project from Supabase instead of local storage
-        let allFeatureSets: any[] = [];
-        
-        // Use Promise.all to fetch feature sets for all briefs in parallel
-        await Promise.all(projectBriefs.map(async (brief) => {
-          try {
-            const briefFeatureSet = await featureService.getFeatureSetByBriefId(brief.id);
-            if (briefFeatureSet) {
-              allFeatureSets.push(briefFeatureSet);
+      // Fetch briefs and feature sets for each project
+      const projectPromises = projectsData.map(async (project) => {
+        try {
+          // Fetch briefs for this project
+          const briefs = await briefService.getBriefsByProjectId(project.id);
+          // Store briefs in state object
+          briefsByProject[project.id] = briefs;
+          
+          // Initialize feature sets array for this project
+          featureSetsByProject[project.id] = [];
+          
+          // Fetch feature sets and PRDs for each brief in parallel
+          const briefPromises = briefs.map(async (brief) => {
+            try {
+              // Get feature set for this brief
+              const featureSet = await featureService.getFeatureSetByBriefId(brief.id);
+              
+              // If feature set exists, add it to the project's feature sets
+              if (featureSet) {
+                featureSetsByProject[project.id].push(featureSet);
+              }
+              
+              // Get PRDs for this brief
+              const prds = await prdService.getPRDsByBriefId(brief.id);
+              
+              return {
+                brief,
+                featureSet,
+                prds
+              };
+            } catch (error) {
+              console.error(`Error loading data for brief ${brief.id}:`, error);
+              return {
+                brief,
+                featureSet: null,
+                prds: []
+              };
             }
-          } catch (error) {
-            console.error(`Error loading feature set for brief ${brief.id}:`, error);
-          }
-        }));
-        
-        featureSetsByProject[project.id] = allFeatureSets;
-      }));
+          });
+          
+          const briefResults = await Promise.all(briefPromises);
+          
+          // Calculate project progress
+          const projectProgress = calculateProjectProgress(
+            briefResults.map(r => r.brief),
+            briefResults.map(r => r.featureSet).filter(Boolean),
+            briefResults.flatMap(r => r.prds)
+          );
+          
+          // Update project progress in state
+          setProjectProgress(prev => ({
+            ...prev,
+            [project.id]: projectProgress
+          }));
+          
+        } catch (error) {
+          console.error(`Error loading data for project ${project.id}:`, error);
+        }
+      });
       
+      await Promise.all(projectPromises);
+      
+      // Update state with all briefs and feature sets
       setProjectBriefs(briefsByProject);
       setProjectFeatureSets(featureSetsByProject);
+      
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
@@ -131,36 +215,20 @@ export default function Projects() {
     };
   }, [router.events, user]);
 
-  const getProjectStage = (project: Project, briefs: Brief[]) => {
+  const getProjectStage = (project: Project, briefs: any[]) => {
+    // Use the pre-calculated progress from state if available
+    if (projectProgress[project.id] !== undefined) {
+      return projectProgress[project.id];
+    }
+    
+    // If no pre-calculated progress is available, default to brief stage
+    // This is a safety fallback that should rarely be used since we calculate
+    // progress during loadProjects
     if (!briefs.length) return 0; // No brief yet
-    
-    const featureSets = projectFeatureSets[project.id] || [];
-    if (!featureSets.length) return 1; // Has brief, next is ideation
-    
-    // Check if PRD exists for any brief
-    const hasPRD = briefs.some(brief => prdStore.getPRDs(brief.id).length > 0);
-    if (!hasPRD) return 2; // Has features, next is PRD
-    
-    // Check if screens exist for any PRD
-    const hasScreens = briefs.some(brief => {
-      const prd = prdStore.getPRDs(brief.id)[0];
-      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-    });
-    
-    if (!hasScreens) return 3; // Has PRD, next is screens
-    
-    // Check if tech docs exist for any PRD
-    const hasTechDocs = briefs.some(brief => {
-      const prd = prdStore.getPRDs(brief.id)[0];
-      return prd && techDocStore.getTechDocByPrdId(prd.id);
-    });
-    
-    if (!hasTechDocs) return 4; // Has screens, next is tech docs
-    
-    return 5; // Has tech docs, all stages completed
+    return 1; // Has brief, assume next is ideation
   };
 
-  const getStageStatus = (project: Project, briefs: Brief[], stageIndex: number) => {
+  const getStageStatus = (project: Project, briefs: any[], stageIndex: number) => {
     const currentStage = getProjectStage(project, briefs);
     
     if (stageIndex < currentStage) return 'completed';
@@ -174,6 +242,18 @@ export default function Projects() {
     if (status === 'completed') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
     if (status === 'active') return { bg: COLORS.project.light, text: COLORS.project.primary, border: COLORS.project.primary };
     return { bg: COLORS.neutral.lighter, text: COLORS.neutral.medium, border: 'transparent' };
+  };
+
+  // Function to handle PRD navigation
+  const handlePRDNavigation = async (projectId: string) => {
+    try {
+      // Navigate directly to the new PRD page with the project ID
+      router.push(`/prd/new?projectId=${projectId}`);
+    } catch (error) {
+      console.error('Error navigating to PRD:', error);
+      // Default to the project page if there's an error
+      router.push(`/project/${projectId}`);
+    }
   };
 
   if (authLoading) {
@@ -295,11 +375,11 @@ export default function Projects() {
                             </svg>
                           </button>
                         )}
-                        {briefs.length > 0 && briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) && (
+                        {nextStage > 2 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/prd/${briefs.find(brief => prdStore.getPRDs(brief.id).length > 0)?.id}`);
+                              handlePRDNavigation(project.id);
                             }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             style={{ 
@@ -315,22 +395,13 @@ export default function Projects() {
                           </button>
                         )}
                         {/* Add Screens Link */}
-                        {briefs.length > 0 && briefs.some(brief => {
-                          const prd = prdStore.getPRDs(brief.id)[0];
-                          return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                        }) && (
+                        {nextStage > 3 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const brief = briefs.find(brief => {
-                                const prd = prdStore.getPRDs(brief.id)[0];
-                                return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                              });
+                              const brief = briefs[0];
                               if (brief) {
-                                const prds = prdStore.getPRDs(brief.id);
-                                if (prds.length > 0) {
-                                  router.push(`/screens/${prds[0].id}`);
-                                }
+                                router.push(`/screens/${brief.id}`);
                               }
                             }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -416,76 +487,41 @@ export default function Projects() {
                           <div>
                             <h4 className="text-sm font-medium text-[#4b5563]">Next Step</h4>
                             <p className="text-xs text-[#6b7280] mt-1">
-                              {!briefs.length ? 'Create a Brief to get started' : 
-                               !projectFeatureSets[project.id]?.length ? 'Generate features for your product' :
-                               !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ? 'Generate PRD based on features' :
-                               !briefs.some(brief => {
-                                 const prd = prdStore.getPRDs(brief.id)[0];
-                                 return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                               }) ? 'Generate app screens based on PRD' :
-                               !briefs.some(brief => {
-                                 const prd = prdStore.getPRDs(brief.id)[0];
-                                 return prd && techDocStore.getTechDocByPrdId(prd.id);
-                               }) ? 'Generate technical documentation' :
+                              {nextStage === 0 ? 'Create a Brief to get started' : 
+                               nextStage === 1 ? 'Generate features for your product' :
+                               nextStage === 2 ? 'Generate PRD based on features' :
+                               nextStage === 3 ? 'Generate app screens based on PRD' :
+                               nextStage === 4 ? 'Generate technical documentation' :
                                'All steps completed'}
                             </p>
                           </div>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const url = !briefs.length ? 
+                              const url = nextStage === 0 ? 
                                 `/brief/new?projectId=${project.id}` : 
-                                !projectFeatureSets[project.id]?.length ? 
+                                nextStage === 1 ? 
                                 `/brief/${briefs[0].id}/ideate` :
-                                !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ?
-                                `/prd/${briefs[0].id}` :
-                                !briefs.some(brief => {
-                                  const prd = prdStore.getPRDs(brief.id)[0];
-                                  return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                                }) ?
-                                `/screens/${(() => {
-                                  const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
-                                  return brief ? prdStore.getPRDs(brief.id)[0].id : '';
-                                })()}` :
-                                !briefs.some(brief => {
-                                  const prd = prdStore.getPRDs(brief.id)[0];
-                                  return prd && techDocStore.getTechDocByPrdId(prd.id);
-                                }) ?
-                                `/docs/${(() => {
-                                  const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
-                                  return brief ? prdStore.getPRDs(brief.id)[0].id : '';
-                                })()}` :
+                                nextStage === 2 ?
+                                `/prd/new?projectId=${project.id}` :
+                                nextStage === 3 ?
+                                `/screens/${briefs[0].id}` :
+                                nextStage === 4 ?
+                                `/docs/${briefs[0].id}` :
                                 `/project/${project.id}`;
                               router.push(url);
                             }}
                             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm text-white hover:opacity-90"
                             style={{ 
-                              backgroundColor: !briefs.length ? '#0F533A' : 
-                                              !projectFeatureSets[project.id]?.length ? '#0F533A' : 
-                                              !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ? '#0F533A' :
-                                              !briefs.some(brief => {
-                                                const prd = prdStore.getPRDs(brief.id)[0];
-                                                return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                                              }) ? '#0F533A' :
-                                              !briefs.some(brief => {
-                                                const prd = prdStore.getPRDs(brief.id)[0];
-                                                return prd && techDocStore.getTechDocByPrdId(prd.id);
-                                              }) ? '#0F533A' :
-                                              '#0F533A',
+                              backgroundColor: '#0F533A',
                               color: 'white'
                             }}
                           >
-                            {!briefs.length ? 'Create Brief' : 
-                             !projectFeatureSets[project.id]?.length ? 'Ideate Features' :
-                             !briefs.some(brief => prdStore.getPRDs(brief.id).length > 0) ? 'Generate PRD' :
-                             !briefs.some(brief => {
-                               const prd = prdStore.getPRDs(brief.id)[0];
-                               return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                             }) ? 'Generate Screens' :
-                             !briefs.some(brief => {
-                               const prd = prdStore.getPRDs(brief.id)[0];
-                               return prd && techDocStore.getTechDocByPrdId(prd.id);
-                             }) ? 'Generate Tech Docs' :
+                            {nextStage === 0 ? 'Create Brief' : 
+                             nextStage === 1 ? 'Ideate Features' :
+                             nextStage === 2 ? 'Generate PRD' :
+                             nextStage === 3 ? 'Generate Screens' :
+                             nextStage === 4 ? 'Generate Tech Docs' :
                              'View Project Details'}
                             <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

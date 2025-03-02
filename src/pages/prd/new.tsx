@@ -4,14 +4,16 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import Navbar from '../../components/Navbar';
 import EmptyState from '../../components/EmptyState';
-import { Project, projectStore } from '../../utils/projectStore';
-import { Brief as BriefStore, briefStore } from '../../utils/briefStore';
-import { Brief as BriefService } from '../../services/briefService';
-import { FeatureSet, featureStore } from '../../utils/featureStore';
-import { prdStore } from '../../utils/prdStore';
+import { Project } from '../../utils/projectStore';
+import { Brief as BriefStore } from '../../utils/briefStore';
+import { Brief as BriefService, briefService } from '../../services/briefService';
+import { FeatureSet } from '../../utils/featureStore';
+import { prdService } from '../../services/prdService';
 import { generatePRD, parsePRD } from '../../utils/prdGenerator';
 import MockNotification from '../../components/MockNotification';
 import isMockData from '../../utils/mockDetector';
+import { projectService } from '../../services/projectService';
+import { featureService } from '../../services/featureService';
 
 // Helper function to convert from briefStore.Brief to briefService.Brief
 const convertBriefForPRDGenerator = (brief: BriefStore): BriefService => {
@@ -33,8 +35,7 @@ export default function NewPRD() {
   const router = useRouter();
   const { projectId } = router.query;
   const [project, setProject] = useState<Project | null>(null);
-  const [briefs, setBriefs] = useState<BriefStore[]>([]);
-  const [selectedBriefId, setSelectedBriefId] = useState<string>('');
+  const [brief, setBrief] = useState<BriefService | null>(null);
   const [featureSet, setFeatureSet] = useState<FeatureSet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,45 +51,53 @@ export default function NewPRD() {
       return;
     }
 
-    // Fetch project from store
-    const foundProject = projectStore.getProject(projectId as string);
-    if (foundProject) {
-      setProject(foundProject);
-      
-      // Get all briefs for this project
-      const projectBriefs = briefStore.getBriefs(foundProject.id);
-      setBriefs(projectBriefs);
-      
-      // If there's only one brief, select it automatically
-      if (projectBriefs.length === 1) {
-        setSelectedBriefId(projectBriefs[0].id);
-        
-        // Check if features exist for this brief
-        const briefFeatureSet = featureStore.getFeatureSetByBriefId(projectBriefs[0].id);
-        setFeatureSet(briefFeatureSet);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        // Fetch project from Supabase
+        const foundProject = await projectService.getProjectById(projectId as string);
+        if (foundProject) {
+          setProject(foundProject);
+          
+          // Get the brief for this project from Supabase
+          const projectBriefs = await briefService.getBriefsByProjectId(foundProject.id);
+          if (projectBriefs.length > 0) {
+            // There should only be one brief per project
+            const projectBrief = projectBriefs[0];
+            setBrief(projectBrief);
+            
+            // Check if features exist for this brief from Supabase
+            const briefFeatureSet = await featureService.getFeatureSetByBriefId(projectBrief.id);
+            setFeatureSet(briefFeatureSet);
+            
+            if (!briefFeatureSet || briefFeatureSet.features.length === 0) {
+              console.log('No features found for the brief');
+            }
+          } else {
+            setError('No brief found for this project');
+          }
+        } else {
+          setError('Project not found');
+        }
+      } catch (err) {
+        console.error('Error loading project:', err);
+        setError('Failed to load project data');
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
     
-    setIsLoading(false);
+    loadData();
   }, [projectId, router]);
 
-  // Handle brief selection change
-  const handleBriefChange = (briefId: string) => {
-    setSelectedBriefId(briefId);
-    setFeatureSet(featureStore.getFeatureSetByBriefId(briefId));
-    setGeneratedPRD(null);
-    setError(null);
-  };
-
   const handleGeneratePRD = async () => {
-    if (!selectedBriefId || !featureSet) {
-      setError('Please select a brief and ensure features are available');
+    if (!brief) {
+      setError('No brief found for this project. Please create a brief first.');
       return;
     }
     
-    const brief = briefStore.getBrief(selectedBriefId);
-    if (!brief) {
-      setError('Selected brief not found');
+    if (!featureSet || featureSet.features.length === 0) {
+      setError('No features available. Please create features first.');
       return;
     }
     
@@ -96,34 +105,46 @@ export default function NewPRD() {
       setError(null);
       setIsGenerating(true);
       
-      // Convert brief to the format expected by generatePRD
-      const briefForGenerator = convertBriefForPRDGenerator(brief);
-      
-      const response = await generatePRD(briefForGenerator, featureSet);
+      // Generate the PRD using the brief and feature set
+      const response = await generatePRD(brief, featureSet);
       setGeneratedPRD(response);
+      
+      // Automatically save the PRD without requiring user interaction
+      const parsedPRD = parsePRD(response);
+      
+      // Create a new PRD object
+      const newPRD = {
+        id: crypto.randomUUID(),
+        briefId: brief.id,
+        featureSetId: featureSet.id,
+        title: brief.product_name || 'Untitled PRD',
+        overview: typeof brief.brief_data?.proposedSolution === 'string' 
+          ? brief.brief_data.proposedSolution 
+          : JSON.stringify(brief.brief_data?.proposedSolution || ''),
+        goals: typeof brief.brief_data?.productObjectives === 'string' 
+          ? brief.brief_data.productObjectives 
+          : JSON.stringify(brief.brief_data?.productObjectives || ''),
+        userFlows: '',
+        requirements: '',
+        constraints: '',
+        timeline: '',
+        content: parsedPRD,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save the PRD using the PRD service
+      const savedPRD = await prdService.savePRD(newPRD);
+      console.log("Saved PRD:", savedPRD);
+      
+      // Redirect to the PRD page with the new PRD ID
+      router.push(`/prd/${savedPRD.id}`);
+      
     } catch (error) {
       console.error('Error generating PRD:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate PRD. Please check your OpenAI API key.');
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const handleSavePRD = () => {
-    if (!project || !generatedPRD || !selectedBriefId || !featureSet) return;
-    
-    try {
-      const brief = briefStore.getBrief(selectedBriefId);
-      if (!brief) {
-        setError('Selected brief not found');
-        return;
-      }
-      
-      const parsedPRD = parsePRD(generatedPRD);
-      const savedPRD = prdStore.savePRD(brief.id, featureSet.id, parsedPRD);
-      router.push(`/project/${project.id}`);
-    } catch (error) {
-      setError('Failed to save PRD. Please try again.');
     }
   };
 
@@ -159,13 +180,13 @@ export default function NewPRD() {
     );
   }
 
-  if (briefs.length === 0) {
+  if (!brief) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <EmptyState
-            title="No briefs found"
+            title="No brief found"
             description="Please create a brief before generating a PRD"
             icon="brief"
             action={{
@@ -179,134 +200,220 @@ export default function NewPRD() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f8f9fa]">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
-              <Link href="/projects" className="hover:text-foreground transition-colors">Projects</Link>
-              <span>/</span>
-              <Link href={`/project/${project?.id}`} className="hover:text-foreground transition-colors">
-                {project?.name}
-              </Link>
-              <span>/</span>
-              <span className="text-foreground">New PRD</span>
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">Create New PRD</h1>
-            <p className="text-muted-foreground mt-2">Document the requirements for your product</p>
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-6">
+            <nav aria-label="Breadcrumb" className="mb-3">
+              <ol className="flex items-center space-x-2 text-sm">
+                <li>
+                  <Link href="/projects" className="text-[#4b5563] hover:text-[#111827] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F533A] rounded">
+                    Projects
+                  </Link>
+                </li>
+                <li className="text-[#4b5563]">/</li>
+                <li>
+                  <Link href={`/project/${project?.id}`} className="text-[#4b5563] hover:text-[#111827] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F533A] rounded">
+                    {project?.name}
+                  </Link>
+                </li>
+                <li className="text-[#4b5563]">/</li>
+                <li>
+                  <Link href={`/brief/${brief?.id}`} className="text-[#4b5563] hover:text-[#111827] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F533A] rounded">
+                    Brief
+                  </Link>
+                </li>
+                <li className="text-[#4b5563]">/</li>
+                <li>
+                  <Link href={`/features/${featureSet?.id}`} className="text-[#4b5563] hover:text-[#111827] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F533A] rounded">
+                    Features
+                  </Link>
+                </li>
+                <li className="text-[#4b5563]">/</li>
+                <li className="text-[#111827] font-medium">New PRD</li>
+              </ol>
+            </nav>
+            <h1 className="text-3xl font-bold text-[#111827] mb-2">Product Requirements Document</h1>
+            <p className="text-[#4b5563] text-base max-w-3xl">Create a comprehensive document that outlines all the requirements for your product</p>
             
             {usingMockData && <MockNotification stage="prd" />}
           </div>
 
-          {generatedPRD ? (
-            <div className="bg-card rounded-xl border border-border/40 shadow-card p-6">
-              <div className="mb-4 flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-foreground">Generated PRD</h2>
-                <div className="flex space-x-4">
-                  <button
-                    onClick={() => {
-                      setGeneratedPRD(null);
-                      setError(null);
-                    }}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleSavePRD}
-                    className="inline-flex items-center justify-center bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                  >
-                    Save PRD
-                  </button>
-                </div>
+          {/* PRD Information Section - More compact design */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {/* What is a PRD Card */}
+            <div className="bg-white rounded-lg border border-[#e5e7eb] shadow-sm p-5 flex flex-col h-full">
+              <div className="rounded-full bg-[#e6f0eb] w-12 h-12 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-              <div className="prose prose-gray max-w-none dark:prose-invert">
-                <ReactMarkdown>
-                  {generatedPRD}
-                </ReactMarkdown>
+              <h2 className="text-lg font-semibold text-[#111827] mb-3">What is a PRD?</h2>
+              <p className="text-[#4b5563] text-sm mb-4 leading-relaxed">
+                A Product Requirements Document outlines everything needed to build your product successfully.
+              </p>
+              <div className="mt-auto">
+                <h3 className="text-base font-medium text-[#111827] mb-2">It helps:</h3>
+                <ul className="text-[#4b5563] text-sm space-y-2">
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Development teams understand what to build</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Stakeholders align on functionality</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Project managers track progress effectively</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Designers create matching user interfaces</span>
+                  </li>
+                </ul>
               </div>
             </div>
-          ) : (
-            <div className="bg-card rounded-xl border border-border/40 shadow-card p-6">
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="brief" className="block text-sm font-medium text-foreground mb-2">
-                    Select Brief
-                  </label>
-                  <select
-                    id="brief"
-                    value={selectedBriefId}
-                    onChange={(e) => handleBriefChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    <option value="">Select a brief</option>
-                    {briefs.map((brief) => (
-                      <option key={brief.id} value={brief.id}>
-                        {brief.productName}
-                      </option>
-                    ))}
-                  </select>
+
+            {/* What Will Be Generated Card */}
+            <div className="bg-white rounded-lg border border-[#e5e7eb] shadow-sm p-5 flex flex-col h-full">
+              <div className="rounded-full bg-[#e6f0eb] w-12 h-12 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8 12H16M8 17H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8 7H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-[#111827] mb-3">What Will Be Generated?</h2>
+              <p className="text-[#4b5563] text-sm mb-4 leading-relaxed">
+                Based on your brief and prioritized features, we'll generate a detailed document.
+              </p>
+              <div className="mt-auto">
+                <h3 className="text-base font-medium text-[#111827] mb-2">It includes:</h3>
+                <ul className="text-[#4b5563] text-sm space-y-2">
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Detailed feature specifications</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>User stories and acceptance criteria</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Technical requirements</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-[#0F533A] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Implementation guidelines</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Features Included Card */}
+            <div className="bg-white rounded-lg border border-[#e5e7eb] shadow-sm p-5 flex flex-col h-full">
+              <div className="rounded-full bg-[#e6f0eb] w-12 h-12 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M22 11V17C22 21 21 22 17 22H7C3 22 2 21 2 17V7C2 3 3 2 7 2H8.5C10 2 10.33 2.44 10.9 3.2L12.4 5.2C12.78 5.7 13 6 14 6H17C21 6 22 7 22 11Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-[#111827] mb-3">Features Included</h2>
+              <p className="text-[#4b5563] text-sm mb-4 leading-relaxed">
+                Your PRD will include all prioritized features from your feature set.
+              </p>
+              <div className="mt-auto space-y-3">
+                <div className="flex items-center bg-[#e6f0eb] rounded-md p-3 transition-transform hover:translate-x-1">
+                  <div className="w-2.5 h-2.5 bg-[#0F533A] rounded-full mr-2"></div>
+                  <span className="font-medium text-sm text-[#0F533A]">All "Must Have" features</span>
                 </div>
+                <div className="flex items-center bg-[#e6f0eb] rounded-md p-3 transition-transform hover:translate-x-1">
+                  <div className="w-2.5 h-2.5 bg-[#0F533A] rounded-full mr-2"></div>
+                  <span className="font-medium text-sm text-[#0F533A]">All "Should Have" features</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {selectedBriefId && !featureSet && (
-                  <div className="bg-amber-50 text-amber-700 p-4 rounded-lg">
-                    <p className="font-medium">Features Required</p>
-                    <p>Please generate or define features for this brief before creating a PRD.</p>
-                    <Link
-                      href={`/brief/${selectedBriefId}/ideate`}
-                      className="inline-flex items-center mt-2 text-sm font-medium text-amber-700 hover:text-amber-800"
-                    >
-                      Go to Feature Ideation
-                      <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </Link>
-                  </div>
+          {/* Generate PRD button */}
+          <div className="flex justify-center mb-8">
+            <button
+              onClick={handleGeneratePRD}
+              disabled={isGenerating || !featureSet || (featureSet && featureSet.features.length === 0)}
+              className={`inline-flex items-center justify-center px-6 py-2.5 rounded-md font-medium shadow-sm text-base ${
+                isGenerating || !featureSet || (featureSet && featureSet.features.length === 0)
+                  ? 'bg-[#d1d5db] text-[#6b7280] cursor-not-allowed'
+                  : 'bg-[#0F533A] text-white hover:bg-[#0a3f2c] transition-colors'
+              }`}
+            >
+              {isGenerating ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                'Generate PRD'
+              )}
+            </button>
+          </div>
+          
+          {/* Error message */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md max-w-3xl mx-auto mb-6 text-sm">
+              <p className="font-medium">Error</p>
+              <p>{error}</p>
+            </div>
+          )}
+          
+          {/* PRD Preview Section - Only show if there's generated content */}
+          {generatedPRD && (
+            <div className="bg-white rounded-lg border border-[#e5e7eb] shadow-sm p-5 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-[#111827]">PRD Preview</h2>
+                <div className="text-xs text-[#4b5563]">
+                  <span className="inline-flex items-center bg-[#e6f0eb] text-[#0F533A] px-2 py-0.5 rounded-full font-medium">
+                    <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22 11.1V6.9C22 3.4 20.6 2 17.1 2H12.9C9.4 2 8 3.4 8 6.9V8H11.1C14.6 8 16 9.4 16 12.9V16H17.1C20.6 16 22 14.6 22 11.1Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M16 17.1V12.9C16 9.4 14.6 8 11.1 8H6.9C3.4 8 2 9.4 2 12.9V17.1C2 20.6 3.4 22 6.9 22H11.1C14.6 22 16 20.6 16 17.1Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6.08 15L8.03 16.95L11.92 13.05" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Generated
+                  </span>
+                </div>
+              </div>
+              
+              <div className="prose prose-sm max-w-none border border-[#e5e7eb] rounded-md p-4 bg-[#f9fafb] overflow-auto max-h-[400px] text-sm">
+                {typeof generatedPRD === 'string' ? (
+                  <ReactMarkdown>{generatedPRD}</ReactMarkdown>
+                ) : (
+                  <pre className="text-xs overflow-auto">
+                    {JSON.stringify(generatedPRD, null, 2)}
+                  </pre>
                 )}
-
-                {selectedBriefId && featureSet && (
-                  <>
-                    <div className="bg-blue-50 text-blue-700 p-4 rounded-lg">
-                      <p className="font-medium">Ready to Generate</p>
-                      <p>The PRD will include all features with "Must" and "Should" priorities from your feature set.</p>
-                    </div>
-                    
-                    {error && (
-                      <div className="bg-red-50 text-red-700 p-4 rounded-lg">
-                        <p className="font-medium">Error</p>
-                        <p>{error}</p>
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-center">
-                      <button
-                        onClick={handleGeneratePRD}
-                        disabled={isGenerating}
-                        className={`inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
-                      >
-                        {isGenerating ? (
-                          <>
-                            <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Generating PRD...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            Generate PRD
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </>
-                )}
+              </div>
+              
+              <div className="mt-4 text-xs text-[#4b5563]">
+                <p>This is a preview of the raw PRD content. The formatted version will be available after saving.</p>
               </div>
             </div>
           )}

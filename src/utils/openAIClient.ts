@@ -18,7 +18,7 @@ export async function callOpenAI(prompt: string): Promise<string> {
       messages: [
         { 
           role: "system", 
-          content: "You are a helpful assistant that provides detailed and structured responses."
+          content: "You are an experienced product manager and strategic designer with a lot of experience in technology tasked to create detailed info about a product. When generating a response, follow the exact template provided and ensure the output is valid JSON. Be concise but comprehensive, focusing on the most important aspects of each task."
         },
         { 
           role: "user", 

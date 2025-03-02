@@ -6,7 +6,7 @@ import EmptyState from '../../components/EmptyState';
 import PRDList from '../../components/PRDList';
 import BriefList from '../../components/BriefList';
 import { Project, projectService } from '../../services/projectService';
-import { PRD, prdStore } from '../../utils/prdStore';
+import { PRD, prdService } from '../../services/prdService';
 import { Brief, briefService } from '../../services/briefService';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { useAuth } from '../../context/AuthContext';
@@ -97,14 +97,21 @@ export default function ProjectDetail() {
       
       setFeatureSets(allFeatureSets);
       
-      // Fetch PRDs
+      // Fetch PRDs from Supabase instead of local storage
       const allPRDs: any[] = [];
-      briefsData.forEach(brief => {
-        const briefPRDs = prdStore.getPRDs(brief.id);
-        if (briefPRDs.length > 0) {
-          allPRDs.push(...briefPRDs);
+      
+      // Use Promise.all to fetch PRDs for all briefs in parallel
+      await Promise.all(briefsData.map(async (brief) => {
+        try {
+          const briefPRDs = await prdService.getPRDsByBriefId(brief.id);
+          if (briefPRDs.length > 0) {
+            allPRDs.push(...briefPRDs);
+          }
+        } catch (error) {
+          console.error(`Error loading PRDs for brief ${brief.id}:`, error);
         }
-      });
+      }));
+      
       setPrds(allPRDs);
       
     } catch (error) {
@@ -134,10 +141,12 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleDeletePRD = (prdId: string) => {
-    const deleted = prdStore.deletePRD(prdId);
-    if (deleted) {
+  const handleDeletePRD = async (prdId: string) => {
+    try {
+      await prdService.deletePRD(prdId);
       setPrds(currentPrds => currentPrds.filter(p => p.id !== prdId));
+    } catch (error) {
+      console.error('Error deleting PRD:', error);
     }
   };
 
@@ -160,104 +169,128 @@ export default function ProjectDetail() {
   };
 
   // Function to generate markdown content
-  const generateProjectMarkdown = () => {
+  const exportProjectMarkdown = () => {
     if (!project || !briefs.length) return '';
-
+    
     let markdown = `# ${project.name}\n\n`;
-    markdown += `## Project Overview\n${project.description || ''}\n\n`;
+    
+    if (project.description) {
+      markdown += `${project.description}\n\n`;
+    }
     
     // Add Brief section
-    const brief = briefs[0];
-    if (brief) {
-      markdown += `## Product Brief\n\n`;
-      markdown += `### Executive Summary\n${brief.brief_data.executiveSummary}\n\n`;
-      markdown += `### Problem Statement\n${brief.brief_data.problemStatement}\n\n`;
-      markdown += `### Target Users\n${brief.brief_data.targetUsers}\n\n`;
-      markdown += `### Existing Solutions\n${brief.brief_data.existingSolutions}\n\n`;
-      markdown += `### Proposed Solution\n${brief.brief_data.proposedSolution}\n\n`;
-      markdown += `### Product Objectives\n${brief.brief_data.productObjectives}\n\n`;
-      markdown += `### Key Features\n${brief.brief_data.keyFeatures}\n\n`;
+    if (briefs.length) {
+      markdown += `## Brief\n\n`;
+      const brief = briefs[0];
       
-      if (brief.brief_data.marketAnalysis) {
-        markdown += `### Market Analysis\n${brief.brief_data.marketAnalysis}\n\n`;
-      }
-      if (brief.brief_data.technicalRisks) {
-        markdown += `### Technical Risks\n${brief.brief_data.technicalRisks}\n\n`;
-      }
-      if (brief.brief_data.businessRisks) {
-        markdown += `### Business Risks\n${brief.brief_data.businessRisks}\n\n`;
-      }
-      if (brief.brief_data.implementationStrategy) {
-        markdown += `### Implementation Strategy\n${brief.brief_data.implementationStrategy}\n\n`;
-      }
-      if (brief.brief_data.successMetrics) {
-        markdown += `### Success Metrics\n${brief.brief_data.successMetrics}\n\n`;
+      if (brief.brief_data) {
+        if (brief.brief_data.problemStatement) {
+          markdown += `### Problem Statement\n${brief.brief_data.problemStatement}\n\n`;
+        }
+        
+        if (brief.brief_data.targetUsers) {
+          markdown += `### Target Users\n${brief.brief_data.targetUsers}\n\n`;
+        }
+        
+        if (brief.brief_data.productObjectives) {
+          markdown += `### Product Objectives\n${brief.brief_data.productObjectives}\n\n`;
+        }
       }
     }
-
+    
     // Add Features section
-    if (featureSets.length > 0) {
+    if (featureSets.length) {
       markdown += `## Features\n\n`;
-      featureSets.forEach(featureSet => {
-        featureSet.features.forEach(feature => {
-          markdown += `### ${feature.title || feature.name}\n`;
-          markdown += `${feature.description}\n\n`;
-          if (feature.userStories && feature.userStories.length > 0) {
-            markdown += `**User Stories:**\n`;
-            feature.userStories.forEach(story => {
+      
+      const featureSet = featureSets[0];
+      
+      // Group features by priority
+      const mustFeatures = featureSet.features.filter(f => f.priority === 'must');
+      const shouldFeatures = featureSet.features.filter(f => f.priority === 'should');
+      const couldFeatures = featureSet.features.filter(f => f.priority === 'could');
+      const wontFeatures = featureSet.features.filter(f => f.priority === 'wont');
+      
+      if (mustFeatures.length) {
+        markdown += `### Must Have\n`;
+        mustFeatures.forEach(feature => {
+          markdown += `- **${feature.name}**: ${feature.description}\n`;
+        });
+        markdown += '\n';
+      }
+      
+      if (shouldFeatures.length) {
+        markdown += `### Should Have\n`;
+        shouldFeatures.forEach(feature => {
+          markdown += `- **${feature.name}**: ${feature.description}\n`;
+        });
+        markdown += '\n';
+      }
+      
+      if (couldFeatures.length) {
+        markdown += `### Could Have\n`;
+        couldFeatures.forEach(feature => {
+          markdown += `- **${feature.name}**: ${feature.description}\n`;
+        });
+        markdown += '\n';
+      }
+      
+      if (wontFeatures.length) {
+        markdown += `### Won't Have\n`;
+        wontFeatures.forEach(feature => {
+          markdown += `- **${feature.name}**: ${feature.description}\n`;
+        });
+        markdown += '\n';
+      }
+    }
+    
+    // Add PRD section
+    if (prds.length) {
+      markdown += `## Product Requirements\n\n`;
+      
+      const prd = prds[0];
+      
+      if (prd.content && prd.content.sections) {
+        prd.content.sections.forEach(section => {
+          markdown += `### ${section.featureName}\n\n`;
+          
+          markdown += `**Priority**: ${section.featurePriority}\n\n`;
+          
+          if (section.overview) {
+            markdown += `#### Overview\n`;
+            markdown += `${section.overview.purpose}\n\n`;
+            
+            if (section.overview.successMetrics && section.overview.successMetrics.length) {
+              markdown += `**Success Metrics**:\n`;
+              section.overview.successMetrics.forEach(metric => {
+                markdown += `- ${metric}\n`;
+              });
+              markdown += '\n';
+            }
+          }
+          
+          if (section.userStories && section.userStories.length) {
+            markdown += `#### User Stories\n`;
+            section.userStories.forEach(story => {
               markdown += `- ${story}\n`;
             });
             markdown += '\n';
           }
-          if (feature.priority) {
-            markdown += `**Priority:** ${feature.priority}\n`;
-          }
-          if (feature.complexity) {
-            markdown += `**Complexity:** ${feature.complexity}\n`;
-          }
-          if (feature.status) {
-            markdown += `**Status:** ${feature.status}\n`;
-          }
-          markdown += '\n';
         });
-      });
-    }
-
-    // Add PRD section
-    if (prds.length > 0) {
-      const prd = prds[0];
-      markdown += `## Product Requirements Document\n\n`;
-      
-      if (prd.overview) {
-        markdown += `### Overview\n${prd.overview}\n\n`;
-      }
-      if (prd.goals) {
-        markdown += `### Goals\n${prd.goals}\n\n`;
-      }
-      if (prd.userFlows) {
-        markdown += `### User Flows\n${prd.userFlows}\n\n`;
-      }
-      if (prd.requirements) {
-        markdown += `### Requirements\n${prd.requirements}\n\n`;
-      }
-      if (prd.constraints) {
-        markdown += `### Constraints\n${prd.constraints}\n\n`;
-      }
-      if (prd.timeline) {
-        markdown += `### Timeline\n${prd.timeline}\n\n`;
       }
     }
-
+    
     // Add Screens section if available
     const hasScreens = briefs.some(brief => {
-      const prd = prdStore.getPRDs(brief.id)[0];
+      // Find the PRD for this brief from the prds array
+      const prd = prds.find(p => p.briefId === brief.id);
       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
     });
 
     if (hasScreens) {
       markdown += `## Screens\n\n`;
       const brief = briefs[0];
-      const prd = prdStore.getPRDs(brief.id)[0];
+      // Find the PRD for this brief from the prds array
+      const prd = prds.find(p => p.briefId === brief.id);
       if (prd) {
         const screenSet = require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
         if (screenSet) {
@@ -287,38 +320,33 @@ export default function ProjectDetail() {
 
     // Add Technical Documentation section if available
     const hasTechDocs = briefs.some(brief => {
-      const prd = prdStore.getPRDs(brief.id)[0];
+      // Find the PRD for this brief from the prds array
+      const prd = prds.find(p => p.briefId === brief.id);
       return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
     });
 
     if (hasTechDocs) {
       markdown += `## Technical Documentation\n\n`;
       const brief = briefs[0];
-      const prd = prdStore.getPRDs(brief.id)[0];
+      // Find the PRD for this brief from the prds array
+      const prd = prds.find(p => p.briefId === brief.id);
       if (prd) {
         const techDoc = require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
         if (techDoc) {
           if (techDoc.platform) {
-            markdown += `### Platform\n`;
-            const platform = typeof techDoc.platform === 'string' ? JSON.parse(techDoc.platform) : techDoc.platform;
-            if (platform.targets) {
-              markdown += `**Targets:**\n${platform.targets}\n\n`;
-            }
-            if (platform.requirements) {
-              markdown += `**Requirements:**\n${platform.requirements}\n\n`;
-            }
+            markdown += `### Platform\n${techDoc.platform}\n\n`;
           }
-          if (techDoc.frontend) {
-            markdown += `### Frontend\n${techDoc.frontend}\n\n`;
+          if (techDoc.architecture) {
+            markdown += `### Architecture\n${techDoc.architecture}\n\n`;
           }
-          if (techDoc.backend) {
-            markdown += `### Backend\n${techDoc.backend}\n\n`;
+          if (techDoc.dataModel) {
+            markdown += `### Data Model\n${techDoc.dataModel}\n\n`;
           }
           if (techDoc.api) {
             markdown += `### API\n${techDoc.api}\n\n`;
           }
-          if (techDoc.database) {
-            markdown += `### Database\n${techDoc.database}\n\n`;
+          if (techDoc.security) {
+            markdown += `### Security\n${techDoc.security}\n\n`;
           }
           if (techDoc.deployment) {
             markdown += `### Deployment\n${techDoc.deployment}\n\n`;
@@ -326,13 +354,13 @@ export default function ProjectDetail() {
         }
       }
     }
-
+    
     return markdown;
   };
 
   // Function to download markdown file
   const downloadProjectDocs = () => {
-    const markdown = generateProjectMarkdown();
+    const markdown = exportProjectMarkdown();
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -342,6 +370,26 @@ export default function ProjectDetail() {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+  };
+
+  // Function to handle PRD navigation
+  const handlePRDNavigation = async (briefId: string) => {
+    try {
+      // Check if PRDs exist for this brief
+      const existingPRDs = await prdService.getPRDsByBriefId(briefId);
+      
+      if (existingPRDs.length > 0) {
+        // If PRDs exist, redirect to the first PRD
+        router.push(`/prd/${existingPRDs[0].id}`);
+      } else {
+        // If no PRDs exist, redirect to the new PRD page with the project ID
+        router.push(`/prd/new?projectId=${project?.id}`);
+      }
+    } catch (error) {
+      console.error('Error navigating to PRD:', error);
+      // Default to the new PRD page if there's an error
+      router.push(`/prd/new?projectId=${project?.id}`);
+    }
   };
 
   if (authLoading) {
@@ -454,11 +502,11 @@ export default function ProjectDetail() {
                  !featureSets.length ? '1' : 
                  !prds.length ? '2' : 
                  !briefs.some(brief => {
-                   const prd = prdStore.getPRDs(brief.id)[0];
+                   const prd = prds.find(p => p.briefId === brief.id);
                    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                  }) ? '3' : 
                  !briefs.some(brief => {
-                   const prd = prdStore.getPRDs(brief.id)[0];
+                   const prd = prds.find(p => p.briefId === brief.id);
                    return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                  }) ? '4' : '5'}/5 steps completed
               </div>
@@ -474,11 +522,11 @@ export default function ProjectDetail() {
                            !featureSets.length ? '20%' :
                            !prds.length ? '40%' :
                            !briefs.some(brief => {
-                             const prd = prdStore.getPRDs(brief.id)[0];
+                             const prd = prds.find(p => p.briefId === brief.id);
                              return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                            }) ? '60%' : 
                            !briefs.some(brief => {
-                             const prd = prdStore.getPRDs(brief.id)[0];
+                             const prd = prds.find(p => p.briefId === brief.id);
                              return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                            }) ? '80%' : '100%',
                     backgroundColor: COLORS.project.primary
@@ -501,7 +549,7 @@ export default function ProjectDetail() {
                              featureSets.length > 0 ? 'active' : 'upcoming';
                   } else if (index === 3) {
                     const hasScreens = briefs.some(brief => {
-                      const prd = prdStore.getPRDs(brief.id)[0];
+                      const prd = prds.find(p => p.briefId === brief.id);
                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                     });
                     
@@ -509,12 +557,12 @@ export default function ProjectDetail() {
                              prds.length > 0 ? 'active' : 'upcoming';
                   } else if (index === 4) {
                     const hasScreens = briefs.some(brief => {
-                      const prd = prdStore.getPRDs(brief.id)[0];
+                      const prd = prds.find(p => p.briefId === brief.id);
                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                     });
                     
                     const hasTechDocs = briefs.some(brief => {
-                      const prd = prdStore.getPRDs(brief.id)[0];
+                      const prd = prds.find(p => p.briefId === brief.id);
                       return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                     });
                     
@@ -552,21 +600,21 @@ export default function ProjectDetail() {
                      featureSets.length > 0 && prds.length === 0 ? 'Generate a PRD based on your features' :
                      briefs.length > 0 && featureSets.length === 0 ? 'Generate features for your product' :
                      prds.length > 0 && !briefs.some(brief => {
-                       const prd = prdStore.getPRDs(brief.id)[0];
+                       const prd = prds.find(p => p.briefId === brief.id);
                        return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                      }) ? 'Generate app screens based on your PRD' :
                      briefs.some(brief => {
-                       const prd = prdStore.getPRDs(brief.id)[0];
+                       const prd = prds.find(p => p.briefId === brief.id);
                        return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                      }) && !briefs.some(brief => {
-                       const prd = prdStore.getPRDs(brief.id)[0];
+                       const prd = prds.find(p => p.briefId === brief.id);
                        return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                      }) ? 'Create technical documentation for your project' :
                      '🎉 Congratulations! All stages are completed. Download your project documentation.'}
                   </p>
                 </div>
                 {briefs.some(brief => {
-                  const prd = prdStore.getPRDs(brief.id)[0];
+                  const prd = prds.find(p => p.briefId === brief.id);
                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                 }) ? (
                   <button
@@ -582,20 +630,32 @@ export default function ProjectDetail() {
                 ) : (
                   <Link
                     href={!briefs.length ? `/brief/new?projectId=${project.id}` : 
-                          featureSets.length > 0 && prds.length === 0 ? `/prd/${briefs[0].id}` :
+                          featureSets.length > 0 && prds.length === 0 ? `/prd/new?projectId=${project.id}` :
                           briefs.length > 0 && featureSets.length === 0 ? `/brief/${briefs[0].id}/ideate` :
                           prds.length > 0 && !briefs.some(brief => {
-                            const prd = prdStore.getPRDs(brief.id)[0];
+                            const prd = prds.find(p => p.briefId === brief.id);
                             return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                          }) ? `/screens/${prds[0].id}` :
-                          `/docs/${prds[0].id}`}
+                          }) ? `/screens/${(() => {
+                            const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
+                            if (brief) {
+                              const prdList = prds.filter(p => p.briefId === brief.id);
+                              if (prdList.length > 0) {
+                                return prdList[0].id;
+                              }
+                            }
+                            return '';
+                          })()}` :
+                          `/docs/${(() => {
+                            const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
+                            return brief ? prds.find(p => p.briefId === brief.id)?.id : '';
+                          })()}`}
                     className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                   >
                     {!briefs.length ? 'Create Brief' : 
                      featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
                      briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
                      prds.length > 0 && !briefs.some(brief => {
-                       const prd = prdStore.getPRDs(brief.id)[0];
+                       const prd = prds.find(p => p.briefId === brief.id);
                        return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                      }) ? 'Generate Screens' :
                      'Create Tech Docs'}
@@ -781,7 +841,7 @@ export default function ProjectDetail() {
                       Generate your first PRD to document your product requirements
                     </p>
                     <Link
-                      href={`/prd/${briefs[0].id}`}
+                      href={`/prd/new?projectId=${project.id}`}
                       className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                     >
                       Generate PRD
@@ -801,16 +861,17 @@ export default function ProjectDetail() {
                           Your PRDs have been created and are ready for screen generation
                         </p>
                       </div>
-                      <div className="flex space-x-3">
-                        <Link
-                          href={`/prd/${prds[0].id}`}
-                          className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                      {/* PRD Button */}
+                      <div>
+                        <button
+                          onClick={() => handlePRDNavigation(prds[0].briefId)}
+                          className="inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                         >
                           View PRD
                           <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
-                        </Link>
+                        </button>
                       </div>
                     </div>
                     
@@ -835,7 +896,7 @@ export default function ProjectDetail() {
               <div className="flex items-center">
                 <div className={`w-2 h-2 rounded-full ${
                   briefs.some(brief => {
-                    const prd = prdStore.getPRDs(brief.id)[0];
+                    const prd = prds.find(p => p.briefId === brief.id);
                     return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                   }) ? 'bg-[#10b981]' : 
                   prds.length > 0 ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
@@ -845,14 +906,14 @@ export default function ProjectDetail() {
               <div className={`${
                 !prds.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
                 briefs.some(brief => {
-                  const prd = prdStore.getPRDs(brief.id)[0];
+                  const prd = prds.find(p => p.briefId === brief.id);
                   return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                 }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
                 'bg-[#e6f0eb] text-[#0F533A]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
                 {!prds.length ? 'Locked' : 
                  briefs.some(brief => {
-                   const prd = prdStore.getPRDs(brief.id)[0];
+                   const prd = prds.find(p => p.briefId === brief.id);
                    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                  }) ? 'Completed' : 'Active'}
               </div>
@@ -866,7 +927,7 @@ export default function ProjectDetail() {
             ) : (
               <div className="bg-[#f8f9fa] rounded-lg p-8">
                 {!briefs.some(brief => {
-                  const prd = prdStore.getPRDs(brief.id)[0];
+                  const prd = prds.find(p => p.briefId === brief.id);
                   return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                 }) ? (
                   <div className="text-center">
@@ -876,8 +937,14 @@ export default function ProjectDetail() {
                     </p>
                     <Link
                       href={`/screens/${(() => {
-                        const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
-                        return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                        const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
+                        if (brief) {
+                          const prdList = prds.filter(p => p.briefId === brief.id);
+                          if (prdList.length > 0) {
+                            return prdList[0].id;
+                          }
+                        }
+                        return '';
                       })()}`}
                       className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                     >
@@ -900,14 +967,11 @@ export default function ProjectDetail() {
                       </div>
                       <Link
                         href={`/screens/${(() => {
-                          const brief = briefs.find(brief => {
-                            const prd = prdStore.getPRDs(brief.id)[0];
-                            return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                          });
+                          const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
                           if (brief) {
-                            const prds = prdStore.getPRDs(brief.id);
-                            if (prds.length > 0) {
-                              return prds[0].id;
+                            const prdList = prds.filter(p => p.briefId === brief.id);
+                            if (prdList.length > 0) {
+                              return prdList[0].id;
                             }
                           }
                           return '';
@@ -932,7 +996,7 @@ export default function ProjectDetail() {
               <div className="flex items-center">
                 <div className={`w-2 h-2 rounded-full ${
                   briefs.some(brief => {
-                    const prd = prdStore.getPRDs(brief.id)[0];
+                    const prd = prds.find(p => p.briefId === brief.id);
                     return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                   }) ? 'bg-[#10b981]' : 
                   prds.length > 0 ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
@@ -942,14 +1006,14 @@ export default function ProjectDetail() {
               <div className={`${
                 !prds.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
                 briefs.some(brief => {
-                  const prd = prdStore.getPRDs(brief.id)[0];
+                  const prd = prds.find(p => p.briefId === brief.id);
                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                 }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
                 'bg-[#e6f0eb] text-[#0F533A]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
                 {!prds.length ? 'Locked' : 
                  briefs.some(brief => {
-                   const prd = prdStore.getPRDs(brief.id)[0];
+                   const prd = prds.find(p => p.briefId === brief.id);
                    return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                  }) ? 'Completed' : 'Active'}
               </div>
@@ -963,7 +1027,7 @@ export default function ProjectDetail() {
             ) : (
               <div className="bg-[#f8f9fa] rounded-lg p-8">
                 {!briefs.some(brief => {
-                  const prd = prdStore.getPRDs(brief.id)[0];
+                  const prd = prds.find(p => p.briefId === brief.id);
                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                 }) ? (
                   <div className="text-center">
@@ -973,10 +1037,10 @@ export default function ProjectDetail() {
                     </p>
                     <Link
                       href={`/docs/${(() => {
-                        const brief = briefs.find(b => prdStore.getPRDs(b.id).length > 0);
-                        return brief ? prdStore.getPRDs(brief.id)[0].id : '';
+                        const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
+                        return brief ? prds.find(p => p.briefId === brief.id)?.id : '';
                       })()}`}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                     >
                       Create Tech Documents
                       <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -997,17 +1061,8 @@ export default function ProjectDetail() {
                     <div className="flex space-x-3">
                       <Link
                         href={`/docs/${(() => {
-                          const brief = briefs.find(brief => {
-                            const prd = prdStore.getPRDs(brief.id)[0];
-                            return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                          });
-                          if (brief) {
-                            const prds = prdStore.getPRDs(brief.id);
-                            if (prds.length > 0) {
-                              return prds[0].id;
-                            }
-                          }
-                          return '';
+                          const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
+                          return brief ? prds.find(p => p.briefId === brief.id)?.id : '';
                         })()}`}
                         className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                       >
