@@ -11,6 +11,7 @@ import { Brief, briefService } from '../../services/briefService';
 import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { useAuth } from '../../context/AuthContext';
 import { featureService } from '../../services/featureService';
+import { techDocService } from '../../services/techDocService';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -62,6 +63,7 @@ export default function ProjectDetail() {
   const [prds, setPrds] = useState<PRD[]>([]);
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [featureSets, setFeatureSets] = useState<FeatureSet[]>([]);
+  const [techDocs, setTechDocs] = useState<{[prdId: string]: boolean}>({});
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,27 +99,34 @@ export default function ProjectDetail() {
       
       setFeatureSets(allFeatureSets);
       
-      // Fetch PRDs from Supabase instead of local storage
-      const allPRDs: any[] = [];
-      
-      // Use Promise.all to fetch PRDs for all briefs in parallel
+      // Fetch PRDs for all briefs
+      let allPrds: PRD[] = [];
       await Promise.all(briefsData.map(async (brief) => {
         try {
-          const briefPRDs = await prdService.getPRDsByBriefId(brief.id);
-          if (briefPRDs.length > 0) {
-            allPRDs.push(...briefPRDs);
-          }
+          const briefPrds = await prdService.getPRDsByBriefId(brief.id);
+          allPrds = [...allPrds, ...briefPrds];
         } catch (error) {
           console.error(`Error loading PRDs for brief ${brief.id}:`, error);
         }
       }));
+      setPrds(allPrds);
       
-      setPrds(allPRDs);
+      // Fetch tech docs for all PRDs
+      const techDocsStatus: {[prdId: string]: boolean} = {};
+      await Promise.all(allPrds.map(async (prd) => {
+        try {
+          const techDoc = await techDocService.getTechDocByPrdId(prd.id);
+          techDocsStatus[prd.id] = !!techDoc;
+        } catch (error) {
+          console.error(`Error loading tech doc for PRD ${prd.id}:`, error);
+          techDocsStatus[prd.id] = false;
+        }
+      }));
+      setTechDocs(techDocsStatus);
       
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading project:', error);
-      setError('Failed to load project data');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -319,11 +328,7 @@ export default function ProjectDetail() {
     }
 
     // Add Technical Documentation section if available
-    const hasTechDocs = briefs.some(brief => {
-      // Find the PRD for this brief from the prds array
-      const prd = prds.find(p => p.briefId === brief.id);
-      return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-    });
+    const hasTechDocs = prds.some(prd => techDocs[prd.id]);
 
     if (hasTechDocs) {
       markdown += `## Technical Documentation\n\n`;
@@ -505,10 +510,7 @@ export default function ProjectDetail() {
                    const prd = prds.find(p => p.briefId === brief.id);
                    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                  }) ? '3' : 
-                 !briefs.some(brief => {
-                   const prd = prds.find(p => p.briefId === brief.id);
-                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                 }) ? '4' : '5'}/5 steps completed
+                 !prds.some(prd => techDocs[prd.id]) ? '4' : '5'}/5 steps completed
               </div>
             </div>
             
@@ -525,10 +527,7 @@ export default function ProjectDetail() {
                              const prd = prds.find(p => p.briefId === brief.id);
                              return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                            }) ? '60%' : 
-                           !briefs.some(brief => {
-                             const prd = prds.find(p => p.briefId === brief.id);
-                             return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                           }) ? '80%' : '100%',
+                           !prds.some(prd => techDocs[prd.id]) ? '80%' : '100%',
                     backgroundColor: COLORS.project.primary
                   }}
                 ></div>
@@ -561,10 +560,7 @@ export default function ProjectDetail() {
                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
                     });
                     
-                    const hasTechDocs = briefs.some(brief => {
-                      const prd = prds.find(p => p.briefId === brief.id);
-                      return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                    });
+                    const hasTechDocs = prds.some(prd => techDocs[prd.id]);
                     
                     status = hasTechDocs ? 'completed' : 
                              hasScreens ? 'active' : 'upcoming';
@@ -613,10 +609,7 @@ export default function ProjectDetail() {
                      '🎉 Congratulations! All stages are completed. Download your project documentation.'}
                   </p>
                 </div>
-                {briefs.some(brief => {
-                  const prd = prds.find(p => p.briefId === brief.id);
-                  return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                }) ? (
+                {prds.some(prd => techDocs[prd.id]) ? (
                   <button
                     onClick={downloadProjectDocs}
                     className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"

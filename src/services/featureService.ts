@@ -288,5 +288,43 @@ export const featureService = {
       console.error('Error deleting feature set:', featureSetError);
       throw new Error(featureSetError.message);
     }
+  },
+
+  // Get a feature set by its ID
+  async getFeatureSetById(featureSetId: string): Promise<FeatureSet | null> {
+    // First, check if a feature set exists
+    const { data: featureSetData, error: featureSetError } = await supabase
+      .from('feature_sets')
+      .select('*')
+      .eq('id', featureSetId)
+      .single();
+
+    if (featureSetError && featureSetError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+      console.error('Error fetching feature set:', featureSetError);
+      throw new Error(featureSetError.message);
+    }
+
+    if (!featureSetData) {
+      return null;
+    }
+
+    // Then get all features for this brief
+    const { data: featuresData, error: featuresError } = await supabase
+      .from('features')
+      .select('*')
+      .eq('brief_id', featureSetData.brief_id);
+
+    if (featuresError) {
+      console.error('Error fetching features:', featuresError);
+      throw new Error(featuresError.message);
+    }
+
+    return {
+      id: featureSetData.id,
+      briefId: featureSetData.brief_id,
+      features: (featuresData || []).map(mapSupabaseFeatureToFeature),
+      keyQuestions: featureSetData.key_questions || [],
+      createdAt: featureSetData.created_at
+    };
   }
 }; 

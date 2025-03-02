@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import { projectService } from '../../services/projectService';
 import { useAuth } from '../../context/AuthContext';
+import { projectLimitService } from '../../services/projectLimitService';
 
 export default function NewProject() {
   const router = useRouter();
@@ -12,6 +13,12 @@ export default function NewProject() {
   const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
+  const [isChecking, setIsChecking] = useState(true);
+  const [limitStatus, setLimitStatus] = useState<{
+    canCreateProject: boolean;
+    currentProjects: number;
+    maxProjects: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -19,12 +26,41 @@ export default function NewProject() {
     }
   }, [user, authLoading, router]);
 
+  useEffect(() => {
+    const checkProjectLimit = async () => {
+      if (user) {
+        setIsChecking(true);
+        try {
+          const status = await projectLimitService.checkCanCreateProject();
+          setLimitStatus(status);
+        } catch (error) {
+          console.error('Error checking project limit:', error);
+          setError('Failed to check project limits. Please try again.');
+        } finally {
+          setIsChecking(false);
+        }
+      }
+    };
+
+    if (!authLoading && user) {
+      checkProjectLimit();
+    }
+  }, [user, authLoading]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
     setError('');
 
     try {
+      // Double-check limit before proceeding
+      const status = await projectLimitService.checkCanCreateProject();
+      if (!status.canCreateProject) {
+        setError(`You have reached your limit of ${status.maxProjects} projects. Please upgrade your plan to create more projects.`);
+        setIsCreating(false);
+        return;
+      }
+
       const project = await projectService.createProject({ 
         name, 
         description,
@@ -44,7 +80,11 @@ export default function NewProject() {
     }
   };
 
-  if (authLoading) {
+  const handleUpgradeClick = () => {
+    router.push('/upgrade');
+  };
+
+  if (authLoading || isChecking) {
     return (
       <div className="min-h-screen bg-[#f8f9fa]">
         <Navbar />
@@ -62,6 +102,85 @@ export default function NewProject() {
 
   if (!user) {
     return null; // Router will redirect to login
+  }
+
+  // If user has reached their project limit, show the limit reached screen
+  if (limitStatus && !limitStatus.canCreateProject) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa]">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="mb-8">
+              <div className="flex items-center space-x-2 text-sm text-[#6b7280] mb-4">
+                <Link href="/projects" className="hover:text-[#111827] transition-colors">Projects</Link>
+                <span>/</span>
+                <span className="text-[#111827]">New Project</span>
+              </div>
+              <h1 className="text-3xl font-bold text-[#111827]">Project Limit Reached</h1>
+              <p className="text-[#6b7280] mt-2">You have reached your limit of {limitStatus.maxProjects} project(s)</p>
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6 mb-8">
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#F0FDF4] mb-4">
+                  <svg className="w-8 h-8 text-[#16a34a]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-[#111827]">Upgrade to Create More Projects</h2>
+                <p className="text-[#6b7280] mt-2">Get access to unlimited projects and additional features</p>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-[#4b5563]">Create unlimited projects</p>
+                </div>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-[#4b5563]">Priority support</p>
+                </div>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-[#4b5563]">Advanced AI capabilities</p>
+                </div>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-[#4b5563]">Export to multiple formats</p>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <button
+                  onClick={handleUpgradeClick}
+                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0F533A]/90 transition-colors w-full sm:w-auto"
+                >
+                  Upgrade Now
+                </button>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <Link
+                href="/projects"
+                className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium text-[#6b7280] hover:text-[#111827] hover:bg-[#f0f2f5] transition-colors"
+              >
+                Back to Projects
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

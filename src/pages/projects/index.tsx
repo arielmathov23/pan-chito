@@ -15,6 +15,7 @@ import { techDocStore } from '../../utils/techDocStore';
 import { techDocService } from '../../services/techDocService';
 import isMockData from '../../utils/mockDetector';
 import screenService from '../../services/screenService';
+import { projectLimitService } from '../../services/projectLimitService';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -186,6 +187,11 @@ export default function Projects() {
   const [projectFeatureSets, setProjectFeatureSets] = useState<Record<string, any[]>>({});
   const [projectProgress, setProjectProgress] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [limitStatus, setLimitStatus] = useState<{
+    canCreateProject: boolean;
+    currentProjects: number;
+    maxProjects: number;
+  } | null>(null);
 
   // Calculate project progress based on completed stages
   const calculateProjectProgress = async (
@@ -241,6 +247,10 @@ export default function Projects() {
       // Fetch projects
       const projectsData = await projectService.getProjects();
       setProjects(projectsData);
+      
+      // Check project limits
+      const status = await projectLimitService.checkCanCreateProject();
+      setLimitStatus(status);
       
       // Initialize state objects
       const briefsByProject: Record<string, any[]> = {};
@@ -312,9 +322,11 @@ export default function Projects() {
       setProjectBriefs(briefsByProject);
       setProjectFeatureSets(featureSetsByProject);
       
+      // Set loading to false after successful data loading
+      setIsLoading(false);
+      
     } catch (error) {
       console.error('Error loading projects:', error);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -407,22 +419,50 @@ export default function Projects() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <Navbar />
-      <div className="container mx-auto px-6 py-10 max-w-6xl">
-        <header className="flex justify-between items-center mb-12">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Projects</h1>
-            <p className="text-[#4b5563] mt-2 text-sm">Manage your product documentation workflow</p>
+            <h1 className="text-3xl font-bold text-[#111827]">Projects</h1>
+            <p className="text-[#6b7280] mt-2">Manage your product development projects</p>
           </div>
-          <Link
-            href="/project/new"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-medium hover:bg-[#f0f2f5] transition-colors border border-[#0F533A] text-[#0F533A] bg-white"
-          >
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            New Project
-          </Link>
-        </header>
+          
+          <div className="flex items-center space-x-2">
+            {limitStatus && projects.length > 0 && (
+              <div className="mr-4 text-right">
+                <p className="text-sm text-[#6b7280]">
+                  {limitStatus.currentProjects} of {limitStatus.maxProjects} projects used
+                </p>
+                {!limitStatus.canCreateProject && (
+                  <Link href="/upgrade" className="text-sm text-[#0F533A] hover:underline">
+                    Upgrade for more
+                  </Link>
+                )}
+              </div>
+            )}
+            
+            {projects.length > 0 && (
+              <Link 
+                href="/project/new" 
+                className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium ${
+                  limitStatus && !limitStatus.canCreateProject
+                    ? 'bg-[#0F533A]/60 text-white cursor-not-allowed'
+                    : 'bg-[#0F533A] text-white hover:bg-[#0F533A]/90 transition-colors'
+                }`}
+                onClick={(e) => {
+                  if (limitStatus && !limitStatus.canCreateProject) {
+                    e.preventDefault();
+                    router.push('/upgrade');
+                  }
+                }}
+              >
+                <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                New Project
+              </Link>
+            )}
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
