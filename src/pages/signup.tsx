@@ -88,7 +88,7 @@ const Signup = () => {
                 Join <span className="animated-gradient-text text-4xl">021</span>
               </h2>
               <p className="text-base md:text-lg text-gray-600 mt-2 max-w-md mx-auto">
-                Create your account to start building your products
+                Create your account to build your new product
               </p>
             </div>
           </div>

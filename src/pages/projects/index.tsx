@@ -64,6 +64,120 @@ const COLORS = {
   }
 };
 
+// Function to generate markdown content for project documentation
+const generateProjectMarkdown = (project: Project, brief: Brief, prd: PRD) => {
+  let markdown = `# ${project.name}\n\n`;
+  
+  if (project.description) {
+    markdown += `${project.description}\n\n`;
+  }
+  
+  // Add Brief section
+  markdown += `## Brief\n\n`;
+  
+  if (brief.brief_data) {
+    if (brief.brief_data.problemStatement) {
+      markdown += `### Problem Statement\n${brief.brief_data.problemStatement}\n\n`;
+    }
+    
+    if (brief.brief_data.targetUsers) {
+      markdown += `### Target Users\n${brief.brief_data.targetUsers}\n\n`;
+    }
+    
+    if (brief.brief_data.productObjectives) {
+      markdown += `### Product Objectives\n${brief.brief_data.productObjectives}\n\n`;
+    }
+  }
+  
+  // Add PRD section
+  markdown += `## Product Requirements\n\n`;
+  
+  if (prd.content && prd.content.sections) {
+    prd.content.sections.forEach(section => {
+      markdown += `### ${section.featureName}\n\n`;
+      
+      markdown += `**Priority**: ${section.featurePriority}\n\n`;
+      
+      if (section.overview) {
+        markdown += `#### Overview\n`;
+        markdown += `${section.overview.purpose}\n\n`;
+        
+        if (section.overview.successMetrics && section.overview.successMetrics.length) {
+          markdown += `**Success Metrics**:\n`;
+          section.overview.successMetrics.forEach(metric => {
+            markdown += `- ${metric}\n`;
+          });
+          markdown += '\n';
+        }
+      }
+      
+      if (section.userStories && section.userStories.length) {
+        markdown += `#### User Stories\n`;
+        section.userStories.forEach(story => {
+          markdown += `- ${story}\n`;
+        });
+        markdown += '\n';
+      }
+    });
+  }
+  
+  // Add Technical Documentation section if available
+  const techDoc = techDocStore.getTechDocByPrdId(prd.id);
+  if (techDoc) {
+    markdown += `## Technical Documentation\n\n`;
+    
+    if (techDoc.content && techDoc.content.platform) {
+      markdown += `### Platform\n`;
+      if (techDoc.content.platform.targets && techDoc.content.platform.targets.length) {
+        markdown += `**Targets**:\n`;
+        techDoc.content.platform.targets.forEach((target: string) => {
+          markdown += `- ${target}\n`;
+        });
+        markdown += '\n';
+      }
+      if (techDoc.content.platform.requirements && techDoc.content.platform.requirements.length) {
+        markdown += `**Requirements**:\n`;
+        techDoc.content.platform.requirements.forEach((req: string) => {
+          markdown += `- ${req}\n`;
+        });
+        markdown += '\n';
+      }
+    }
+    
+    if (techDoc.content && techDoc.content.frontend) {
+      markdown += `### Frontend\n`;
+      markdown += JSON.stringify(techDoc.content.frontend, null, 2);
+      markdown += '\n\n';
+    }
+    
+    if (techDoc.content && techDoc.content.backend) {
+      markdown += `### Backend\n`;
+      markdown += JSON.stringify(techDoc.content.backend, null, 2);
+      markdown += '\n\n';
+    }
+    
+    if (techDoc.content && techDoc.content.api) {
+      markdown += `### API\n`;
+      markdown += JSON.stringify(techDoc.content.api, null, 2);
+      markdown += '\n\n';
+    }
+    
+    if (techDoc.content && techDoc.content.database) {
+      markdown += `### Database\n`;
+      markdown += JSON.stringify(techDoc.content.database, null, 2);
+      markdown += '\n\n';
+    }
+    
+    if (techDoc.content && techDoc.content.deployment) {
+      markdown += `### Deployment\n`;
+      markdown += JSON.stringify(techDoc.content.deployment, null, 2);
+      markdown += '\n\n';
+    }
+  }
+  
+  return markdown;
+};
+
 export default function Projects() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
@@ -377,6 +491,106 @@ export default function Projects() {
                         </div>
                       </div>
                       <div className="flex space-x-3 sm:self-start">
+                        {/* Download Documentation Button - Only show when project is complete */}
+                        {nextStage === 5 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              
+                              // Use an IIFE to handle the async operation
+                              (async () => {
+                                try {
+                                  // Find a PRD associated with any brief in this project
+                                  const brief = briefs[0];
+                                  if (brief) {
+                                    // Try to find a PRD for this brief
+                                    const prds = await prdService.getPRDsByBriefId(brief.id);
+                                    if (prds && prds.length > 0) {
+                                      // First check if tech doc exists in Supabase
+                                      const techDoc = await techDocService.getTechDocByPrdId(prds[0].id);
+                                      if (techDoc) {
+                                        console.log(`Found tech doc for PRD ${prds[0].id} in Supabase`);
+                                        // Generate markdown content
+                                        const markdown = generateProjectMarkdown(project, brief, prds[0]);
+                                        
+                                        // Download the markdown file
+                                        const blob = new Blob([markdown], { type: 'text/markdown' });
+                                        const url = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}-documentation.md`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        window.URL.revokeObjectURL(url);
+                                        document.body.removeChild(a);
+                                        return;
+                                      }
+                                      
+                                      // Fallback to local storage
+                                      const localTechDoc = techDocStore.getTechDocByPrdId(prds[0].id);
+                                      if (localTechDoc) {
+                                        console.log(`Found tech doc for PRD ${prds[0].id} in local storage`);
+                                        // Generate markdown content
+                                        const markdown = generateProjectMarkdown(project, brief, prds[0]);
+                                        
+                                        // Download the markdown file
+                                        const blob = new Blob([markdown], { type: 'text/markdown' });
+                                        const url = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}-documentation.md`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        window.URL.revokeObjectURL(url);
+                                        document.body.removeChild(a);
+                                        return;
+                                      }
+                                      
+                                      console.error('No tech doc found for PRD:', prds[0].id);
+                                    } else {
+                                      // Fallback to local store if not found in Supabase
+                                      const localPrd = prdStore.getPRDByBriefId(brief.id);
+                                      if (localPrd) {
+                                        // Check if tech doc exists in local storage
+                                        const localTechDoc = techDocStore.getTechDocByPrdId(localPrd.id);
+                                        if (localTechDoc) {
+                                          console.log(`Found tech doc for local PRD ${localPrd.id}`);
+                                          // Generate markdown content
+                                          const markdown = generateProjectMarkdown(project, brief, localPrd);
+                                          
+                                          // Download the markdown file
+                                          const blob = new Blob([markdown], { type: 'text/markdown' });
+                                          const url = window.URL.createObjectURL(blob);
+                                          const a = document.createElement('a');
+                                          a.href = url;
+                                          a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}-documentation.md`;
+                                          document.body.appendChild(a);
+                                          a.click();
+                                          window.URL.revokeObjectURL(url);
+                                          document.body.removeChild(a);
+                                          return;
+                                        }
+                                        
+                                        console.error('No tech doc found for local PRD:', localPrd.id);
+                                      }
+                                    }
+                                  }
+                                  
+                                  console.error('No tech doc found for this project');
+                                } catch (error) {
+                                  console.error('Error downloading documentation:', error);
+                                }
+                              })();
+                            }}
+                            className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                          >
+                            Download Documentation
+                            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M8 21H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                        )}
                         {briefs.length > 0 && (
                           <button
                             onClick={(e) => {

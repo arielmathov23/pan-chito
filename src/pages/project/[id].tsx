@@ -671,25 +671,22 @@ export default function ProjectDetail() {
           {/* Briefs section */}
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8 mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h2 className="text-xl font-semibold text-[#111827]">Product Brief</h2>
-              {briefs.length === 0 && (
-                <Link
-                  href={`/brief/new?projectId=${project.id}`}
-                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M12 16V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Create Brief
-                </Link>
-              )}
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full ${
+                  briefs.length > 0 ? 'bg-[#10b981]' : 'bg-[#0F533A]'
+                } mr-2`}></div>
+                <h2 className="text-xl font-semibold text-[#111827]">Product Brief</h2>
+              </div>
+              <div className={`${
+                briefs.length > 0 ? 'bg-[#e6f0eb] text-[#0F533A]' : 'bg-[#e6f0eb] text-[#0F533A]'
+              } px-3 py-1 rounded-full text-xs font-medium`}>
+                {briefs.length > 0 ? 'Completed' : 'Active'}
+              </div>
             </div>
             
             <div className="mt-4">
               {briefs.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
                   <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-8 h-8 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -698,8 +695,8 @@ export default function ProjectDetail() {
                       <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-[#111827] mb-1">No brief yet</h3>
-                  <p className="text-[#6b7280] mb-6">Create a brief to get started with your product</p>
+                  <h3 className="text-lg font-medium text-[#111827] mb-2">No brief yet</h3>
+                  <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Create a brief to get started with your product</p>
                   
                   <Link
                     href={`/brief/new?projectId=${project.id}`}
@@ -714,32 +711,20 @@ export default function ProjectDetail() {
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {briefs.map((brief) => (
-                    <div key={brief.id} className="relative group">
-                      <Link href={`/brief/${brief.id}`} className="block">
-                        <div className="bg-white rounded-xl border border-[#e5e7eb] p-6 hover:shadow-md transition-all cursor-pointer group-hover:border-[#0F533A]/30">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-lg font-medium text-[#111827] group-hover:text-[#0F533A] transition-colors">
-                                {brief.product_name}
-                              </h3>
-                              <p className="text-sm text-[#6b7280] mt-1">
-                                Created {new Date(brief.created_at).toLocaleDateString()}
-                              </p>
-                              <div className="mt-3 text-sm text-[#4b5563] line-clamp-2">
-                                {brief.brief_data.executiveSummary}
-                              </div>
-                            </div>
-                            <div className="bg-[#e6f0eb] text-[#0F533A] text-xs px-2.5 py-1 rounded-full font-medium mr-8">
-                              Completed
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
+                <div className="bg-[#f8f9fa] rounded-lg p-8">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#111827] mb-2">
+                        Brief Created
+                      </h3>
+                      <p className="text-[#6b7280]">
+                        Your product brief is ready for feature ideation
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleDeleteBrief(brief.id)}
-                        className="absolute top-4 right-4 text-[#6b7280] hover:text-red-500 transition-colors p-1.5 rounded-md hover:bg-[#f0f2f5] opacity-0 group-hover:opacity-100 z-10"
+                        onClick={() => handleDeleteBrief(briefs[0].id)}
+                        className="text-[#6b7280] hover:text-red-500 transition-colors p-1.5 rounded-md hover:bg-[#f0f2f5]"
                         aria-label="Delete brief"
                       >
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -750,8 +735,17 @@ export default function ProjectDetail() {
                           <path d="M9.5 12.5H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </button>
+                      <Link
+                        href={`/brief/${briefs[0].id}`}
+                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                      >
+                        View Brief
+                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </Link>
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
             </div>

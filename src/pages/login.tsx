@@ -70,7 +70,7 @@ const Login = () => {
             </div>
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-                Welcome to <span className="animated-gradient-text text-4xl">021</span>
+                Welcome again to <span className="animated-gradient-text text-4xl">021</span>
               </h2>
               <p className="text-base md:text-lg text-gray-600 mt-2 max-w-md mx-auto">
                 Sign in to continue building the future

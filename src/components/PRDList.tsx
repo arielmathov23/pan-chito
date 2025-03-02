@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { PRD } from '../services/prdService';
+import Modal from './Modal';
 
 interface PRDListProps {
   prds: PRD[];
@@ -10,10 +11,25 @@ interface PRDListProps {
 }
 
 export default function PRDList({ prds, onDelete, projectId }: PRDListProps) {
-  const handleDelete = (id: string, title: string) => {
-    if (onDelete && window.confirm(`Are you sure you want to delete the PRD "${title}"?\n\nThis action cannot be undone.`)) {
-      onDelete(id);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [prdToDelete, setPrdToDelete] = useState<{ id: string, title: string } | null>(null);
+
+  const handleDeleteClick = (id: string, title: string) => {
+    setPrdToDelete({ id, title });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (onDelete && prdToDelete) {
+      onDelete(prdToDelete.id);
     }
+    setShowDeleteModal(false);
+    setPrdToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setPrdToDelete(null);
   };
 
   return (
@@ -76,7 +92,7 @@ export default function PRDList({ prds, onDelete, projectId }: PRDListProps) {
                 {onDelete && (
                   <div className="ml-4">
                     <button
-                      onClick={() => handleDelete(prd.id, prd.title)}
+                      onClick={() => handleDeleteClick(prd.id, prd.title)}
                       className="p-2 text-[#6b7280] hover:text-[#ef4444] transition-colors duration-150 rounded-full hover:bg-[#f0f2f5]"
                       aria-label="Delete PRD"
                     >
@@ -94,6 +110,37 @@ export default function PRDList({ prds, onDelete, projectId }: PRDListProps) {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && prdToDelete && (
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={cancelDelete}
+          title="Delete PRD"
+        >
+          <div className="p-6">
+            <p className="mb-6 text-[#4b5563]">
+              Are you sure you want to delete the PRD "{prdToDelete.title}"?
+              <br />
+              <span className="text-[#ef4444] font-medium">This action cannot be undone.</span>
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 text-sm font-medium text-[#6b7280] bg-white border border-[#d1d5db] rounded-md hover:bg-[#f9fafb]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-[#ef4444] rounded-md hover:bg-[#dc2626]"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -204,58 +204,89 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
     } else if (section === 'tech-stack') {
       // Get the raw content from techDoc
       let content = techDoc.techStack || '';
+      let parsedContent: Record<string, any> = {};
       
-      // If it's not valid JSON or empty, create a template
       try {
-        JSON.parse(content);
+        // Try to parse the existing content
+        parsedContent = JSON.parse(content);
+        console.log("Successfully parsed tech stack content:", Object.keys(parsedContent));
       } catch (e) {
-        if (!content || content.trim() === '') {
-          content = JSON.stringify({
-            overview: "Brief overview of the technology stack including what type of platform this is (mobile app, web app, SaaS, desktop application, etc.) and the overall architecture approach",
-            frontend: "Frontend technologies with justification",
-            backend: "Backend technologies with justification",
-            database: "Database recommendations with justification",
-            deployment: "Deployment and hosting recommendations",
-            thirdPartyServices: "Any third-party services or APIs needed"
-          }, null, 2);
-        }
+        console.log("Could not parse tech stack as JSON, using empty template");
+        // If it's not valid JSON or empty, create a template
+        parsedContent = {
+          overview: "",
+          frontend: "",
+          backend: "",
+          database: "",
+          deployment: "",
+          thirdPartyServices: ""
+        };
       }
-      setEditedContent(content);
+      
+      // If we have parsed content from the techDoc, use it
+      if (parsedContent && typeof parsedContent === 'object' && 'techStack' in parsedContent) {
+        // This is the full documentation object
+        parsedContent = parsedContent.techStack;
+      }
+      
+      setEditedContent(JSON.stringify(parsedContent, null, 2));
     } else if (section === 'frontend') {
       let content = techDoc.frontend || '';
+      let parsedContent: Record<string, any> = {};
+      
       try {
-        JSON.parse(content);
+        // Try to parse the existing content
+        parsedContent = JSON.parse(content);
+        console.log("Successfully parsed frontend content:", Object.keys(parsedContent));
       } catch (e) {
-        if (!content || content.trim() === '') {
-          content = JSON.stringify({
-            overview: "Brief overview of the frontend guidelines",
-            colorPalette: "Recommended color palette with hex codes (e.g. #0F533A, #8b5cf6)",
-            typography: "Typography recommendations including font families and sizes",
-            componentStructure: "How components should be organized and structured",
-            responsiveDesign: "Guidelines for ensuring the application works across devices",
-            accessibilityConsiderations: "Key accessibility requirements to implement",
-            uiReferences: "References to similar UIs or design systems for inspiration"
-          }, null, 2);
-        }
+        console.log("Could not parse frontend as JSON, using empty template");
+        // If it's not valid JSON or empty, create a template
+        parsedContent = {
+          overview: "",
+          colorPalette: "",
+          typography: "",
+          componentStructure: "",
+          responsiveDesign: "",
+          accessibilityConsiderations: "",
+          uiReferences: ""
+        };
       }
-      setEditedContent(content);
+      
+      // If we have parsed content from the techDoc, use it
+      if (parsedContent && typeof parsedContent === 'object' && 'frontendGuidelines' in parsedContent) {
+        // This is the full documentation object
+        parsedContent = parsedContent.frontendGuidelines;
+      }
+      
+      setEditedContent(JSON.stringify(parsedContent, null, 2));
     } else if (section === 'backend') {
       let content = techDoc.backend || '';
+      let parsedContent: Record<string, any> = {};
+      
       try {
-        JSON.parse(content);
+        // Try to parse the existing content
+        parsedContent = JSON.parse(content);
+        console.log("Successfully parsed backend content:", Object.keys(parsedContent));
       } catch (e) {
-        if (!content || content.trim() === '') {
-          content = JSON.stringify({
-            overview: "Brief overview of the backend architecture",
-            apiRoutes: "Recommended API route structure",
-            databaseSchema: "High-level database schema design",
-            authentication: "Authentication and authorization approach",
-            integrations: "Details on external integrations or APIs",
-            dataProcessing: "How data should be processed and transformed"
-          }, null, 2);
-        }
+        console.log("Could not parse backend as JSON, using empty template");
+        // If it's not valid JSON or empty, create a template
+        parsedContent = {
+          overview: "",
+          apiRoutes: "",
+          databaseSchema: "",
+          authentication: "",
+          integrations: "",
+          dataProcessing: ""
+        };
       }
-      setEditedContent(content);
+      
+      // If we have parsed content from the techDoc, use it
+      if (parsedContent && typeof parsedContent === 'object' && 'backendStructure' in parsedContent) {
+        // This is the full documentation object
+        parsedContent = parsedContent.backendStructure;
+      }
+      
+      setEditedContent(JSON.stringify(parsedContent, null, 2));
     } else {
       // For subsections, ensure we're working with a proper JSON string
       try {
@@ -346,47 +377,10 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
   const handleCreateDocumentation = () => {
     console.log("Creating documentation for tab:", activeTab);
     
-    let initialContent = '';
-    
-    switch (activeTab) {
-      case 'tech-stack':
-        initialContent = techDoc.techStack && techDoc.techStack.trim() !== '' 
-          ? techDoc.techStack 
-          : JSON.stringify({
-              overview: "Provide an overview of the technology stack, including platform type (web app, mobile app, etc.)",
-              frontend: "Describe frontend technologies",
-              backend: "Describe backend technologies",
-              database: "Describe database technologies",
-              infrastructure: "Describe infrastructure and deployment"
-            }, null, 2);
-        break;
-      case 'frontend':
-        initialContent = techDoc.frontend && techDoc.frontend.trim() !== '' 
-          ? techDoc.frontend 
-          : JSON.stringify({
-              typography: "Describe typography guidelines",
-              colors: "Describe color palette",
-              components: "Describe key UI components",
-              responsive: "Describe responsive design approach"
-            }, null, 2);
-        break;
-      case 'backend':
-        initialContent = techDoc.backend && techDoc.backend.trim() !== '' 
-          ? techDoc.backend 
-          : JSON.stringify({
-              architecture: "Describe backend architecture",
-              api: "Describe API structure",
-              security: "Describe security measures",
-              performance: "Describe performance considerations"
-            }, null, 2);
-        break;
-    }
-    
-    console.log("Initial content set to:", initialContent.substring(0, 100) + "...");
-    
-    setEditedContent(initialContent);
-    setEditingSection(activeTab);
-    setIsEditing(true);
+    // Call handleEdit with the appropriate section
+    handleEdit(activeTab, activeTab === 'tech-stack' ? techDoc.techStack : 
+                          activeTab === 'frontend' ? techDoc.frontend : 
+                          activeTab === 'backend' ? techDoc.backend : null);
   };
 
   const renderEditableSection = (title: string, section: string, content: any) => (
@@ -801,30 +795,323 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
 
   const renderContent = () => {
     if (isEditing && editingSection) {
-      return (
-        <div className="mt-6">
-          <textarea
-            className="w-full h-[500px] p-4 border border-[#e5e7eb] rounded-lg font-mono text-sm"
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-          />
-          
-          <div className="flex justify-end mt-4 space-x-3">
-            <button
-              onClick={handleCancel}
-              className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#4b5563] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-            >
-              Save Changes
-            </button>
+      try {
+        const parsedContent = JSON.parse(editedContent);
+        
+        return (
+          <div className="mt-6 space-y-6">
+            <div className="flex items-center justify-between mb-4 bg-gray-50 p-3 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900">
+                Edit {editingSection.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+              </h3>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCancel}
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="inline-flex items-center px-3 py-1.5 bg-[#0F533A] rounded-md text-sm font-medium text-white hover:bg-[#0a3f2c]"
+                >
+                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save
+                </button>
+              </div>
+            </div>
+            
+            {editingSection === 'tech-stack' && (
+              <>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Overview</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.overview || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, overview: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Provide an overview of the tech stack"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Frontend</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.frontend || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, frontend: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the frontend technologies"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Backend</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.backend || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, backend: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the backend technologies"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Database</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.database || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, database: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the database technologies"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Deployment</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.deployment || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, deployment: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the deployment strategy"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Third-Party Services</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.thirdPartyServices || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, thirdPartyServices: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="List any third-party services or APIs"
+                  />
+                </div>
+              </>
+            )}
+            
+            {editingSection === 'frontend' && (
+              <>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Overview</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.overview || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, overview: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Provide an overview of the frontend guidelines"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Color Palette</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.colorPalette || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, colorPalette: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the color palette (e.g. #FFFFFF for white)"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Typography</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.typography || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, typography: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe typography choices"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Component Structure</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.componentStructure || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, componentStructure: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the component structure"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Responsive Design</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.responsiveDesign || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, responsiveDesign: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe responsive design approach"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Accessibility Considerations</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.accessibilityConsiderations || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, accessibilityConsiderations: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe accessibility considerations"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">UI References</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.uiReferences || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, uiReferences: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Provide UI references or inspiration"
+                  />
+                </div>
+              </>
+            )}
+            
+            {editingSection === 'backend' && (
+              <>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Overview</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.overview || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, overview: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Provide an overview of the backend structure"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">API Routes</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.apiRoutes || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, apiRoutes: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the API routes"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Database Schema</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.databaseSchema || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, databaseSchema: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the database schema"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Authentication</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.authentication || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, authentication: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe the authentication approach"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Integrations</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.integrations || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, integrations: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe any third-party integrations"
+                  />
+                </div>
+                <div className="space-y-2 bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700">Data Processing</label>
+                  <textarea
+                    className="w-full p-3 border border-[#e5e7eb] rounded-lg text-sm min-h-[100px] focus:ring-[#0F533A] focus:border-[#0F533A]"
+                    value={parsedContent.dataProcessing || ""}
+                    onChange={(e) => {
+                      const updatedContent = { ...parsedContent, dataProcessing: e.target.value };
+                      setEditedContent(JSON.stringify(updatedContent, null, 2));
+                    }}
+                    placeholder="Describe data processing workflows"
+                  />
+                </div>
+              </>
+            )}
           </div>
-        </div>
-      );
+        );
+      } catch (e) {
+        console.error(`Error parsing ${editingSection} content:`, e);
+        
+        // Fallback to the original textarea if parsing fails
+        return (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-4 bg-gray-50 p-3 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900">
+                Edit {editingSection.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+              </h3>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCancel}
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="inline-flex items-center px-3 py-1.5 bg-[#0F533A] rounded-md text-sm font-medium text-white hover:bg-[#0a3f2c]"
+                >
+                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save
+                </button>
+              </div>
+            </div>
+            <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+              <p>Error parsing content for {editingSection}. Showing raw editor instead.</p>
+            </div>
+            <textarea
+              className="w-full h-[500px] p-4 border border-[#e5e7eb] rounded-lg font-mono text-sm"
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+            />
+          </div>
+        );
+      }
     }
     
     // Check if all content is empty
@@ -873,37 +1160,19 @@ export default function TechDocViewer({ techDoc, onUpdate }: TechDocViewerProps)
         </div>
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => {
-              if (isEditing) {
-                setIsEditing(false);
-                setEditingSection(null);
-              } else {
-                handleCreateDocumentation();
-              }
-            }}
-            className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#4b5563] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-          >
-            {isEditing ? (
-              <>
-                <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9.17 14.83L14.83 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M14.83 14.83L9.17 9.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Cancel Editing
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Edit Documentation
-              </>
-            )}
-          </button>
+          {!isEditing && (
+            <button
+              onClick={handleCreateDocumentation}
+              className="inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#4b5563] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+            >
+              <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Edit Documentation
+            </button>
+          )}
         </div>
       </div>
       
