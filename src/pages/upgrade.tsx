@@ -15,7 +15,7 @@ export default function Upgrade() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(true); // Changed to true to show immediately
+  const [showModal, setShowModal] = useState(false); // Changed to false to not show immediately
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -25,6 +25,10 @@ export default function Upgrade() {
 
   const handleCloseModal = () => {
     setShowModal(false);
+  };
+
+  const handleUpgradeClick = () => {
+    setShowModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -241,7 +245,7 @@ export default function Upgrade() {
 
               <div className="text-center">
                 <button
-                  onClick={() => setShowModal(true)}
+                  onClick={handleUpgradeClick}
                   className="inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0F533A]/90 transition-colors w-full"
                 >
                   Upgrade
