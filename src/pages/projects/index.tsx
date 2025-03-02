@@ -93,21 +93,14 @@ export default function Projects() {
       
       if (!hasScreens) return 3; // Has PRD, next is screens
       
-      // For now, we'll stop at screens stage since tech docs 
-      // haven't been migrated to Supabase yet
-      return 4; // Has screens, next is tech docs
-      
-      // TODO: Update tech docs check when migrated to Supabase
-      /*
       // Check if tech docs exist for any PRD
       const hasTechDocs = prds.some(prd => {
-        return techDocStore.getTechDocByPrdId(prd.id);
+        return techDocStore.getTechDoc(prd.id);
       });
       
       if (!hasTechDocs) return 4; // Has screens, next is tech docs
       
       return 5; // Has tech docs, all stages completed
-      */
     } catch (error) {
       console.error('Error checking for screens:', error);
       return 3; // Default to PRD stage if there's an error
@@ -459,6 +452,54 @@ export default function Projects() {
                             </svg>
                           </button>
                         )}
+                        {/* Add Tech Docs Link */}
+                        {nextStage > 4 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              
+                              // Use an IIFE to handle the async operation
+                              (async () => {
+                                // Find a PRD associated with any brief in this project
+                                const brief = briefs[0];
+                                if (brief) {
+                                  try {
+                                    // Try to find a PRD for this brief
+                                    const prds = await prdService.getPRDsByBriefId(brief.id);
+                                    if (prds && prds.length > 0) {
+                                      console.log(`Found PRD with ID ${prds[0].id} for brief ${brief.id}`);
+                                      router.push(`/docs/${prds[0].id}`);
+                                      return;
+                                    }
+                                    
+                                    // Fallback to local store if not found in Supabase
+                                    const localPrd = prdStore.getPRDByBriefId(brief.id);
+                                    if (localPrd) {
+                                      console.log(`Found local PRD with ID ${localPrd.id} for brief ${brief.id}`);
+                                      router.push(`/docs/${localPrd.id}`);
+                                      return;
+                                    }
+                                  } catch (error) {
+                                    console.error('Error finding PRD for Tech Docs:', error);
+                                  }
+                                }
+                                console.error('No PRD found for any brief in this project');
+                                router.push(`/project/${project.id}`);
+                              })();
+                            }}
+                            className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            style={{ 
+                              borderColor: COLORS.docs.border,
+                              color: COLORS.docs.primary,
+                              backgroundColor: COLORS.docs.light
+                            }}
+                          >
+                            View Tech Docs
+                            <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -580,7 +621,34 @@ export default function Projects() {
                                     url = `/project/${project.id}`;
                                   }
                                 } else if (nextStage === 4) {
-                                  url = `/docs/${briefs[0].id}`;
+                                  // Find a PRD associated with any brief in this project
+                                  const brief = briefs[0];
+                                  if (brief) {
+                                    try {
+                                      // Try to find a PRD for this brief
+                                      const prds = await prdService.getPRDsByBriefId(brief.id);
+                                      if (prds && prds.length > 0) {
+                                        console.log(`Found PRD with ID ${prds[0].id} for brief ${brief.id}`);
+                                        url = `/docs/${prds[0].id}`;
+                                      } else {
+                                        // Fallback to local store if not found in Supabase
+                                        const localPrd = prdStore.getPRDByBriefId(brief.id);
+                                        if (localPrd) {
+                                          console.log(`Found local PRD with ID ${localPrd.id} for brief ${brief.id}`);
+                                          url = `/docs/${localPrd.id}`;
+                                        } else {
+                                          console.error('No PRD found for any brief in this project');
+                                          url = `/project/${project.id}`;
+                                        }
+                                      }
+                                    } catch (error) {
+                                      console.error('Error finding PRD for Tech Docs:', error);
+                                      url = `/project/${project.id}`;
+                                    }
+                                  } else {
+                                    console.error('No brief found for this project');
+                                    url = `/project/${project.id}`;
+                                  }
                                 } else {
                                   url = `/project/${project.id}`;
                                 }

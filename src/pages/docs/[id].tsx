@@ -11,6 +11,19 @@ import { generateTechDocumentation, parseTechDoc } from '../../utils/techDocGene
 import MockNotification from '../../components/MockNotification';
 import { isMockData } from '../../utils/mockDetector';
 import Modal from '../../components/Modal';
+import { prdService } from '../../services/prdService';
+import { briefService } from '../../services/briefService';
+import { projectService } from '../../services/projectService';
+
+// Create a simple logger function since the actual logger module might not exist
+const logger = {
+  log: (message: string, data?: any) => {
+    console.log(message, data);
+  },
+  error: (message: string, error?: any) => {
+    console.error(message, error);
+  }
+};
 
 export default function TechDocPage() {
   const router = useRouter();
@@ -26,49 +39,229 @@ export default function TechDocPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
-    setUsingMockData(isMockData());
-    
-    if (id) {
-      // First, try to find a PRD with this ID
-      const foundPRD = prdStore.getPRD(id as string);
-      
-      if (foundPRD) {
-        // If we found a PRD, use it
-        setPRD(foundPRD);
-        const foundBrief = briefStore.getBrief(foundPRD.briefId);
-        setBrief(foundBrief);
+    async function loadData() {
+      if (id) {
+        setIsLoading(true);
+        logger.log('Loading data for ID:', id);
         
-        if (foundBrief) {
-          const foundProject = projectStore.getProject(foundBrief.projectId);
-          setProject(foundProject);
+        try {
+          // First, try to get the PRD from Supabase
+          const supabasePRD = await prdService.getPRDById(id as string);
           
-          // Check if tech doc exists for this PRD
-          const existingTechDoc = techDocStore.getTechDocByPrdId(foundPRD.id);
-          setTechDoc(existingTechDoc);
-        }
-      } else {
-        // If no PRD found, check if this is a brief ID
-        const foundBrief = briefStore.getBrief(id as string);
-        setBrief(foundBrief);
-        
-        if (foundBrief) {
-          const foundProject = projectStore.getProject(foundBrief.projectId);
-          setProject(foundProject);
-          
-          // Check if a PRD exists for this brief
-          const existingPRD = prdStore.getPRDByBriefId(foundBrief.id);
-          if (existingPRD) {
-            setPRD(existingPRD);
+          if (supabasePRD) {
+            logger.log('Found PRD in Supabase:', supabasePRD);
+            setPRD(supabasePRD);
             
-            // Check if tech doc exists for this PRD
-            const existingTechDoc = techDocStore.getTechDocByPrdId(existingPRD.id);
-            setTechDoc(existingTechDoc);
+            // Try to get the brief from local storage first
+            let foundBrief = briefStore.getBrief(supabasePRD.briefId);
+            
+            // If not in local storage, try to get it from Supabase
+            if (!foundBrief && supabasePRD.briefId) {
+              try {
+                logger.log('Brief not found in local storage, checking Supabase');
+                const supabaseBrief = await briefService.getBriefById(supabasePRD.briefId);
+                
+                if (supabaseBrief) {
+                  logger.log('Found brief in Supabase:', supabaseBrief);
+                  
+                  // Create a brief object compatible with the local format
+                  foundBrief = {
+                    id: supabaseBrief.id,
+                    projectId: supabaseBrief.project_id,
+                    productName: supabaseBrief.product_name || '',
+                    problemStatement: '',
+                    targetUsers: '',
+                    proposedSolution: '',
+                    productObjectives: '',
+                    content: JSON.stringify(supabaseBrief.brief_data || {}),
+                    briefData: supabaseBrief.brief_data || {},
+                    formData: supabaseBrief.form_data || {},
+                    createdAt: supabaseBrief.created_at,
+                    isEditing: false,
+                    showEditButtons: false
+                  } as Brief;
+                  
+                  // Save to local storage with the correct parameters
+                  if (foundBrief.projectId && foundBrief.formData && foundBrief.content) {
+                    briefStore.saveBrief(
+                      foundBrief.projectId,
+                      foundBrief.formData,
+                      foundBrief.content
+                    );
+                  }
+                } else {
+                  logger.error('Brief not found in Supabase for PRD:', supabasePRD.briefId);
+                }
+              } catch (error) {
+                logger.error('Error fetching brief from Supabase:', error);
+              }
+            }
+            
+            if (foundBrief) {
+              logger.log('Setting brief:', foundBrief);
+              setBrief(foundBrief);
+              
+              // Get the project from local storage first
+              let foundProject = projectStore.getProject(foundBrief.projectId);
+              
+              // If not found in local storage, try to get it from Supabase
+              if (!foundProject) {
+                try {
+                  logger.log('Project not found in local storage, checking Supabase for project ID:', foundBrief.projectId);
+                  const supabaseProject = await projectService.getProjectById(foundBrief.projectId);
+                  
+                  if (supabaseProject) {
+                    logger.log('Found project in Supabase:', supabaseProject);
+                    foundProject = supabaseProject;
+                    setProject(foundProject);
+                  } else {
+                    logger.error('Project not found in Supabase for brief:', foundBrief.projectId);
+                  }
+                } catch (error) {
+                  logger.error('Error fetching project from Supabase:', error);
+                }
+              } else {
+                setProject(foundProject);
+              }
+              
+              // Check for existing tech doc
+              const techDoc = techDocStore.getTechDoc(supabasePRD.id);
+              if (techDoc) {
+                setTechDoc(techDoc);
+              } else {
+                logger.log('No tech doc found, will need to generate one');
+              }
+            } else {
+              logger.error('No brief found for PRD:', supabasePRD.id);
+            }
+          } else {
+            // If PRD not found in Supabase, check if the ID is a brief ID
+            logger.log('PRD not found in Supabase, checking if ID is a brief ID');
+            
+            // Try to get the brief from local storage
+            const briefFromLocalStorage = briefStore.getBrief(id as string);
+            
+            if (briefFromLocalStorage) {
+              logger.log('Found brief in local storage:', briefFromLocalStorage);
+              setBrief(briefFromLocalStorage);
+              
+              // Try to find the PRD associated with this brief
+              const localPRD = prdStore.getPRDByBriefId(id as string);
+              if (localPRD) {
+                logger.log('Found PRD in local storage:', localPRD);
+                setPRD(localPRD);
+              } else {
+                logger.error('No PRD found for brief ID:', id);
+              }
+              
+              // Get the project from local storage first
+              let foundProject = projectStore.getProject(briefFromLocalStorage.projectId);
+              
+              // If not found in local storage, try to get it from Supabase
+              if (!foundProject) {
+                try {
+                  logger.log('Project not found in local storage, checking Supabase for project ID:', briefFromLocalStorage.projectId);
+                  const supabaseProject = await projectService.getProjectById(briefFromLocalStorage.projectId);
+                  
+                  if (supabaseProject) {
+                    logger.log('Found project in Supabase:', supabaseProject);
+                    foundProject = supabaseProject;
+                    setProject(foundProject);
+                  } else {
+                    logger.error('Project not found in Supabase for brief:', briefFromLocalStorage.projectId);
+                  }
+                } catch (error) {
+                  logger.error('Error fetching project from Supabase:', error);
+                }
+              } else {
+                setProject(foundProject);
+              }
+              
+              // Check for existing tech doc
+              if (localPRD) {
+                const techDoc = techDocStore.getTechDoc(localPRD.id);
+                if (techDoc) {
+                  setTechDoc(techDoc);
+                }
+              }
+            } else {
+              // Try to get the brief from Supabase
+              try {
+                const supabaseBrief = await briefService.getBriefById(id as string);
+                
+                if (supabaseBrief) {
+                  logger.log('Found brief in Supabase:', supabaseBrief);
+                  
+                  // Create a brief object compatible with the local format
+                  const foundBrief = {
+                    id: supabaseBrief.id,
+                    projectId: supabaseBrief.project_id,
+                    productName: supabaseBrief.product_name || '',
+                    problemStatement: '',
+                    targetUsers: '',
+                    proposedSolution: '',
+                    productObjectives: '',
+                    content: JSON.stringify(supabaseBrief.brief_data || {}),
+                    briefData: supabaseBrief.brief_data || {},
+                    formData: supabaseBrief.form_data || {},
+                    createdAt: supabaseBrief.created_at,
+                    isEditing: false,
+                    showEditButtons: false
+                  } as Brief;
+                  
+                  setBrief(foundBrief);
+                  
+                  // Save to local storage with the correct parameters
+                  if (foundBrief.projectId && foundBrief.formData && foundBrief.content) {
+                    briefStore.saveBrief(
+                      foundBrief.projectId,
+                      foundBrief.formData,
+                      foundBrief.content
+                    );
+                  }
+                  
+                  // Get the project from local storage first
+                  let foundProject = projectStore.getProject(foundBrief.projectId);
+                  
+                  // If not found in local storage, try to get it from Supabase
+                  if (!foundProject) {
+                    try {
+                      logger.log('Project not found in local storage, checking Supabase for project ID:', foundBrief.projectId);
+                      const supabaseProject = await projectService.getProjectById(foundBrief.projectId);
+                      
+                      if (supabaseProject) {
+                        logger.log('Found project in Supabase:', supabaseProject);
+                        foundProject = supabaseProject;
+                        setProject(foundProject);
+                      } else {
+                        logger.error('Project not found in Supabase for brief:', foundBrief.projectId);
+                      }
+                    } catch (error) {
+                      logger.error('Error fetching project from Supabase:', error);
+                    }
+                  } else {
+                    setProject(foundProject);
+                  }
+                } else {
+                  logger.error('Brief not found in Supabase for ID:', id);
+                  setError('Brief not found');
+                }
+              } catch (error) {
+                logger.error('Error fetching brief from Supabase:', error);
+                setError('Error fetching brief');
+              }
+            }
           }
+        } catch (error) {
+          logger.error('Error loading data:', error);
+          setError('Error loading data');
+        } finally {
+          setIsLoading(false);
         }
       }
-      
-      setIsLoading(false);
     }
+    
+    loadData();
   }, [id]);
 
   const handleGenerateTechDoc = async () => {
