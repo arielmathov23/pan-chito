@@ -47,6 +47,7 @@ export default function NewBrief() {
   const [error, setError] = useState<string | null>(null);
   const [currentFormData, setCurrentFormData] = useState<BriefFormData | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
+  const [currentBriefId, setCurrentBriefId] = useState<string | null>(null);
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -92,6 +93,31 @@ export default function NewBrief() {
       
       const briefContent = await generateBrief(formData);
       setGeneratedBrief(briefContent);
+      
+      // Save the brief immediately after generation
+      if (project && briefContent) {
+        try {
+          // Parse the brief to ensure it's valid
+          const parsedBrief = JSON.parse(briefContent) as GeneratedBrief;
+          
+          // Save to Supabase with default editing mode disabled
+          const savedBrief = await briefService.createBrief(
+            project.id, 
+            formData, 
+            briefContent,
+            false,
+            false
+          );
+          
+          console.log('Brief automatically saved with ID:', savedBrief.id);
+          
+          // We'll use this ID for navigation later
+          setCurrentBriefId(savedBrief.id);
+        } catch (saveError) {
+          console.error('Error auto-saving brief:', saveError);
+          // Don't show error to user, as they can still manually save
+        }
+      }
     } catch (error) {
       console.error('Error generating Brief:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate Brief. Please check your OpenAI API key.');
@@ -106,17 +132,22 @@ export default function NewBrief() {
     try {
       setIsSaving(true);
       
-      // Save the brief to Supabase
-      const savedBrief = await briefService.createBrief(
-        project.id, 
-        currentFormData, 
-        generatedBrief,
-        false,
-        false
-      );
-      
-      // Navigate to the ideation page
-      router.push(`/brief/${savedBrief.id}/ideate`);
+      if (currentBriefId) {
+        // Brief already exists, navigate to the ideation page
+        router.push(`/brief/${currentBriefId}/ideate`);
+      } else {
+        // Save the brief to Supabase (fallback if auto-save failed)
+        const savedBrief = await briefService.createBrief(
+          project.id, 
+          currentFormData, 
+          generatedBrief,
+          false,
+          false
+        );
+        
+        // Navigate to the ideation page
+        router.push(`/brief/${savedBrief.id}/ideate`);
+      }
     } catch (error) {
       console.error('Error saving brief:', error);
       setError('Failed to save brief. Please try again.');
@@ -131,17 +162,31 @@ export default function NewBrief() {
     try {
       setIsSaving(true);
       
-      // Save the brief to Supabase with editing mode enabled
-      const savedBrief = await briefService.createBrief(
-        project.id, 
-        currentFormData, 
-        generatedBrief,
-        true,
-        true
-      );
-      
-      // Navigate to the brief detail page
-      router.push(`/brief/${savedBrief.id}`);
+      if (currentBriefId) {
+        // Brief already exists, update it with editing mode enabled
+        const updatedBrief = await briefService.updateBrief(
+          currentBriefId,
+          // Make sure we're passing the parsed brief data object, not the string
+          typeof generatedBrief === 'string' ? JSON.parse(generatedBrief) : generatedBrief,
+          true,
+          true
+        );
+        
+        // Navigate to the brief detail page
+        router.push(`/brief/${currentBriefId}`);
+      } else {
+        // Save the brief to Supabase with editing mode enabled (fallback if auto-save failed)
+        const savedBrief = await briefService.createBrief(
+          project.id, 
+          currentFormData, 
+          generatedBrief,
+          true,
+          true
+        );
+        
+        // Navigate to the brief detail page
+        router.push(`/brief/${savedBrief.id}`);
+      }
     } catch (error) {
       console.error('Error saving brief for editing:', error);
       setError('Failed to save brief for editing. Please try again.');
@@ -227,7 +272,7 @@ export default function NewBrief() {
                   disabled={isSaving}
                   className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5] disabled:opacity-50"
                 >
-                  {isSaving ? 'Saving...' : 'Edit'}
+                  {isSaving ? 'Processing...' : 'Edit Brief'}
                 </button>
                 <button
                   onClick={handleSaveBrief}
@@ -240,9 +285,9 @@ export default function NewBrief() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Saving...
+                      Processing...
                     </>
-                  ) : 'Continue'}
+                  ) : 'Continue to Ideation'}
                 </button>
               </div>
             </div>
