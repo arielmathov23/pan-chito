@@ -13,6 +13,7 @@ import PRDViewer from '../../components/PRDViewer';
 import { techDocStore } from '../../utils/techDocStore';
 import isMockData from '../../utils/mockDetector';
 import { projectService } from '../../services/projectService';
+import { prdToMarkdown, downloadAsFile } from '../../utils/downloadUtils';
 
 // Helper function to safely render content that might be an object
 const safeRender = (content: any): string => {
@@ -392,6 +393,21 @@ export default function PRDPage() {
     setShowDeleteModal(false);
   };
 
+  // Add a function to handle downloading the PRD
+  const handleDownloadPRD = () => {
+    if (!prd) return;
+    
+    // Generate markdown content
+    const markdownContent = prdToMarkdown(prd);
+    
+    // Create a sanitized filename
+    const sanitizedName = prd.title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const filename = `prd-${sanitizedName}.md`;
+    
+    // Download the file
+    downloadAsFile(markdownContent, filename);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fa]">
@@ -520,6 +536,16 @@ export default function PRDPage() {
                     >
                       Continue
                     </Link>
+                    <button
+                      onClick={handleDownloadPRD}
+                      className="inline-flex items-center justify-center bg-white text-[#6b7280] hover:text-[#111827] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 15V3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Download
+                    </button>
                     <button
                       onClick={handleDeletePRD}
                       className="inline-flex items-center justify-center bg-white text-[#6b7280] hover:text-[#111827] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"

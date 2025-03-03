@@ -86,26 +86,51 @@ export default function ImplementationGuidePage() {
   }, [projectId]);
   
   const handleGenerateGuides = async () => {
-    if (!project || !brief || !prd || !techDoc || !projectId || typeof projectId !== 'string') return;
+    if (!project || !brief || !prd || !techDoc || !projectId || typeof projectId !== 'string') {
+      setError('Missing required data. Please ensure all project data is available.');
+      return;
+    }
     
     setGenerating(true);
+    setError(''); // Clear any previous errors
+    
     try {
       // Check if OpenAI API key is available
       const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
       const usingMock = !apiKey && typeof window !== 'undefined';
       
+      console.log('Generating implementation guides for project:', projectId);
+      
       // Generate the guides
-      const { implementationGuide: guide, implementationSteps: steps } = await generateImplementationGuides(project, brief, prd, techDoc);
+      let guide, steps;
+      try {
+        const result = await generateImplementationGuides(project, brief, prd, techDoc);
+        guide = result.implementationGuide;
+        steps = result.implementationSteps;
+        
+        if (!guide || !steps) {
+          throw new Error('Failed to generate implementation guides. The response was empty.');
+        }
+      } catch (genError) {
+        console.error('Error in guide generation step:', genError);
+        throw new Error(`Guide generation failed: ${genError instanceof Error ? genError.message : 'Unknown error'}`);
+      }
+      
+      console.log('Guides generated, saving to database...');
       
       // Save to Supabase
-      const savedGuide = await implementationGuideService.createOrUpdateGuide(
-        projectId,
-        guide,
-        steps,
-        usingMock
-      );
+      try {
+        const savedGuide = await implementationGuideService.createOrUpdateGuide(
+          projectId,
+          guide,
+          steps,
+          usingMock
+        );
 
-      if (savedGuide) {
+        if (!savedGuide) {
+          throw new Error('Failed to save implementation guides. The response was empty.');
+        }
+        
         setImplementationGuide(savedGuide.implementation_guide);
         setImplementationSteps(savedGuide.implementation_steps);
         setGuideGenerated(true);
@@ -121,12 +146,30 @@ export default function ImplementationGuidePage() {
         setTimeout(() => {
           setShowFeedbackModal(true);
         }, 10000);
-      } else {
-        throw new Error('Failed to save implementation guides');
+      } catch (saveError) {
+        console.error('Error saving guides to database:', saveError);
+        throw new Error(`Failed to save guides: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`);
       }
     } catch (err) {
-      console.error('Error generating implementation guides:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate implementation guides');
+      console.error('Error in handleGenerateGuides:', err);
+      
+      // Set a user-friendly error message
+      if (err instanceof Error) {
+        // Handle specific error cases
+        if (err.message.includes('API key')) {
+          setError('OpenAI API key is missing or invalid. Please configure your API key in the settings.');
+        } else if (err.message.includes('rate limit')) {
+          setError('OpenAI API rate limit exceeded. Please try again later.');
+        } else if (err.message.includes('User not authenticated')) {
+          setError('You need to be logged in to generate implementation guides. Please log in and try again.');
+        } else if (err.message.includes('Project not found')) {
+          setError('Project not found or you do not have access to it. Please check the project ID.');
+        } else {
+          setError(`Failed to generate implementation guides: ${err.message}`);
+        }
+      } else {
+        setError('An unexpected error occurred while generating implementation guides. Please try again later.');
+      }
     } finally {
       setGenerating(false);
     }

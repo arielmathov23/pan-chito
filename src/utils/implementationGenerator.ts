@@ -114,13 +114,31 @@ export async function generateImplementationGuides(
 ): Promise<ImplementationGuides> {
   // Use mock implementation if API key is missing
   if (USE_MOCK) {
+    console.log('Using mock implementation for implementation guides');
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     return generateMockImplementationGuides();
   }
 
   if (!apiKey) {
+    console.error('OpenAI API key is missing');
     throw new Error('OpenAI API key is missing. Please add OPENAI_API_KEY to your .env.local file.');
+  }
+
+  // Validate inputs
+  if (!project || !project.name) {
+    console.error('Invalid project data:', project);
+    throw new Error('Invalid project data. Project name is required.');
+  }
+
+  if (!prd || !prd.content) {
+    console.error('Invalid PRD data:', prd);
+    throw new Error('Invalid PRD data. PRD content is required.');
+  }
+
+  if (!techDoc) {
+    console.error('Invalid technical documentation:', techDoc);
+    throw new Error('Invalid technical documentation. Tech doc is required.');
   }
 
   const prompt = `You are an expert AI engineering assistant tasked with creating implementation guides for an AI coding assistant. Your goal is to create two distinct files that will help an AI generate code for this project:
@@ -149,14 +167,16 @@ PRD Content:
 ${JSON.stringify(prd.content, null, 2)}
 
 Technical Documentation:
-Tech Stack: ${techDoc.techStack}
-Frontend: ${techDoc.frontend}
-Backend: ${techDoc.backend}
-Content: ${JSON.stringify(techDoc.content, null, 2)}
+Tech Stack: ${techDoc.techStack || 'Not specified'}
+Frontend: ${techDoc.frontend || 'Not specified'}
+Backend: ${techDoc.backend || 'Not specified'}
+Content: ${JSON.stringify(techDoc.content || {}, null, 2)}
 
 Please provide your response as two separate text blocks, clearly labeled as "IMPLEMENTATION_GUIDE" and "IMPLEMENTATION_STEPS". Each should be formatted in markdown and be comprehensive enough to guide an AI agent through the entire implementation process.`;
 
   try {
+    console.log('Sending request to OpenAI API for implementation guides');
+    
     const completion = await openai.chat.completions.create({
       messages: [
         {
@@ -173,7 +193,13 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
       max_tokens: 4000
     });
 
+    if (!completion.choices || completion.choices.length === 0 || !completion.choices[0]?.message?.content) {
+      console.error('Empty or invalid response from OpenAI API:', completion);
+      throw new Error('Failed to generate implementation guides. Received empty response from OpenAI API.');
+    }
+
     const responseContent = completion.choices[0]?.message?.content || '';
+    console.log('Received response from OpenAI API, processing content');
     
     // Extract the two parts from the response
     const guidePart = responseContent.includes('IMPLEMENTATION_GUIDE') 
@@ -186,16 +212,27 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
     
     // If we couldn't extract both parts properly, use a different approach
     if (!guidePart || !stepsPart) {
+      console.warn('Could not extract guide and steps parts using markers, trying fallback approach');
       // Try to split the content in half as a fallback
       const contentParts = responseContent.split('\n\n');
       const midPoint = Math.floor(contentParts.length / 2);
       
+      const fallbackGuide = contentParts.slice(0, midPoint).join('\n\n');
+      const fallbackSteps = contentParts.slice(midPoint).join('\n\n');
+      
+      if (!fallbackGuide || !fallbackSteps) {
+        console.error('Failed to extract implementation guides from response:', responseContent);
+        throw new Error('Failed to parse implementation guides from OpenAI response.');
+      }
+      
+      console.log('Successfully extracted implementation guides using fallback approach');
       return {
-        implementationGuide: contentParts.slice(0, midPoint).join('\n\n'),
-        implementationSteps: contentParts.slice(midPoint).join('\n\n')
+        implementationGuide: fallbackGuide,
+        implementationSteps: fallbackSteps
       };
     }
     
+    console.log('Successfully extracted implementation guides using markers');
     return {
       implementationGuide: guidePart,
       implementationSteps: stepsPart
@@ -211,8 +248,12 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
         throw new Error('OpenAI API rate limit exceeded. Please try again later or use a different API key.');
       } else if (error.message.includes('401')) {
         throw new Error('OpenAI API authentication failed. Please check your API key.');
+      } else if (error.message.includes('500')) {
+        throw new Error('OpenAI API server error. Please try again later.');
+      } else if (error.message.includes('timeout')) {
+        throw new Error('OpenAI API request timed out. Please try again later.');
       } else {
-        throw error;
+        throw new Error(`Failed to generate implementation guides: ${error.message}`);
       }
     } else {
       throw new Error('Failed to generate implementation guides. Please check your OpenAI API key and try again.');

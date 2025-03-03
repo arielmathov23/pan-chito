@@ -48,41 +48,89 @@ export const projectLimitService = {
         .single();
       
       if (error) {
-        if (error.code === 'PGRST116') {
-          // No record found, create one with default limit
-          const defaultLimitResult = await supabase
-            .from('admin_settings')
-            .select('value')
-            .eq('key', 'default_project_limit')
-            .single();
-          
-          const defaultMaxProjects = defaultLimitResult.data?.value?.max_projects || 1;
-          
-          const newLimitResult = await supabase
-            .from('project_limits')
-            .insert({
-              user_id: userId,
-              max_projects: defaultMaxProjects
-            })
-            .select()
-            .single();
-          
-          if (newLimitResult.error) {
-            console.error('Error creating project limit:', newLimitResult.error);
-            return null;
-          }
-          
+        // If the table doesn't exist (42P01 error), return a default limit
+        if (error.code === '42P01') {
+          console.warn('project_limits table does not exist, using default limit');
           return {
-            id: newLimitResult.data.id,
-            userId: newLimitResult.data.user_id,
-            maxProjects: newLimitResult.data.max_projects,
-            createdAt: newLimitResult.data.created_at,
-            updatedAt: newLimitResult.data.updated_at
+            id: 'default',
+            userId: userId,
+            maxProjects: 5, // Default limit
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           };
         }
         
+        if (error.code === 'PGRST116') {
+          // No record found, try to create one with default limit
+          try {
+            const defaultLimitResult = await supabase
+              .from('admin_settings')
+              .select('value')
+              .eq('key', 'default_project_limit')
+              .single();
+            
+            const defaultMaxProjects = defaultLimitResult.data?.value?.max_projects || 1;
+            
+            const newLimitResult = await supabase
+              .from('project_limits')
+              .insert({
+                user_id: userId,
+                max_projects: defaultMaxProjects
+              })
+              .select()
+              .single();
+            
+            if (newLimitResult.error) {
+              // If insert fails, still return a default limit
+              if (newLimitResult.error.code === '42P01') {
+                console.warn('project_limits table does not exist, using default limit');
+                return {
+                  id: 'default',
+                  userId: userId,
+                  maxProjects: 5, // Default limit
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                };
+              }
+              
+              console.error('Error creating project limit:', newLimitResult.error);
+              return {
+                id: 'default',
+                userId: userId,
+                maxProjects: 5, // Default limit
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+            }
+            
+            return {
+              id: newLimitResult.data.id,
+              userId: newLimitResult.data.user_id,
+              maxProjects: newLimitResult.data.max_projects,
+              createdAt: newLimitResult.data.created_at,
+              updatedAt: newLimitResult.data.updated_at
+            };
+          } catch (innerError) {
+            console.error('Error handling default limit:', innerError);
+            return {
+              id: 'default',
+              userId: userId,
+              maxProjects: 5, // Default limit
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+          }
+        }
+        
         console.error('Error fetching project limit:', error);
-        return null;
+        // Return a default limit instead of null to prevent navigation issues
+        return {
+          id: 'default',
+          userId: userId,
+          maxProjects: 5, // Default limit
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
       }
 
       return {
@@ -94,7 +142,17 @@ export const projectLimitService = {
       };
     } catch (error) {
       console.error('Error in getUserProjectLimit:', error);
-      return null;
+      // Return a default limit instead of null
+      const user = supabase.auth.getUser();
+      const userId = (await user).data.user?.id || 'unknown';
+      
+      return {
+        id: 'default',
+        userId: userId,
+        maxProjects: 5, // Default limit
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
     }
   },
 
@@ -117,7 +175,7 @@ export const projectLimitService = {
 
       // Get user's project limit
       const limit = await this.getUserProjectLimit();
-      const maxProjects = limit?.maxProjects || 1;
+      const maxProjects = limit?.maxProjects || 5; // Default to 5 if no limit is found
 
       // Count user's active projects
       const { count, error } = await supabase
@@ -128,8 +186,18 @@ export const projectLimitService = {
       
       if (error) {
         console.error('Error counting projects:', error);
+        // If the table doesn't exist, assume 0 projects
+        if (error.code === '42P01') {
+          console.warn('projects table does not exist, assuming 0 projects');
+          return { 
+            canCreateProject: true,
+            currentProjects: 0,
+            maxProjects
+          };
+        }
+        
         return { 
-          canCreateProject: false,
+          canCreateProject: true, // Default to allowing project creation
           currentProjects: 0,
           maxProjects
         };
@@ -145,9 +213,9 @@ export const projectLimitService = {
     } catch (error) {
       console.error('Error in checkCanCreateProject:', error);
       return { 
-        canCreateProject: false,
+        canCreateProject: true, // Default to allowing project creation
         currentProjects: 0,
-        maxProjects: 1 
+        maxProjects: 5 
       };
     }
   },

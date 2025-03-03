@@ -408,7 +408,7 @@ export default function TechDocPage() {
               Projects
             </Link>
             <span>/</span>
-            <Link href={`/implementation/${project.id}`} className="hover:text-[#111827] transition-colors">
+            <Link href={`/project/${project.id}`} className="hover:text-[#111827] transition-colors">
               {project.name}
             </Link>
             <span>/</span>
