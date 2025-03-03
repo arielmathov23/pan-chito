@@ -491,26 +491,85 @@ export default function Projects() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0F533A]"></div>
           </div>
         ) : projects.length === 0 ? (
-          <div className="mt-16 bg-white rounded-2xl shadow-sm p-12 text-center">
-            <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-8">
-              <svg className="w-8 h-8 text-[#4b5563]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="mt-4 bg-white rounded-2xl shadow-sm p-6">
+            <div className="w-12 h-12 bg-[#0F533A]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-4">Start building your next great product</h2>
-            <p className="text-[#4b5563] mb-10 max-w-md mx-auto">Create comprehensive documentation that transforms your ideas into well-structured products. Plan smarter, build faster.</p>
-            <Link
-              href="/project/new"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-all duration-200 shadow-sm text-white bg-[#0F533A] group"
-            >
-              <svg className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Create your first project
-            </Link>
+            <h2 className="text-2xl font-bold text-[#111827] mb-2 text-center">Start building your next great product</h2>
+            <p className="text-[#6b7280] mb-6 max-w-xl mx-auto text-center">Transform your ideas into reality with our streamlined development process.</p>
+            
+            <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-6">
+              {/* Step 1 */}
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e5e7eb] hover:border-[#0F533A]/20 hover:shadow-md transition-all">
+                <div className="w-10 h-10 bg-[#0F533A]/10 rounded-full flex items-center justify-center mb-3 mx-auto">
+                  <svg className="w-5 h-5 text-[#0F533A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-[#111827] mb-1.5 text-center">From Idea to Product</h3>
+                <p className="text-[#6b7280] text-center text-sm">Define and shape your product vision. We'll help you transform your concept into a clear, actionable plan.</p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e5e7eb] hover:border-[#0F533A]/20 hover:shadow-md transition-all">
+                <div className="w-10 h-10 bg-[#0F533A]/10 rounded-full flex items-center justify-center mb-3 mx-auto">
+                  <svg className="w-5 h-5 text-[#0F533A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-[#111827] mb-1.5 text-center">Documentation</h3>
+                <p className="text-[#6b7280] text-center text-sm">Generate comprehensive documentation including PRDs, tech specs, and user stories automatically.</p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e5e7eb] hover:border-[#0F533A]/20 hover:shadow-md transition-all">
+                <div className="w-10 h-10 bg-[#0F533A]/10 rounded-full flex items-center justify-center mb-3 mx-auto">
+                  <svg className="w-5 h-5 text-[#0F533A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-[#111827] mb-1.5 text-center">Start Building</h3>
+                <p className="text-[#6b7280] text-center text-sm mb-3">Export your documentation and start building in your favorite development environment.</p>
+                
+                <div className="flex flex-col items-center space-y-3">
+                  {/* Development Environments */}
+                  <div className="flex items-center justify-center space-x-6">
+                    <div className="group flex flex-col items-center transition-all">
+                      <img src="/cursor.jpg" alt="Cursor" className="h-7 w-auto rounded-md opacity-90 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <div className="group flex flex-col items-center transition-all">
+                      <img src="/replit.png" alt="Replit" className="h-7 w-auto rounded-md opacity-90 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <div className="group flex flex-col items-center transition-all">
+                      <img src="/lovable.jpeg" alt="Lovable" className="h-7 w-auto rounded-md opacity-90 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                  
+                  {/* Trello Integration */}
+                  <div className="flex items-center space-x-2 text-[#6b7280] text-xs border-t border-[#e5e7eb] pt-2">
+                    <img src="/trello.png" alt="Trello" className="h-4 w-auto rounded opacity-60" />
+                    <span>Trello integration coming soon</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center mt-2">
+              <Link
+                href="/project/new"
+                className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-medium bg-[#0F533A] text-white hover:bg-[#0a3f2c] transition-all duration-200 shadow-sm group"
+              >
+                <svg className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Create your first project
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid gap-6 grid-cols-1">
