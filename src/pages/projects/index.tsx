@@ -16,6 +16,9 @@ import { techDocService } from '../../services/techDocService';
 import isMockData from '../../utils/mockDetector';
 import screenService from '../../services/screenService';
 import { projectLimitService } from '../../services/projectLimitService';
+import { implementationGuideService } from '../../services/implementationGuideService';
+import { useFeedbackModal } from '../../hooks/useFeedbackModal';
+import FeedbackModal from '../../components/FeedbackModal';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -192,6 +195,9 @@ export default function Projects() {
     currentProjects: number;
     maxProjects: number;
   } | null>(null);
+  const [projectsWithGuides, setProjectsWithGuides] = useState<string[]>([]);
+
+  const { showModal, closeModal } = useFeedbackModal(projectsWithGuides.length > 0);
 
   // Calculate project progress based on completed stages
   const calculateProjectProgress = async (
@@ -361,6 +367,22 @@ export default function Projects() {
       router.events.off('routeChangeComplete', loadProjects);
     };
   }, [router.events, user]);
+
+  useEffect(() => {
+    const fetchProjectsWithGuides = async () => {
+      if (!projects) return;
+      const guidesPromises = projects.map(project =>
+        implementationGuideService.getGuideByProjectId(project.id)
+      );
+      const guides = await Promise.all(guidesPromises);
+      const projectIds = guides
+        .map((guide, index) => guide ? projects[index].id : null)
+        .filter((id): id is string => id !== null);
+      setProjectsWithGuides(projectIds);
+    };
+    
+    fetchProjectsWithGuides();
+  }, [projects]);
 
   const getProjectStage = (project: Project, briefs: any[]) => {
     // Use the pre-calculated progress from state if available
@@ -888,6 +910,15 @@ export default function Projects() {
           </div>
         )}
       </div>
+      
+      {/* Add FeedbackModal */}
+      {projectsWithGuides.length > 0 && (
+        <FeedbackModal
+          isOpen={showModal}
+          onClose={closeModal}
+          projectId={projectsWithGuides[0]} // Use the first project with a guide
+        />
+      )}
     </div>
   );
 } 

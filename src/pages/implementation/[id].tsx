@@ -10,6 +10,7 @@ import { prdService } from '../../services/prdService';
 import { techDocService, TechDoc } from '../../services/techDocService';
 import { generateImplementationGuides, ImplementationGuides } from '../../utils/implementationGenerator';
 import { implementationGuideService } from '../../services/implementationGuideService';
+import FeedbackModal from '../../components/FeedbackModal';
 
 export default function ImplementationGuidePage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function ImplementationGuidePage() {
   const [implementationSteps, setImplementationSteps] = useState('');
   const [generating, setGenerating] = useState(false);
   const [guideGenerated, setGuideGenerated] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   
   useEffect(() => {
     if (!projectId || typeof projectId !== 'string') return;
@@ -114,6 +116,11 @@ export default function ImplementationGuidePage() {
         } else {
           setError('');
         }
+
+        // Show feedback modal after 10 seconds
+        setTimeout(() => {
+          setShowFeedbackModal(true);
+        }, 10000);
       } else {
         throw new Error('Failed to save implementation guides');
       }
@@ -408,6 +415,13 @@ export default function ImplementationGuidePage() {
           </div>
         )}
       </div>
+      
+      {/* Add the FeedbackModal component */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        projectId={projectId as string}
+      />
     </div>
   );
 } 

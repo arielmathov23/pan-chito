@@ -384,7 +384,7 @@ export default function Upgrade() {
                       </svg>
                       Submitting...
                     </>
-                  ) : 'Submit Feedback & Request Upgrade'}
+                  ) : 'Submit Feedback'}
                 </button>
                 
                 <button

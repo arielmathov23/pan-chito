@@ -12,6 +12,9 @@ import { FeatureSet, featureStore } from '../../utils/featureStore';
 import { useAuth } from '../../context/AuthContext';
 import { featureService } from '../../services/featureService';
 import { techDocService } from '../../services/techDocService';
+import { useFeedbackModal } from '../../hooks/useFeedbackModal';
+import FeedbackModal from '../../components/FeedbackModal';
+import { implementationGuideService } from '../../services/implementationGuideService';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -67,6 +70,7 @@ export default function ProjectDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasImplementationGuide, setHasImplementationGuide] = useState(false);
 
   const nextStepButtonText = !briefs.length ? 'Create Brief' : 
     featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
@@ -442,6 +446,18 @@ export default function ProjectDetail() {
       router.push(`/prd/new?projectId=${project?.id}`);
     }
   };
+
+  useEffect(() => {
+    const checkImplementationGuide = async () => {
+      if (!id || typeof id !== 'string') return;
+      const guide = await implementationGuideService.getGuideByProjectId(id);
+      setHasImplementationGuide(!!guide);
+    };
+    
+    checkImplementationGuide();
+  }, [id]);
+
+  const { showModal, closeModal } = useFeedbackModal(hasImplementationGuide);
 
   if (authLoading) {
     return (
@@ -1102,6 +1118,15 @@ export default function ProjectDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add FeedbackModal */}
+      {hasImplementationGuide && (
+        <FeedbackModal
+          isOpen={showModal}
+          onClose={closeModal}
+          projectId={id as string}
+        />
       )}
     </div>
   );
