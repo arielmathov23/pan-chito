@@ -999,31 +999,14 @@ export default function ProjectDetail() {
 
           {/* Technical Documentation Section */}
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex items-center">
-                <div className={`w-2 h-2 rounded-full ${
-                  briefs.some(brief => {
-                    const prd = prds.find(p => p.briefId === brief.id);
-                    return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                  }) ? 'bg-[#10b981]' : 
-                  prds.length > 0 ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
-                } mr-2`}></div>
-                <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
-              </div>
-              <div className={`${
-                !prds.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
-                briefs.some(brief => {
-                  const prd = prds.find(p => p.briefId === brief.id);
-                  return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
-                'bg-[#e6f0eb] text-[#0F533A]'
-              } px-3 py-1 rounded-full text-xs font-medium`}>
-                {!prds.length ? 'Locked' : 
-                 briefs.some(brief => {
-                   const prd = prds.find(p => p.briefId === brief.id);
-                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                 }) ? 'Completed' : 'Active'}
-              </div>
+            <div className="flex items-center mb-2">
+              <svg className="w-5 h-5 mr-2 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
             </div>
             
             {!prds.length ? (
@@ -1038,9 +1021,9 @@ export default function ProjectDetail() {
                   return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                 }) ? (
                   <div className="text-center">
-                    <h3 className="text-lg font-medium text-[#111827] mb-2">No Technical Documentation yet</h3>
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">Technical Documentation</h3>
                     <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
-                      Generate technical documentation based on your PRD to guide your development team
+                      Create technical documentation to guide your development team
                     </p>
                     <Link
                       href={`/docs/${(() => {
@@ -1049,29 +1032,29 @@ export default function ProjectDetail() {
                       })()}`}
                       className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                     >
-                      View Documentation
+                      Create Documentation
                       <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </Link>
                   </div>
                 ) : (
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-[#111827] mb-2">
-                        Technical Documentation Created
-                      </h3>
-                      <p className="text-[#6b7280]">
-                        Your technical documentation has been created and is ready for your development team
-                      </p>
-                    </div>
-                    <div className="flex space-x-3">
+                  <div>
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-[#111827] mb-2">
+                          Technical Documentation Created
+                        </h3>
+                        <p className="text-[#6b7280]">
+                          Your technical documentation has been generated and is ready to view
+                        </p>
+                      </div>
                       <Link
                         href={`/docs/${(() => {
                           const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
                           return brief ? prds.find(p => p.briefId === brief.id)?.id : '';
                         })()}`}
-                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                       >
                         View Documentation
                         <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

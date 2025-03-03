@@ -27,58 +27,28 @@ export const implementationGuideService = {
         throw new Error('User not authenticated');
       }
 
-      // First check if a guide exists for this project
-      const { data: existingGuide, error: fetchError } = await supabase
+      // Use upsert operation (insert if not exists, update if exists)
+      const { data, error } = await supabase
         .from('implementation_guides')
-        .select('*')
-        .eq('project_id', projectId)
+        .upsert({
+          project_id: projectId,
+          implementation_guide: guide,
+          implementation_steps: steps,
+          using_mock: usingMock,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'project_id'
+        })
+        .select()
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('Error checking for existing guide:', fetchError);
-        throw fetchError;
+      if (error) {
+        console.error('Error upserting guide:', error);
+        throw error;
       }
 
-      if (existingGuide) {
-        console.log('implementationGuideService: Updating existing guide');
-        const { data, error } = await supabase
-          .from('implementation_guides')
-          .update({
-            implementation_guide: guide,
-            implementation_steps: steps,
-            using_mock: usingMock,
-            updated_at: new Date().toISOString()
-          })
-          .eq('project_id', projectId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error updating guide:', error);
-          throw error;
-        }
-        console.log('implementationGuideService: Guide updated successfully');
-        return data;
-      } else {
-        console.log('implementationGuideService: Creating new guide');
-        const { data, error } = await supabase
-          .from('implementation_guides')
-          .insert({
-            project_id: projectId,
-            implementation_guide: guide,
-            implementation_steps: steps,
-            using_mock: usingMock
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating guide:', error);
-          throw error;
-        }
-        console.log('implementationGuideService: Guide created successfully');
-        return data;
-      }
+      console.log('implementationGuideService: Guide upserted successfully');
+      return data;
     } catch (error) {
       console.error('Error in createOrUpdateGuide:', error);
       throw error;

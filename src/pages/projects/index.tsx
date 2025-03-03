@@ -593,27 +593,28 @@ export default function Projects() {
                                 const brief = briefs[0];
                                 if (brief) {
                                   try {
-                                    // Try to find a PRD for this brief
+                                    // Try to find PRDs for this brief
                                     const prds = await prdService.getPRDsByBriefId(brief.id);
                                     if (prds && prds.length > 0) {
-                                      console.log(`Found PRD with ID ${prds[0].id} for brief ${brief.id}`);
-                                      router.push(`/screens/${prds[0].id}`);
+                                      // Get the most recently created PRD
+                                      const latestPrd = prds.sort((a, b) => 
+                                        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                                      )[0];
+                                      console.log(`Found latest PRD with ID ${latestPrd.id} for brief ${brief.id}`);
+                                      router.push(`/screens/${latestPrd.id}`);
                                       return;
                                     }
                                     
-                                    // Fallback to local store if not found in Supabase
-                                    const localPrd = prdStore.getPRDByBriefId(brief.id);
-                                    if (localPrd) {
-                                      console.log(`Found local PRD with ID ${localPrd.id} for brief ${brief.id}`);
-                                      router.push(`/screens/${localPrd.id}`);
-                                      return;
-                                    }
+                                    console.error('No PRDs found for brief:', brief.id);
+                                    router.push(`/project/${project.id}`);
                                   } catch (error) {
                                     console.error('Error finding PRD:', error);
+                                    router.push(`/project/${project.id}`);
                                   }
+                                } else {
+                                  console.error('No brief found for this project');
+                                  router.push(`/project/${project.id}`);
                                 }
-                                console.error('No PRD found for any brief in this project');
-                                router.push(`/implementation/${project.id}`);
                               })();
                             }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
