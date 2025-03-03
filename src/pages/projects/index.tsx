@@ -502,13 +502,7 @@ export default function Projects() {
                 <div
                   key={project.id}
                   className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
-                  onClick={() => {
-                    if (progress === 100) {
-                      router.push(`/implementation/${project.id}`);
-                    } else {
-                      router.push(`/project/${project.id}`);
-                    }
-                  }}
+                  onClick={() => router.push(`/project/${project.id}`)}
                 >
                   <div className="p-6 sm:p-8">
                     {/* Project Header Section */}
