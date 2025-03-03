@@ -9,6 +9,7 @@ import { Brief, briefService } from '../../services/briefService';
 import { prdService } from '../../services/prdService';
 import { techDocService, TechDoc } from '../../services/techDocService';
 import { generateImplementationGuides, ImplementationGuides } from '../../utils/implementationGenerator';
+import { implementationGuideService } from '../../services/implementationGuideService';
 
 export default function ImplementationGuidePage() {
   const router = useRouter();
@@ -59,16 +60,15 @@ export default function ImplementationGuidePage() {
         }
         setTechDoc(techDocData);
         
-        // Check if we have implementation guides stored locally
-        const storedGuides = localStorage.getItem(`implementation_guides_${projectId}`);
+        // Check if we have implementation guides stored in Supabase
+        const storedGuides = await implementationGuideService.getGuideByProjectId(projectId);
         if (storedGuides) {
-          const { guide, steps, usingMock } = JSON.parse(storedGuides);
-          setImplementationGuide(guide);
-          setImplementationSteps(steps);
+          setImplementationGuide(storedGuides.implementation_guide);
+          setImplementationSteps(storedGuides.implementation_steps);
           setGuideGenerated(true);
           
           // Show warning if using mock data
-          if (usingMock) {
+          if (storedGuides.using_mock) {
             setError('Using mock implementation guides. To generate real guides, please configure your OpenAI API key.');
           }
         }
@@ -84,7 +84,7 @@ export default function ImplementationGuidePage() {
   }, [projectId]);
   
   const handleGenerateGuides = async () => {
-    if (!project || !brief || !prd || !techDoc) return;
+    if (!project || !brief || !prd || !techDoc || !projectId || typeof projectId !== 'string') return;
     
     setGenerating(true);
     try {
@@ -95,22 +95,27 @@ export default function ImplementationGuidePage() {
       // Generate the guides
       const { implementationGuide: guide, implementationSteps: steps } = await generateImplementationGuides(project, brief, prd, techDoc);
       
-      setImplementationGuide(guide);
-      setImplementationSteps(steps);
-      setGuideGenerated(true);
-      
-      // Store the generated guides locally
-      localStorage.setItem(`implementation_guides_${projectId}`, JSON.stringify({
+      // Save to Supabase
+      const savedGuide = await implementationGuideService.createOrUpdateGuide(
+        projectId,
         guide,
         steps,
         usingMock
-      }));
-      
-      // Show warning if using mock data
-      if (usingMock) {
-        setError('Using mock implementation guides. To generate real guides, please configure your OpenAI API key.');
+      );
+
+      if (savedGuide) {
+        setImplementationGuide(savedGuide.implementation_guide);
+        setImplementationSteps(savedGuide.implementation_steps);
+        setGuideGenerated(true);
+        
+        // Show warning if using mock data
+        if (usingMock) {
+          setError('Using mock implementation guides. To generate real guides, please configure your OpenAI API key.');
+        } else {
+          setError('');
+        }
       } else {
-        setError('');
+        throw new Error('Failed to save implementation guides');
       }
     } catch (err) {
       console.error('Error generating implementation guides:', err);
