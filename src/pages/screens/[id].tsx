@@ -12,8 +12,10 @@ import { isMockData } from '../../utils/mockDetector';
 import { v4 as uuidv4 } from 'uuid';
 import { AppFlow, FlowStep } from '../../utils/screenStore';
 import Modal from '../../components/Modal';
-import briefService from '../../services/briefService';
+import { briefService } from '../../services/briefService';
 import screenService from '../../services/screenService';
+import { prdService } from '../../services/prdService';
+import { projectService } from '../../services/projectService';
 
 export default function ScreensPage() {
   const router = useRouter();
@@ -156,11 +158,99 @@ export default function ScreensPage() {
           }
         })();
       } else {
-        console.error(`Screens page: Neither PRD nor brief found with ID: ${id}`);
-        setError("PRD not found. Please ensure you have created a PRD before accessing this page.");
+        // If we didn't find a PRD in local storage, try to fetch it from Supabase
+        console.log(`Screens page: PRD not found in local storage, trying to fetch from Supabase for ID: ${id}`);
+        
+        // Use an IIFE to allow async/await in useEffect
+        (async () => {
+          try {
+            // Try to fetch the PRD from Supabase
+            const supabasePRD = await prdService.getPRDById(id as string);
+            
+            if (supabasePRD) {
+              console.log(`Screens page: PRD found in Supabase:`, supabasePRD);
+              
+              // Save to local store for future use
+              prdStore.updatePRD(supabasePRD.id, { 
+                title: supabasePRD.title,
+                content: supabasePRD.content,
+                featureSetId: supabasePRD.featureSetId
+              });
+              
+              // Set the PRD in state
+              setPRD(supabasePRD);
+              
+              // Now try to get the brief
+              const supabaseBrief = await briefService.fetchBriefFromSupabase(supabasePRD.briefId);
+              
+              if (supabaseBrief) {
+                console.log(`Screens page: Brief found in Supabase:`, supabaseBrief);
+                
+                // Convert Supabase brief to local format
+                const localBrief: Brief = {
+                  id: supabaseBrief.id,
+                  projectId: supabaseBrief.project_id,
+                  productName: supabaseBrief.product_name,
+                  problemStatement: supabaseBrief.brief_data?.problemStatement || '',
+                  targetUsers: supabaseBrief.brief_data?.targetUsers || '',
+                  proposedSolution: supabaseBrief.brief_data?.proposedSolution || '',
+                  productObjectives: supabaseBrief.brief_data?.productObjectives || '',
+                  createdAt: supabaseBrief.created_at,
+                  content: JSON.stringify(supabaseBrief.brief_data),
+                  briefData: supabaseBrief.brief_data,
+                  formData: supabaseBrief.form_data,
+                  isEditing: false,
+                  showEditButtons: false
+                };
+                
+                // Save to local store for future use
+                briefStore.updateBrief(localBrief.id, localBrief.briefData);
+                
+                // Set the brief in state
+                setBrief(localBrief);
+                
+                // Get the project
+                const foundProject = projectStore.getProject(localBrief.projectId);
+                
+                if (foundProject) {
+                  setProject(foundProject);
+                } else {
+                  // Try to fetch the project from Supabase
+                  const supabaseProject = await projectService.getProjectById(localBrief.projectId);
+                  
+                  if (supabaseProject) {
+                    setProject(supabaseProject);
+                  } else {
+                    console.error(`Screens page: Project not found for projectId: ${localBrief.projectId}`);
+                    setError("Project not found. Please ensure the project exists.");
+                  }
+                }
+                
+                // Now try to load the screen set
+                const supabaseScreenSet = await screenService.getScreenSetByPrdId(supabasePRD.id);
+                
+                if (supabaseScreenSet) {
+                  console.log(`Screens page: Screen set found in Supabase:`, supabaseScreenSet);
+                  setScreenSet(supabaseScreenSet);
+                } else {
+                  console.log(`Screens page: No screen set found for PRD ID: ${supabasePRD.id}`);
+                }
+              } else {
+                console.error(`Screens page: Brief not found in Supabase for briefId: ${supabasePRD.briefId}`);
+                setError("Brief not found. Please ensure you have created a brief before accessing this page.");
+              }
+            } else {
+              console.error(`Screens page: Neither PRD nor brief found with ID: ${id}`);
+              setError("PRD not found. Please ensure you have created a PRD before accessing this page.");
+            }
+          } catch (error) {
+            console.error(`Screens page: Error fetching data from Supabase:`, error);
+            setError("Error loading data. Please try again later.");
+          } finally {
+            setIsLoading(false);
+          }
+        })();
       }
-      
-      setIsLoading(false);
     }
   }, [id]);
 
