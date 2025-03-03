@@ -502,7 +502,13 @@ export default function Projects() {
                 <div
                   key={project.id}
                   className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
-                  onClick={() => router.push(`/project/${project.id}`)}
+                  onClick={() => {
+                    if (progress === 100) {
+                      router.push(`/implementation/${project.id}`);
+                    } else {
+                      router.push(`/project/${project.id}`);
+                    }
+                  }}
                 >
                   <div className="p-6 sm:p-8">
                     {/* Project Header Section */}
@@ -532,104 +538,27 @@ export default function Projects() {
                       </div>
                       <div className="flex space-x-3 sm:self-start">
                         {/* Download Documentation Button - Only show when project is complete */}
-                        {nextStage === 5 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              
-                              // Use an IIFE to handle the async operation
-                              (async () => {
-                                try {
-                                  // Find a PRD associated with any brief in this project
-                                  const brief = briefs[0];
-                                  if (brief) {
-                                    // Try to find a PRD for this brief
-                                    const prds = await prdService.getPRDsByBriefId(brief.id);
-                                    if (prds && prds.length > 0) {
-                                      // First check if tech doc exists in Supabase
-                                      const techDoc = await techDocService.getTechDocByPrdId(prds[0].id);
-                                      if (techDoc) {
-                                        console.log(`Found tech doc for PRD ${prds[0].id} in Supabase`);
-                                        // Generate markdown content
-                                        const markdown = generateProjectMarkdown(project, brief, prds[0]);
-                                        
-                                        // Download the markdown file
-                                        const blob = new Blob([markdown], { type: 'text/markdown' });
-                                        const url = window.URL.createObjectURL(blob);
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}-documentation.md`;
-                                        document.body.appendChild(a);
-                                        a.click();
-                                        window.URL.revokeObjectURL(url);
-                                        document.body.removeChild(a);
-                                        return;
-                                      }
-                                      
-                                      // Fallback to local storage
-                                      const localTechDoc = techDocStore.getTechDocByPrdId(prds[0].id);
-                                      if (localTechDoc) {
-                                        console.log(`Found tech doc for PRD ${prds[0].id} in local storage`);
-                                        // Generate markdown content
-                                        const markdown = generateProjectMarkdown(project, brief, prds[0]);
-                                        
-                                        // Download the markdown file
-                                        const blob = new Blob([markdown], { type: 'text/markdown' });
-                                        const url = window.URL.createObjectURL(blob);
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}-documentation.md`;
-                                        document.body.appendChild(a);
-                                        a.click();
-                                        window.URL.revokeObjectURL(url);
-                                        document.body.removeChild(a);
-                                        return;
-                                      }
-                                      
-                                      console.error('No tech doc found for PRD:', prds[0].id);
-                                    } else {
-                                      // Fallback to local store if not found in Supabase
-                                      const localPrd = prdStore.getPRDByBriefId(brief.id);
-                                      if (localPrd) {
-                                        // Check if tech doc exists in local storage
-                                        const localTechDoc = techDocStore.getTechDocByPrdId(localPrd.id);
-                                        if (localTechDoc) {
-                                          console.log(`Found tech doc for local PRD ${localPrd.id}`);
-                                          // Generate markdown content
-                                          const markdown = generateProjectMarkdown(project, brief, localPrd);
-                                          
-                                          // Download the markdown file
-                                          const blob = new Blob([markdown], { type: 'text/markdown' });
-                                          const url = window.URL.createObjectURL(blob);
-                                          const a = document.createElement('a');
-                                          a.href = url;
-                                          a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}-documentation.md`;
-                                          document.body.appendChild(a);
-                                          a.click();
-                                          window.URL.revokeObjectURL(url);
-                                          document.body.removeChild(a);
-                                          return;
-                                        }
-                                        
-                                        console.error('No tech doc found for local PRD:', localPrd.id);
-                                      }
-                                    }
-                                  }
-                                  
-                                  console.error('No tech doc found for this project');
-                                } catch (error) {
-                                  console.error('Error downloading documentation:', error);
-                                }
-                              })();
-                            }}
+                        {progress === 100 && (
+                          <Link
+                            href={`/implementation/${project.id}`}
                             className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                           >
-                            Download Documentation
+                            Implementation Guide
                             <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M8 21H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                          </button>
+                          </Link>
+                        )}
+                        {progress < 100 && (
+                          <Link
+                            href={`/project/${project.id}`}
+                            className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                          >
+                            Continue Project
+                            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </Link>
                         )}
                         {briefs.length > 0 && (
                           <button
@@ -701,7 +630,7 @@ export default function Projects() {
                                   }
                                 }
                                 console.error('No PRD found for any brief in this project');
-                                router.push(`/project/${project.id}`);
+                                router.push(`/implementation/${project.id}`);
                               })();
                             }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -743,7 +672,7 @@ export default function Projects() {
                                         url = `/docs/${prds[0].id}`;
                                       } else {
                                         console.error('No tech doc found for PRD:', prds[0].id);
-                                        url = `/project/${project.id}`;
+                                        url = `/implementation/${project.id}`;
                                       }
                                     }
                                   } else {
@@ -763,21 +692,21 @@ export default function Projects() {
                                           url = `/docs/${localPrd.id}`;
                                         } else {
                                           console.error('No tech doc found for local PRD:', localPrd.id);
-                                          url = `/project/${project.id}`;
+                                          url = `/implementation/${project.id}`;
                                         }
                                       }
                                     } else {
                                       console.error('No PRD found for brief:', brief.id);
-                                      url = `/project/${project.id}`;
+                                      url = `/implementation/${project.id}`;
                                     }
                                   }
                                 } catch (error) {
                                   console.error('Error finding tech doc:', error);
-                                  url = `/project/${project.id}`;
+                                  url = `/implementation/${project.id}`;
                                 }
                               } else {
                                 console.error('No brief found for this project');
-                                url = `/project/${project.id}`;
+                                url = `/implementation/${project.id}`;
                               }
                               
                               router.push(url);
@@ -902,16 +831,16 @@ export default function Projects() {
                                           url = `/screens/${localPrd.id}`;
                                         } else {
                                           console.error('No PRD found for any brief in this project');
-                                          url = `/project/${project.id}`;
+                                          url = `/implementation/${project.id}`;
                                         }
                                       }
                                     } catch (error) {
                                       console.error('Error finding PRD:', error);
-                                      url = `/project/${project.id}`;
+                                      url = `/implementation/${project.id}`;
                                     }
                                   } else {
                                     console.error('No brief found for this project');
-                                    url = `/project/${project.id}`;
+                                    url = `/implementation/${project.id}`;
                                   }
                                 } else if (nextStage === 4) {
                                   // Find a PRD associated with any brief in this project
@@ -931,19 +860,19 @@ export default function Projects() {
                                           url = `/docs/${localPrd.id}`;
                                         } else {
                                           console.error('No PRD found for any brief in this project');
-                                          url = `/project/${project.id}`;
+                                          url = `/implementation/${project.id}`;
                                         }
                                       }
                                     } catch (error) {
                                       console.error('Error finding PRD for Tech Docs:', error);
-                                      url = `/project/${project.id}`;
+                                      url = `/implementation/${project.id}`;
                                     }
                                   } else {
                                     console.error('No brief found for this project');
-                                    url = `/project/${project.id}`;
+                                    url = `/implementation/${project.id}`;
                                   }
                                 } else {
-                                  url = `/project/${project.id}`;
+                                  url = `/implementation/${project.id}`;
                                 }
                                 
                                 router.push(url);
@@ -960,7 +889,7 @@ export default function Projects() {
                              nextStage === 2 ? 'Generate PRD' :
                              nextStage === 3 ? 'Generate Screens' :
                              nextStage === 4 ? 'Generate Tech Docs' :
-                             'View Project Details'}
+                             'Implementation Guide'}
                             <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>

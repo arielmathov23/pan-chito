@@ -68,6 +68,44 @@ export default function ProjectDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const nextStepButtonText = !briefs.length ? 'Create Brief' : 
+    featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
+    briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
+    prds.length > 0 && !briefs.some(brief => {
+      const prd = prds.find(p => p.briefId === brief.id);
+      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+    }) ? 'Generate Screens' :
+    'Create Tech Docs';
+
+  const handleGenerateNextStep = () => {
+    if (!project) return;
+    
+    if (!briefs.length) {
+      router.push(`/brief/new?projectId=${project.id}`);
+    } else if (featureSets.length > 0 && prds.length === 0) {
+      router.push(`/prd/new?projectId=${project.id}`);
+    } else if (briefs.length > 0 && featureSets.length === 0) {
+      router.push(`/brief/${briefs[0].id}/ideate`);
+    } else if (prds.length > 0 && !briefs.some(brief => {
+      const prd = prds.find(p => p.briefId === brief.id);
+      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+    })) {
+      const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
+      if (brief) {
+        const prdList = prds.filter(p => p.briefId === brief.id);
+        if (prdList.length > 0) {
+          router.push(`/screens/${prdList[0].id}`);
+        }
+      }
+    } else {
+      const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
+      const prd = brief ? prds.find(p => p.briefId === brief.id) : null;
+      if (prd) {
+        router.push(`/docs/${prd.id}`);
+      }
+    }
+  };
+
   const loadProject = async () => {
     if (!user) return;
     
@@ -136,6 +174,14 @@ export default function ProjectDetail() {
       loadProject();
     }
   }, [id, user, authLoading]);
+
+  // Add effect to handle back navigation
+  useEffect(() => {
+    // Check if we came from implementation page
+    if (document.referrer.includes('/implementation/')) {
+      router.replace('/projects');
+    }
+  }, [router]);
 
   const handleDeleteProject = async () => {
     if (project) {
@@ -606,56 +652,31 @@ export default function ProjectDetail() {
                        const prd = prds.find(p => p.briefId === brief.id);
                        return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
                      }) ? 'Create technical documentation for your project' :
-                     '🎉 Congratulations! All stages are completed. Download your project documentation.'}
+                     '🎉 Congratulations! All stages are completed. Generate an implementation guide for AI coding assistants.'}
                   </p>
                 </div>
                 {prds.some(prd => techDocs[prd.id]) ? (
+                  <div className="flex space-x-3">
+                    <Link
+                      href={`/implementation/${project.id}`}
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                    >
+                      Implementation Guide
+                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </Link>
+                  </div>
+                ) : (
                   <button
-                    onClick={downloadProjectDocs}
+                    onClick={handleGenerateNextStep}
                     className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                   >
-                    Download Documentation
+                    {nextStepButtonText}
                     <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 15L12 3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M8 21H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
-                ) : (
-                  <Link
-                    href={!briefs.length ? `/brief/new?projectId=${project.id}` : 
-                          featureSets.length > 0 && prds.length === 0 ? `/prd/new?projectId=${project.id}` :
-                          briefs.length > 0 && featureSets.length === 0 ? `/brief/${briefs[0].id}/ideate` :
-                          prds.length > 0 && !briefs.some(brief => {
-                            const prd = prds.find(p => p.briefId === brief.id);
-                            return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                          }) ? `/screens/${(() => {
-                            const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
-                            if (brief) {
-                              const prdList = prds.filter(p => p.briefId === brief.id);
-                              if (prdList.length > 0) {
-                                return prdList[0].id;
-                              }
-                            }
-                            return '';
-                          })()}` :
-                          `/docs/${(() => {
-                            const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
-                            return brief ? prds.find(p => p.briefId === brief.id)?.id : '';
-                          })()}`}
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                  >
-                    {!briefs.length ? 'Create Brief' : 
-                     featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
-                     briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
-                     prds.length > 0 && !briefs.some(brief => {
-                       const prd = prds.find(p => p.briefId === brief.id);
-                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                     }) ? 'Generate Screens' :
-                     'Create Tech Docs'}
-                    <svg className="w-3.5 h-3.5 ml-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </Link>
                 )}
               </div>
             </div>
@@ -723,8 +744,7 @@ export default function ProjectDetail() {
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M10.33 16.5H13.66" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14M10.33 16.5H13.66" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           <path d="M9.5 12.5H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </button>
