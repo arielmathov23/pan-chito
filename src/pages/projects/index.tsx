@@ -531,24 +531,13 @@ export default function Projects() {
                         </div>
                       </div>
                       <div className="flex space-x-3 sm:self-start">
-                        {/* Download Documentation Button - Only show when project is complete */}
+                        {/* Implementation Guide Button - Only show when project is complete */}
                         {progress === 100 && (
                           <Link
                             href={`/implementation/${project.id}`}
                             className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                           >
                             Implementation Guide
-                            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </Link>
-                        )}
-                        {progress < 100 && (
-                          <Link
-                            href={`/project/${project.id}`}
-                            className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                          >
-                            Continue Project
                             <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
