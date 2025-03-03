@@ -8,16 +8,18 @@ interface FeedbackModalProps {
 }
 
 export default function FeedbackModal({ isOpen, onClose, projectId }: FeedbackModalProps) {
-  const [rating, setRating] = useState<number>(0);
-  const [comments, setComments] = useState('');
+  const [bestFeature, setBestFeature] = useState('');
+  const [worstFeature, setWorstFeature] = useState('');
+  const [satisfactionRating, setSatisfactionRating] = useState<number>(5);
+  const [additionalThoughts, setAdditionalThoughts] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0) {
-      setError('Please select a rating');
+    if (!bestFeature || !worstFeature) {
+      setError('Please fill out both the best and worst feature fields');
       return;
     }
 
@@ -27,16 +29,19 @@ export default function FeedbackModal({ isOpen, onClose, projectId }: FeedbackMo
     try {
       await feedbackService.submitFeedback(
         projectId,
-        'alpha_testing',
-        rating,
-        comments
+        bestFeature,
+        worstFeature,
+        satisfactionRating,
+        additionalThoughts
       );
       setSubmitted(true);
       setTimeout(() => {
         onClose();
         setSubmitted(false);
-        setRating(0);
-        setComments('');
+        setBestFeature('');
+        setWorstFeature('');
+        setSatisfactionRating(5);
+        setAdditionalThoughts('');
       }, 2000);
     } catch (err) {
       setError('Failed to submit feedback. Please try again.');
@@ -77,48 +82,72 @@ export default function FeedbackModal({ isOpen, onClose, projectId }: FeedbackMo
                 <h2 className="text-xl font-semibold text-gray-900">Alpha Testing Feedback</h2>
               </div>
               <p className="text-gray-600 mt-2">
-                Help us improve Pan Chito by rating your experience with the Implementation Guide generation.
+                We're currently in alpha testing. Your feedback is extremely valuable to us as we develop our product. Please share your thoughts with us to help shape the future of our platform.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  How would you rate the quality of the generated Implementation Guide?
+                  What's the best thing about our product?
                 </label>
-                <div className="flex gap-4 items-center">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setRating(value)}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
-                        rating === value
-                          ? 'border-[#0F533A] bg-[#0F533A] text-white'
-                          : 'border-gray-300 hover:border-[#0F533A]'
-                      }`}
-                    >
-                      {value}
-                    </button>
-                  ))}
+                <textarea
+                  value={bestFeature}
+                  onChange={(e) => setBestFeature(e.target.value)}
+                  placeholder="Tell us what you like most..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F533A] focus:border-transparent"
+                  rows={3}
+                  required
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  What's the worst thing about our product?
+                </label>
+                <textarea
+                  value={worstFeature}
+                  onChange={(e) => setWorstFeature(e.target.value)}
+                  placeholder="Tell us what could be improved..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F533A] focus:border-transparent"
+                  rows={3}
+                  required
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  How satisfied are you with the product so far? (0-10)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">0</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    value={satisfactionRating}
+                    onChange={(e) => setSatisfactionRating(parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-500">10</span>
+                  <span className="ml-2 text-sm font-medium text-gray-700">{satisfactionRating}</span>
                 </div>
               </div>
 
-              <div className="mb-6">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Any additional feedback? (Optional)
+                  Any additional thoughts or suggestions?
                 </label>
                 <textarea
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
+                  value={additionalThoughts}
+                  onChange={(e) => setAdditionalThoughts(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F533A] focus:border-transparent"
-                  rows={4}
-                  placeholder="Share your thoughts..."
+                  rows={3}
                 ></textarea>
               </div>
 
               {error && (
-                <div className="mb-4 text-red-600 text-sm">{error}</div>
+                <div className="text-red-600 text-sm">{error}</div>
               )}
 
               <div className="flex justify-end">

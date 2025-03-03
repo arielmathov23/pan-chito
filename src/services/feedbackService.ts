@@ -4,9 +4,10 @@ export interface Feedback {
   id: string;
   user_id: string;
   project_id: string;
-  feedback_type: string;
-  rating: number;
-  comments?: string;
+  best_feature: string;
+  worst_feature: string;
+  satisfaction_rating: number;
+  additional_thoughts?: string;
   created_at: string;
   updated_at: string;
 }
@@ -14,9 +15,10 @@ export interface Feedback {
 export const feedbackService = {
   async submitFeedback(
     projectId: string,
-    feedbackType: string,
-    rating: number,
-    comments?: string
+    bestFeature: string,
+    worstFeature: string,
+    satisfactionRating: number,
+    additionalThoughts?: string
   ): Promise<Feedback | null> {
     try {
       console.log('feedbackService.submitFeedback: Starting for project:', projectId);
@@ -33,9 +35,10 @@ export const feedbackService = {
         .insert({
           user_id: userData.user.id,
           project_id: projectId,
-          feedback_type: feedbackType,
-          rating: rating,
-          comments: comments
+          best_feature: bestFeature,
+          worst_feature: worstFeature,
+          satisfaction_rating: satisfactionRating,
+          additional_thoughts: additionalThoughts
         })
         .select()
         .single();
