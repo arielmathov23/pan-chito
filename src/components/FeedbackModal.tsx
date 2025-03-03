@@ -72,7 +72,7 @@ export default function FeedbackModal({ isOpen, onClose, projectId }: FeedbackMo
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Thank You!</h3>
-            <p className="text-gray-600">Your feedback helps us improve Pan Chito.</p>
+            <p className="text-gray-600">Your feedback helps us improve 021.</p>
           </div>
         ) : (
           <>
