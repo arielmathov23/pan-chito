@@ -74,5 +74,35 @@ export const feedbackService = {
       console.error('Error in getFeedbackByProjectId:', error);
       throw error;
     }
+  },
+
+  /**
+   * Check if the current user has already submitted feedback
+   */
+  async hasUserSubmittedFeedback(): Promise<boolean> {
+    try {
+      // Get the current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        console.warn('feedbackService: User not authenticated');
+        return false;
+      }
+
+      // Check if user has submitted any feedback
+      const { count, error } = await supabase
+        .from('feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userData.user.id);
+
+      if (error) {
+        console.error('Error checking user feedback:', error);
+        return false;
+      }
+
+      return count !== null && count > 0;
+    } catch (error) {
+      console.error('Error in hasUserSubmittedFeedback:', error);
+      return false;
+    }
   }
 }; 

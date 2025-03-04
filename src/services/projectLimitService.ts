@@ -54,7 +54,7 @@ export const projectLimitService = {
           return {
             id: 'default',
             userId: userId,
-            maxProjects: 5, // Default limit
+            maxProjects: 1, // Default limit
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -87,7 +87,7 @@ export const projectLimitService = {
                 return {
                   id: 'default',
                   userId: userId,
-                  maxProjects: 5, // Default limit
+                  maxProjects: 1, // Default limit
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString()
                 };
@@ -97,7 +97,7 @@ export const projectLimitService = {
               return {
                 id: 'default',
                 userId: userId,
-                maxProjects: 5, // Default limit
+                maxProjects: 1, // Default limit
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               };
@@ -115,7 +115,7 @@ export const projectLimitService = {
             return {
               id: 'default',
               userId: userId,
-              maxProjects: 5, // Default limit
+              maxProjects: 1, // Default limit
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
@@ -127,7 +127,7 @@ export const projectLimitService = {
         return {
           id: 'default',
           userId: userId,
-          maxProjects: 5, // Default limit
+          maxProjects: 1, // Default limit
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -149,7 +149,7 @@ export const projectLimitService = {
       return {
         id: 'default',
         userId: userId,
-        maxProjects: 5, // Default limit
+        maxProjects: 1, // Default limit
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -175,7 +175,7 @@ export const projectLimitService = {
 
       // Get user's project limit
       const limit = await this.getUserProjectLimit();
-      const maxProjects = limit?.maxProjects || 5; // Default to 5 if no limit is found
+      const maxProjects = limit?.maxProjects || 1; // Default to 1 if no limit is found
 
       // Count user's active projects
       const { count, error } = await supabase
@@ -215,7 +215,7 @@ export const projectLimitService = {
       return { 
         canCreateProject: true, // Default to allowing project creation
         currentProjects: 0,
-        maxProjects: 5 
+        maxProjects: 1 
       };
     }
   },

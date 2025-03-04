@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { feedbackService } from '../services/feedbackService';
 
 const STORAGE_KEY = 'feedbackModalDisplayCount';
 const INACTIVITY_TIMEOUT = 3000; // 3 seconds
@@ -7,9 +8,24 @@ const MAX_DISPLAYS = 3;
 export const useFeedbackModal = (hasImplementationGuide: boolean) => {
   const [showModal, setShowModal] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
+  const [hasSubmittedFeedback, setHasSubmittedFeedback] = useState(false);
+
+  // Check if user has already submitted feedback
+  useEffect(() => {
+    const checkFeedbackSubmission = async () => {
+      try {
+        const hasSubmitted = await feedbackService.hasUserSubmittedFeedback();
+        setHasSubmittedFeedback(hasSubmitted);
+      } catch (error) {
+        console.error('Error checking feedback submission:', error);
+      }
+    };
+
+    checkFeedbackSubmission();
+  }, []);
 
   useEffect(() => {
-    if (!hasImplementationGuide) return;
+    if (!hasImplementationGuide || hasSubmittedFeedback) return;
 
     const displayCount = parseInt(localStorage.getItem(STORAGE_KEY) || '0');
     if (displayCount >= MAX_DISPLAYS) return;
@@ -42,7 +58,7 @@ export const useFeedbackModal = (hasImplementationGuide: boolean) => {
       window.removeEventListener('scroll', handleActivity);
       clearInterval(checkInactivity);
     };
-  }, [hasImplementationGuide, lastActivity]);
+  }, [hasImplementationGuide, lastActivity, hasSubmittedFeedback]);
 
   return {
     showModal,
