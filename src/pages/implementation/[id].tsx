@@ -164,6 +164,12 @@ export default function ImplementationGuidePage() {
           setError('You need to be logged in to generate implementation guides. Please log in and try again.');
         } else if (err.message.includes('Project not found')) {
           setError('Project not found or you do not have access to it. Please check the project ID.');
+        } else if (err.message.includes('content format') || err.message.includes('406')) {
+          console.error('Content-type negotiation error:', err);
+          setError('There was an issue with the content format. Please try again with smaller content or contact support.');
+        } else if (err.message.includes('malformed data') || err.message.includes('400')) {
+          console.error('Bad request error:', err);
+          setError('The request was invalid. This may be due to malformed data or content size limits. Try simplifying your project content.');
         } else {
           setError(`Failed to generate implementation guides: ${err.message}`);
         }

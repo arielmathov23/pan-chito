@@ -92,25 +92,28 @@ const screenService = {
     try {
       console.log(`Fetching screen set for PRD ID: ${prdId}`);
       
-      // First check if app flow exists
-      const { data: appFlowData, error: appFlowError } = await supabase
+      // First check if app flow exists using a more reliable approach
+      const { data: appFlowsData, error: appFlowsError } = await supabase
         .from('app_flows')
         .select('*')
-        .eq('prd_id', prdId)
-        .single();
+        .eq('prd_id', prdId);
       
-      if (appFlowError) {
-        console.error('Error fetching app flow:', appFlowError);
-        // Fall back to local storage
-        const localScreenSets = getLocalScreenSets();
-        const localScreenSet = localScreenSets.find(set => set.appFlow.prdId === prdId);
-        return localScreenSet || null;
+      // If there's an error or no data, return an empty screen set
+      if (appFlowsError || !appFlowsData || appFlowsData.length === 0) {
+        console.log(`No app flow found for PRD ID: ${prdId}, returning empty screen set`);
+        return {
+          screens: [],
+          appFlow: {
+            id: uuidv4(),
+            prdId,
+            steps: [],
+            createdAt: Date.now()
+          }
+        };
       }
       
-      if (!appFlowData) {
-        console.log(`No app flow found for PRD ID: ${prdId}`);
-        return null;
-      }
+      // Use the first app flow if multiple exist
+      const appFlowData = appFlowsData[0];
       
       // Fetch screens
       const { data: screensData, error: screensError } = await supabase
@@ -119,8 +122,16 @@ const screenService = {
         .eq('prd_id', prdId);
       
       if (screensError) {
-        console.error('Error fetching screens:', screensError);
-        return null;
+        console.log('Error fetching screens, returning empty screen set:', screensError);
+        return {
+          screens: [],
+          appFlow: {
+            id: appFlowData.id,
+            prdId,
+            steps: [],
+            createdAt: new Date(appFlowData.created_at).getTime()
+          }
+        };
       }
       
       // Fetch flow steps
@@ -131,8 +142,16 @@ const screenService = {
         .order('position', { ascending: true });
       
       if (stepsError) {
-        console.error('Error fetching flow steps:', stepsError);
-        return null;
+        console.log('Error fetching flow steps, returning empty screen set:', stepsError);
+        return {
+          screens: screensData ? screensData.map(mapSupabaseToScreen) : [],
+          appFlow: {
+            id: appFlowData.id,
+            prdId,
+            steps: [],
+            createdAt: new Date(appFlowData.created_at).getTime()
+          }
+        };
       }
       
       // Map data to local format
@@ -152,11 +171,16 @@ const screenService = {
       };
     } catch (error) {
       console.error('Error in getScreenSetByPrdId:', error);
-      
-      // Fall back to local storage
-      const localScreenSets = getLocalScreenSets();
-      const localScreenSet = localScreenSets.find(set => set.appFlow.prdId === prdId);
-      return localScreenSet || null;
+      // Return empty screen set instead of falling back to local storage
+      return {
+        screens: [],
+        appFlow: {
+          id: uuidv4(),
+          prdId,
+          steps: [],
+          createdAt: Date.now()
+        }
+      };
     }
   },
   

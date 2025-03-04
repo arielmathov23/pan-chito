@@ -177,6 +177,14 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
   try {
     console.log('Sending request to OpenAI API for implementation guides');
     
+    // Set headers to ensure proper content-type negotiation
+    const requestOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    };
+    
     const completion = await openai.chat.completions.create({
       messages: [
         {
@@ -191,7 +199,7 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
       model: "gpt-4o-mini",
       temperature: 0.7,
       max_tokens: 4000
-    });
+    }, requestOptions);
 
     if (!completion.choices || completion.choices.length === 0 || !completion.choices[0]?.message?.content) {
       console.error('Empty or invalid response from OpenAI API:', completion);

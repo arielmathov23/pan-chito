@@ -408,6 +408,14 @@ export default function PRDPage() {
     downloadAsFile(markdownContent, filename);
   };
 
+  const handleContinue = () => {
+    if (prd) {
+      // Use window.location.href instead of router.push to ensure a full page reload
+      // This helps avoid the 406 error when navigating to screens
+      window.location.href = `/screens/${prd.id}`;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fa]">

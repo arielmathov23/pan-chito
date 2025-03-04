@@ -38,6 +38,7 @@ export default function ScreensPage() {
 
   useEffect(() => {
     setUsingMockData(isMockData());
+    setIsLoading(true);
     
     if (id) {
       console.log(`Screens page: Loading data for ID: ${id}`);
@@ -115,6 +116,9 @@ export default function ScreensPage() {
               } catch (error) {
                 console.error(`Screens page: Error fetching brief from Supabase:`, error);
                 setError("Error loading brief. Please try again later.");
+              } finally {
+                // Make sure to set isLoading to false even if there's an error
+                setIsLoading(false);
               }
             })();
           }
@@ -126,35 +130,12 @@ export default function ScreensPage() {
             console.log(`Screens page: Loading screen set for PRD ID: ${foundPRD.id}`);
             const supabaseScreenSet = await screenService.getScreenSetByPrdId(foundPRD.id);
             
-            if (supabaseScreenSet) {
-              console.log(`Screens page: Screen set found in Supabase:`, supabaseScreenSet);
-              setScreenSet(supabaseScreenSet);
-            } else {
-              // If not found in Supabase, try local storage
-              console.log(`Screens page: Screen set not found in Supabase, checking local storage`);
-              const localScreenSet = screenStore.getScreenSetByPrdId(foundPRD.id);
-              
-              if (localScreenSet) {
-                console.log(`Screens page: Screen set found in local storage:`, localScreenSet);
-                setScreenSet(localScreenSet);
-                
-                // Save to Supabase for future use
-                try {
-                  await screenService.saveScreenSet(
-                    foundPRD.id, 
-                    localScreenSet.screens, 
-                    localScreenSet.appFlow
-                  );
-                  console.log(`Screens page: Local screen set saved to Supabase`);
-                } catch (saveError) {
-                  console.error(`Screens page: Error saving local screen set to Supabase:`, saveError);
-                }
-              } else {
-                console.log(`Screens page: No screen set found for PRD ID: ${foundPRD.id}`);
-              }
-            }
+            console.log(`Screens page: Screen set found in Supabase:`, supabaseScreenSet);
+            setScreenSet(supabaseScreenSet);
+            setIsLoading(false);
           } catch (error) {
             console.error(`Screens page: Error loading screen set:`, error);
+            setIsLoading(false);
           }
         })();
       } else {
@@ -229,12 +210,8 @@ export default function ScreensPage() {
                 // Now try to load the screen set
                 const supabaseScreenSet = await screenService.getScreenSetByPrdId(supabasePRD.id);
                 
-                if (supabaseScreenSet) {
-                  console.log(`Screens page: Screen set found in Supabase:`, supabaseScreenSet);
-                  setScreenSet(supabaseScreenSet);
-                } else {
-                  console.log(`Screens page: No screen set found for PRD ID: ${supabasePRD.id}`);
-                }
+                console.log(`Screens page: Screen set found in Supabase:`, supabaseScreenSet);
+                setScreenSet(supabaseScreenSet);
               } else {
                 console.error(`Screens page: Brief not found in Supabase for briefId: ${supabasePRD.briefId}`);
                 setError("Brief not found. Please ensure you have created a brief before accessing this page.");
@@ -251,6 +228,8 @@ export default function ScreensPage() {
           }
         })();
       }
+    } else {
+      setIsLoading(false);
     }
   }, [id]);
 
@@ -628,7 +607,7 @@ export default function ScreensPage() {
               <p className="text-[#6b7280] mt-2">Screen designs and app flow for {brief ? brief.productName : 'your product'}</p>
             </div>
             <div className="flex items-center space-x-3 self-start">
-              {screenSet && (
+              {screenSet && screenSet.screens && screenSet.screens.length > 0 ? (
                 <>
                   <Link
                     href={`/docs/${prd.id}`}
@@ -648,13 +627,38 @@ export default function ScreensPage() {
                     Delete
                   </button>
                 </>
+              ) : (
+                <button
+                  onClick={handleGenerateScreens}
+                  disabled={isGenerating}
+                  className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  {isGenerating ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.5 12H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12.5 15L15.5 12L12.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Generate Screens
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </div>
         </div>
 
         <div className="grid gap-8 grid-cols-1">
-          {!screenSet ? (
+          {!screenSet || (screenSet.screens && screenSet.screens.length === 0) ? (
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
               <div className="space-y-8">
                 <div className="bg-gradient-to-br from-[#f8f9fa] to-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
@@ -727,33 +731,6 @@ export default function ScreensPage() {
                     <p>{error}</p>
                   </div>
                 )}
-                
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={handleGenerateScreens}
-                    disabled={isGenerating}
-                    className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M8.5 12H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12.5 15L15.5 12L12.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Generate Screens
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
           ) : (

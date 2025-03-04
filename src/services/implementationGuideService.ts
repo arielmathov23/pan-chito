@@ -124,6 +124,12 @@ export const implementationGuideService = {
           throw new Error('Required fields are missing. Please ensure all required fields are provided.');
         } else if (error.code === '42P10') {
           throw new Error('Database constraint error: There is no unique constraint on the specified column. This is likely a database schema issue.');
+        } else if (error.code === '406') {
+          console.error('Content-type negotiation failed:', error);
+          throw new Error('The server cannot produce a response matching the list of acceptable values. This may be due to content format issues.');
+        } else if (error.code === '400') {
+          console.error('Bad request error:', error);
+          throw new Error('The request was invalid. This may be due to malformed data or content size limits.');
         } else {
           throw new Error(`Failed to save implementation guide: ${error.message}`);
         }

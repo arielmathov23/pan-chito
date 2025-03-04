@@ -679,34 +679,34 @@ export default function Projects() {
                         {/* Add Screens Link */}
                         {nextStage > 3 && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              
-                              // Use an IIFE to handle the async operation
+                            onClick={async () => {
                               (async () => {
                                 try {
-                                  // Find a PRD associated with any brief in this project
-                                  const brief = briefs[0];
-                                  if (!brief) {
-                                    console.error('No brief found for this project');
-                                    window.location.href = `/project/${project.id}`;
+                                  // Find the latest PRD for this project
+                                  const projectBriefs = briefs.filter(b => b.projectId === project.id);
+                                  
+                                  if (projectBriefs.length === 0) {
+                                    console.error('No briefs found for project');
                                     return;
                                   }
                                   
-                                  // Try to find PRDs for this brief
-                                  const prds = await prdService.getPRDsByBriefId(brief.id);
-                                  if (!prds || prds.length === 0) {
-                                    console.error('No PRDs found for brief:', brief.id);
-                                    window.location.href = `/project/${project.id}`;
+                                  // Get all PRDs for all briefs in this project
+                                  const allPrds: any[] = [];
+                                  for (const brief of projectBriefs) {
+                                    const briefPrds = await prdService.getPRDsByBriefId(brief.id);
+                                    allPrds.push(...briefPrds);
+                                  }
+                                  
+                                  if (allPrds.length === 0) {
+                                    console.error('No PRDs found for project briefs');
                                     return;
                                   }
                                   
-                                  // Get the most recently created PRD
-                                  const latestPrd = prds.sort((a, b) => 
-                                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                                  )[0];
+                                  // Sort PRDs by creation date (newest first)
+                                  allPrds.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                                   
-                                  console.log(`Found latest PRD with ID ${latestPrd.id} for brief ${brief.id}`);
+                                  const latestPrd = allPrds[0];
+                                  console.log('Latest PRD:', latestPrd);
                                   
                                   // Use direct navigation to ensure it works
                                   window.location.href = `/screens/${latestPrd.id}`;
