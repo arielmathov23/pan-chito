@@ -675,12 +675,12 @@ export default function ProjectDetail() {
                   <div className="flex space-x-3">
                     <Link
                       href={`/implementation/${project.id}`}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                    >
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                  >
                       Implementation Guide
-                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                    </svg>
                     </Link>
                   </div>
                 ) : (
@@ -1022,7 +1022,7 @@ export default function ProjectDetail() {
                 <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
+                <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
             </div>
             
             {!prds.length ? (
@@ -1057,14 +1057,14 @@ export default function ProjectDetail() {
                 ) : (
                   <div>
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
-                      <div>
-                        <h3 className="text-lg font-medium text-[#111827] mb-2">
-                          Technical Documentation Created
-                        </h3>
-                        <p className="text-[#6b7280]">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#111827] mb-2">
+                        Technical Documentation Created
+                      </h3>
+                      <p className="text-[#6b7280]">
                           Your technical documentation has been generated and is ready to view
-                        </p>
-                      </div>
+                      </p>
+                    </div>
                       <Link
                         href={`/docs/${(() => {
                           const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
