@@ -447,9 +447,9 @@ export default function Projects() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa]">
+    <div className="min-h-screen flex flex-col bg-[#f8f9fa]">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 flex-grow">
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-[#111827]">Projects</h1>
@@ -996,6 +996,35 @@ export default function Projects() {
           projectId={projectsWithGuides[0]} // Use the first project with a guide
         />
       )}
+      
+      {/* Alpha version footer - positioned at the bottom */}
+      <footer className="w-full py-4 border-t border-gray-100 bg-white/50 backdrop-blur-sm mt-auto">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
+            <div className="flex items-center mb-2 md:mb-0">
+              <span>021 is in </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mx-1">
+                ALPHA
+              </span>
+              <span>version</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-2">Built by Panchito studio</span>
+              <a 
+                href="https://x.com/arielmathov" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#0F533A] hover:text-[#0a3f2c] transition-colors flex items-center"
+              >
+                <span className="mr-1">Get in touch</span>
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 } 
