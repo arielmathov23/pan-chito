@@ -68,7 +68,7 @@ export default function BriefForm({ projectId, onSubmit, isGenerating = false, e
     {
       id: 'problemStatement',
       question: 'What problem does your product solve?',
-      placeholder: 'Describe the problem or need your product aims to solve. Who does this problem affect and what impact does it have?',
+      placeholder: 'Describe the problem or need your product aims to solve. What impact does it have?',
       type: 'textarea'
     },
     {

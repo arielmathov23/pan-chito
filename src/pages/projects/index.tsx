@@ -19,6 +19,7 @@ import { projectLimitService } from '../../services/projectLimitService';
 import { implementationGuideService } from '../../services/implementationGuideService';
 import { useFeedbackModal } from '../../hooks/useFeedbackModal';
 import FeedbackModal from '../../components/FeedbackModal';
+import { screenStore } from '../../utils/screenStore';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -216,9 +217,31 @@ export default function Projects() {
     try {
       const screenPromises = prds.map(prd => screenService.getScreenSetByPrdId(prd.id));
       const screenResults = await Promise.all(screenPromises);
-      const hasScreens = screenResults.some(result => result !== null);
       
-      if (!hasScreens) return 3; // Has PRD, next is screens
+      // Check if any of the screen results have actual screens (not just empty arrays)
+      const hasScreens = screenResults.some(result => 
+        result !== null && 
+        result !== undefined && 
+        result.screens && 
+        result.screens.length > 0 && 
+        result.appFlow && 
+        result.appFlow.steps && 
+        result.appFlow.steps.length > 0
+      );
+      
+      // Also check local storage for screens with actual content
+      const hasScreensInLocalStorage = prds.some(prd => {
+        const localScreens = screenStore.getScreenSetByPrdId(prd.id);
+        return localScreens !== null && 
+               localScreens !== undefined && 
+               localScreens.screens && 
+               localScreens.screens.length > 0 &&
+               localScreens.appFlow &&
+               localScreens.appFlow.steps &&
+               localScreens.appFlow.steps.length > 0;
+      });
+      
+      if (!hasScreens && !hasScreensInLocalStorage) return 3; // Has PRD, next is screens
       
       // Check if tech docs exist for any PRD
       // First check Supabase using techDocService

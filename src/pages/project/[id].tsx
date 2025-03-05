@@ -72,6 +72,12 @@ export default function ProjectDetail() {
   const [error, setError] = useState<string | null>(null);
   const [hasImplementationGuide, setHasImplementationGuide] = useState(false);
 
+  // Calculate if screens exist for any PRD
+  const hasScreens = briefs.some(brief => {
+    const prd = prds.find(p => p.briefId === brief.id);
+    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
+  });
+
   const nextStepButtonText = !briefs.length ? 'Create Brief' : 
     featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
     briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
@@ -1014,79 +1020,250 @@ export default function ProjectDetail() {
           </div>
 
           {/* Technical Documentation Section */}
-          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-            <div className="flex items-center mb-2">
-              <svg className="w-5 h-5 mr-2 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full ${
+                  prds.some(prd => techDocs[prd.id]) ? 'bg-[#10b981]' : 
+                  hasScreens ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
+                } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Technical Documentation</h2>
+              </div>
+              <div className={`${
+                !hasScreens ? 'bg-[#f0f2f5] text-[#6b7280]' : 
+                prds.some(prd => techDocs[prd.id]) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
+                'bg-[#e6f0eb] text-[#0F533A]'
+              } px-3 py-1 rounded-full text-xs font-medium`}>
+                {!hasScreens ? 'Locked' : prds.some(prd => techDocs[prd.id]) ? 'Completed' : 'Active'}
+              </div>
             </div>
             
+            <div className="mt-4">
             {!prds.length ? (
               <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
-                <h3 className="text-lg font-medium text-[#111827] mb-2">Complete PRD First</h3>
+                  <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 17H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-[#111827] mb-2">Technical Documentation</h3>
                 <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Generate a PRD to unlock Technical Documentation</p>
               </div>
-            ) : (
+              ) : !hasScreens ? (
+                <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
+                  <div className="w-16 h-16 bg-[#f0f2f5] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-[#6b7280]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M9 10C10.1046 10 11 9.10457 11 8C11 6.89543 10.1046 6 9 6C7.89543 6 7 6.89543 7 8C7 9.10457 7.89543 10 9 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2.67 18.95L7.6 15.64C8.39 15.11 9.53 15.17 10.24 15.78L10.57 16.07C11.35 16.74 12.61 16.74 13.39 16.07L17.55 12.5C18.33 11.83 19.59 11.83 20.37 12.5L22 13.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-[#111827] mb-2">Technical Documentation</h3>
+                  <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Generate screens to unlock Technical Documentation</p>
+                </div>
+              ) : !prds.some(prd => techDocs[prd.id]) ? (
               <div className="bg-[#f8f9fa] rounded-lg p-8">
-                {!briefs.some(brief => {
-                  const prd = prds.find(p => p.briefId === brief.id);
-                  return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                }) ? (
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium text-[#111827] mb-2">Technical Documentation</h3>
-                    <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
-                      Create technical documentation to guide your development team
-                    </p>
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#111827] mb-2">Technical Documentation</h3>
+                      <p className="text-[#6b7280]">
+                        Create technical documentation to guide your development team
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
                     <Link
-                      href={`/docs/${(() => {
-                        const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
-                        return brief ? prds.find(p => p.briefId === brief.id)?.id : '';
-                      })()}`}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                    >
-                      Create Documentation
+                        href={`/docs/new?projectId=${project.id}`}
+                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                      >
+                        Create Tech Docs
                       <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </Link>
+                    </div>
+                  </div>
                   </div>
                 ) : (
-                  <div>
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+                <div className="bg-[#f8f9fa] rounded-lg p-8">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                     <div>
                       <h3 className="text-lg font-medium text-[#111827] mb-2">
                         Technical Documentation Created
                       </h3>
                       <p className="text-[#6b7280]">
-                          Your technical documentation has been generated and is ready to view
+                        Your technical documentation has been generated and is ready to view
                       </p>
                     </div>
+                    <div className="flex items-center gap-2">
                       <Link
-                        href={`/docs/${(() => {
-                          const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
-                          return brief ? prds.find(p => p.briefId === brief.id)?.id : '';
-                        })()}`}
+                        href={`/docs/${prds[0].id}`}
                         className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                       >
-                        View Documentation
+                        View Tech Docs
                         <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </Link>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Project Timeline */}
-          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-            {/* ... existing code ... */}
+          {/* Implementation Guide Section - Always visible with blocked/enabled states */}
+          <div className={`${
+            prds.some(prd => techDocs[prd.id]) 
+              ? "bg-gradient-to-r from-[#0F533A]/10 to-[#10b981]/10 border-[#0F533A]/20 shadow-md" 
+              : "bg-gradient-to-r from-[#6366f1]/5 to-[#a855f7]/5 border-[#6366f1]/10 shadow-sm"
+          } rounded-2xl border p-6 sm:p-8 mb-8 relative overflow-hidden transition-all duration-300`}>
+            {/* Decorative elements visible in both states but different styling */}
+            <div className={`absolute top-0 right-0 w-40 h-40 rounded-full -mr-20 -mt-20 transition-all duration-300 ${
+              prds.some(prd => techDocs[prd.id]) 
+                ? "bg-[#0F533A]/5" 
+                : "bg-[#6366f1]/5"
+            }`}></div>
+            <div className={`absolute bottom-0 left-0 w-24 h-24 rounded-full -ml-12 -mb-12 transition-all duration-300 ${
+              prds.some(prd => techDocs[prd.id]) 
+                ? "bg-[#10b981]/5" 
+                : "bg-[#a855f7]/5"
+            }`}></div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 relative z-10">
+              <div className="flex items-center">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 transition-colors duration-300 ${
+                  prds.some(prd => techDocs[prd.id])
+                    ? "bg-[#0F533A] text-white" 
+                    : "bg-[#6366f1]/20 text-[#6366f1]"
+                }`}>
+                  {prds.some(prd => techDocs[prd.id]) ? (
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22 11.1V6.9C22 3.4 20.6 2 17.1 2H12.9C9.4 2 8 3.4 8 6.9V8H11.1C14.6 8 16 9.4 16 12.9V16H17.1C20.6 16 22 14.6 22 11.1Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="currentColor"/>
+                      <path d="M16 17.1V12.9C16 9.4 14.6 8 11.1 8H6.9C3.4 8 2 9.4 2 12.9V17.1C2 20.6 3.4 22 6.9 22H11.1C14.6 22 16 20.6 16 17.1Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="currentColor"/>
+                      <path d="M6.08 15L8.03 16.95L12.02 13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17 21H7C3 21 2 20 2 16V8C2 4 3 3 7 3H17C21 3 22 4 22 8V16C22 20 21 21 17 21Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14 8H19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M15 12H19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M17 16H19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8.5 11.5C9.88071 11.5 11 10.3807 11 9C11 7.61929 9.88071 6.5 8.5 6.5C7.11929 6.5 6 7.61929 6 9C6 10.3807 7.11929 11.5 8.5 11.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M11 16.5C11 14.8 9.5 13.5 7.5 13.5C5.5 13.5 4 14.8 4 16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h2 className={`text-xl font-semibold transition-colors duration-300 ${
+                    prds.some(prd => techDocs[prd.id]) ? "text-[#0F533A]" : "text-[#6366f1]"
+                  }`}>Implementation</h2>
+                  {!prds.some(prd => techDocs[prd.id]) && (
+                    <span className="text-xs text-[#6366f1]/70">Complete all steps to unlock</span>
+                  )}
+                </div>
+              </div>
+              <div className={`px-3 py-1 rounded-full text-xs font-medium transition-colors duration-300 ${
+                prds.some(prd => techDocs[prd.id])
+                  ? "bg-[#0F533A] text-white" 
+                  : "bg-[#6366f1]/20 text-[#6366f1]"
+              }`}>
+                {prds.some(prd => techDocs[prd.id]) ? "Ready" : "Locked"}
+              </div>
+            </div>
+            
+            <div className="mt-4 relative z-10">
+              {prds.some(prd => techDocs[prd.id]) ? (
+                // Enabled state
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-8">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#111827] mb-2">
+                        🎉 Congratulations!
+                      </h3>
+                      <p className="text-[#6b7280]">
+                        Your project is ready for implementation. Generate AI-ready guides to help you build your product with AI coding assistants.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/implementation/${project.id}`}
+                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                      >
+                        View Implementation Guide
+                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+              </div>
+              ) : (
+                // Blocked state - more colorful and enticing
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-8 border border-[#6366f1]/10">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#6366f1] mb-2 flex items-center">
+                        <span className="mr-2">🏆</span>
+                        Final Reward
+                      </h3>
+                      <p className="text-[#6b7280]">
+                        You will unlock AI-ready implementation guides for your project.
+                      </p>
+                      
+                      <div className="mt-4 bg-[#6366f1]/5 rounded-lg p-3 border border-[#6366f1]/10">
+                        <h4 className="text-sm font-medium text-[#6366f1] mb-1">What you'll get:</h4>
+                        <ul className="text-sm text-[#6b7280] space-y-1">
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-[#6366f1] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            AI-ready implementation instructions
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-[#6366f1] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Step-by-step development guide
+                            <span className="flex items-center ml-2 space-x-1.5">
+                              <img src="/cursor.jpg" alt="Cursor" className="h-5 w-auto rounded opacity-90" />
+                              <img src="/lovable.jpeg" alt="Lovable" className="h-5 w-auto rounded opacity-90" />
+                              <img src="/replit.png" alt="Replit" className="h-5 w-auto rounded opacity-90" />
+                            </span>
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-[#6366f1] mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="flex items-center">
+                              Export tasks and user stories 
+                              <img src="/trello.png" alt="Trello" className="h-5 w-auto rounded opacity-90 mx-1.5" />
+                              <span className="text-xs text-[#6366f1]/70">(coming soon)</span>
+                            </span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium bg-[#6366f1]/20 text-[#6366f1] cursor-not-allowed">
+                        <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 16V12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 8H12.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Complete All Steps First
+          </div>
+
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

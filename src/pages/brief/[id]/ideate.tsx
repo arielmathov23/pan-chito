@@ -487,23 +487,46 @@ export default function IdeateFeatures() {
                 </div>
 
                 <div className="mt-4 bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-800 mb-2">Pro Tips</h4>
-                  <ul className="space-y-2 text-sm text-blue-700">
-                    <li className="flex items-start">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                      Focus on features that directly solve your core problem
+                  <h4 className="font-medium text-blue-800 mb-3">Pro Tips</h4>
+                  <ul className="space-y-3 text-sm">
+                    <li className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100 shadow-sm">
+                      <div className="flex items-start">
+                        <div className="bg-blue-500 text-white rounded-full p-1 mr-3 flex-shrink-0 mt-0.5">
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-blue-900 mb-1">First Version Development</p>
+                          <p className="text-blue-700">
+                            <span className="font-medium">Must Have</span> and <span className="font-medium">Should Have</span> features will be included in the first version. Ensure "Must Have" features are truly essential to your core product.
+                          </p>
+                        </div>
+                      </div>
                     </li>
-                    <li className="flex items-start">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                      Consider technical complexity and development time
+                    <li className="flex items-start p-2">
+                      <div className="bg-blue-400 rounded-full p-1 mr-3 flex-shrink-0">
+                        <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="4" fill="currentColor"/>
+                        </svg>
+                      </div>
+                      <span className="text-blue-700">Focus on features that directly solve your core problem</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                      Prioritize features that provide immediate user value
+                    <li className="flex items-start p-2">
+                      <div className="bg-blue-400 rounded-full p-1 mr-3 flex-shrink-0">
+                        <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="4" fill="currentColor"/>
+                        </svg>
+                      </div>
+                      <span className="text-blue-700">Consider technical complexity and development time</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                      Remember that "Must Have" features should be truly essential
+                    <li className="flex items-start p-2">
+                      <div className="bg-blue-400 rounded-full p-1 mr-3 flex-shrink-0">
+                        <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="4" fill="currentColor"/>
+                        </svg>
+                      </div>
+                      <span className="text-blue-700">Prioritize features that provide immediate user value</span>
                     </li>
                   </ul>
                 </div>
