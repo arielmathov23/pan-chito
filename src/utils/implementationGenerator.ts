@@ -143,17 +143,17 @@ export async function generateImplementationGuides(
 
   const prompt = `You are an expert AI engineering assistant tasked with creating implementation guides for an AI coding assistant. Your goal is to create two distinct files that will help an AI generate code for this project:
 
-1. Implementation Guide (.mx file):
+1. Implementation Guide (.md file):
    - A comprehensive overview of how to implement the project
    - Must include high-level architectural decisions
    - Must incorporate technical stack details and UI guidelines
    - Should be written in a way that guides an AI coding assistant
 
-2. Implementation Steps (.mx file):
-   - A structured, step-by-step breakdown of implementation tasks
-   - Should be organized into logical stages/phases
-   - Each step should be specific and actionable
-   - Should create a roadmap for the AI to follow when implementing the code
+2. Implementation Steps (.md file):
+   - Structured step-by-step breakdown of implementation task related to the structure and features.
+   - Ensure consistent alignment with project requirements and architecture
+   - Maintain development flow by breaking down complex tasks into executable steps
+   - Provide clear checkpoints for AI to validate progress and maintain quality
 
 Project Information:
 Project Name: ${project.name}
