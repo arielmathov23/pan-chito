@@ -55,7 +55,13 @@ const COLORS = {
     light: '#e5e7eb',
     medium: '#6b7280',
     dark: '#4b5563'
-  }
+  },
+  implementation: {
+    primary: '#8b5cf6',
+    secondary: '#a78bfa',
+    light: '#f5f3ff',
+    border: 'rgba(139, 92, 246, 0.2)',
+  },
 };
 
 export default function ProjectDetail() {
@@ -681,7 +687,7 @@ export default function ProjectDetail() {
                   <div className="flex space-x-3">
                     <Link
                       href={`/implementation/${project.id}`}
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                    className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors"
                   >
                       Implementation Guide
                     <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1117,18 +1123,18 @@ export default function ProjectDetail() {
           {/* Implementation Guide Section - Always visible with blocked/enabled states */}
           <div className={`${
             prds.some(prd => techDocs[prd.id]) 
-              ? "bg-gradient-to-r from-[#0F533A]/10 to-[#10b981]/10 border-[#0F533A]/20 shadow-md" 
+              ? "bg-gradient-to-r from-[#8b5cf6]/10 to-[#a78bfa]/10 border-[#8b5cf6]/20 shadow-md" 
               : "bg-gradient-to-r from-[#6366f1]/5 to-[#a855f7]/5 border-[#6366f1]/10 shadow-sm"
           } rounded-2xl border p-6 sm:p-8 mb-8 relative overflow-hidden transition-all duration-300`}>
             {/* Decorative elements visible in both states but different styling */}
             <div className={`absolute top-0 right-0 w-40 h-40 rounded-full -mr-20 -mt-20 transition-all duration-300 ${
               prds.some(prd => techDocs[prd.id]) 
-                ? "bg-[#0F533A]/5" 
+                ? "bg-[#8b5cf6]/5" 
                 : "bg-[#6366f1]/5"
             }`}></div>
             <div className={`absolute bottom-0 left-0 w-24 h-24 rounded-full -ml-12 -mb-12 transition-all duration-300 ${
               prds.some(prd => techDocs[prd.id]) 
-                ? "bg-[#10b981]/5" 
+                ? "bg-[#a78bfa]/5" 
                 : "bg-[#a855f7]/5"
             }`}></div>
             
@@ -1190,11 +1196,11 @@ export default function ProjectDetail() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/implementation/${project.id}`}
-                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                        className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors shadow-sm"
                       >
                         View Implementation Guide
                         <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 12H16M16 12L12 8M16 12L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </Link>
                     </div>

@@ -53,6 +53,13 @@ const COLORS = {
     light: '#f5f3ff',
     border: 'rgba(139, 92, 246, 0.2)',
   },
+  // Implementation Guide colors - purple
+  implementation: {
+    primary: '#8b5cf6', // Purple
+    secondary: '#a78bfa',
+    light: '#f5f3ff',
+    border: 'rgba(139, 92, 246, 0.2)',
+  },
   // Status colors
   status: {
     completed: '#3b82f6', // Blue (changed from green)
@@ -653,7 +660,12 @@ export default function Projects() {
                               e.stopPropagation();
                               router.push(`/implementation/${project.id}`);
                             }}
-                            className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                            className="inline-flex items-center justify-center text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            style={{
+                              backgroundColor: COLORS.implementation.primary,
+                              color: 'white',
+                              borderColor: COLORS.implementation.border
+                            }}
                           >
                             Implementation Guide
                             <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -710,8 +722,8 @@ export default function Projects() {
                                   // We already have the briefs for this project
                                   if (briefs.length === 0) {
                                     console.error('No briefs found for project');
-                                    return;
-                                  }
+                                      return;
+                                    }
                                     
                                   // Get PRDs for the first brief
                                   const brief = briefs[0];
@@ -719,8 +731,8 @@ export default function Projects() {
                                   
                                   if (!prds || prds.length === 0) {
                                     console.error('No PRDs found for brief:', brief.id);
-                                    return;
-                                  }
+                                      return;
+                                    }
                                   
                                   // Sort PRDs by creation date (newest first)
                                   prds.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -730,9 +742,9 @@ export default function Projects() {
                                   
                                   // Navigate to screens page with the PRD ID
                                   router.push(`/screens/${latestPrd.id}`);
-                                } catch (error) {
+                                  } catch (error) {
                                   console.error('Error navigating to screens:', error);
-                                  router.push(`/project/${project.id}`);
+                                router.push(`/project/${project.id}`);
                                 }
                               })();
                             }}
@@ -983,7 +995,7 @@ export default function Projects() {
                             }}
                             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm text-white hover:opacity-90"
                             style={{ 
-                              backgroundColor: '#0F533A',
+                              backgroundColor: nextStage === 5 ? COLORS.implementation.primary : '#0F533A',
                               color: 'white'
                             }}
                           >

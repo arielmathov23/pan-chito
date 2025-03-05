@@ -218,7 +218,7 @@ export default function ImplementationGuidePage() {
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <button
                   onClick={() => setError('')}
-                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors"
+                  className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#7c3aed] transition-colors"
                 >
                   Try Again
                 </button>
@@ -266,7 +266,7 @@ export default function ImplementationGuidePage() {
               <button
                 onClick={handleGenerateGuides}
                 disabled={generating}
-                className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {generating ? (
                   <>
@@ -377,8 +377,8 @@ export default function ImplementationGuidePage() {
         
         {!guideGenerated ? (
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-8 text-center">
-            <div className="w-16 h-16 bg-[#0F533A]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div className="w-16 h-16 bg-[#8b5cf6]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-[#8b5cf6]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M8 13H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -394,7 +394,7 @@ export default function ImplementationGuidePage() {
             <button
               onClick={handleGenerateGuides}
               disabled={generating}
-              className="inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#7c3aed] transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {generating ? (
                 <>
@@ -420,7 +420,7 @@ export default function ImplementationGuidePage() {
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
+                  <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
                   <h2 className="text-xl font-semibold text-[#111827]">Implementation Guide</h2>
                 </div>
                 <button
