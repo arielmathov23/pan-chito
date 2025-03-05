@@ -141,7 +141,7 @@ export async function generateImplementationGuides(
     throw new Error('Invalid technical documentation. Tech doc is required.');
   }
 
-  const prompt = `You are an expert AI engineering assistant tasked with creating implementation guides for an AI coding assistant. Your goal is to create two distinct files that will help an AI generate code for this project:
+  const prompt = `You are an expert AI engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project:
 
 1. Implementation Guide (.md file):
    - A comprehensive overview of how to implement the project
@@ -150,18 +150,17 @@ export async function generateImplementationGuides(
    - Should be written in a way that guides an AI coding assistant
 
 2. Implementation Steps (.md file):
-   - Structured step-by-step breakdown of implementation task related to the structure and features.
-   - Ensure consistent alignment with project requirements and architecture
-   - Maintain development flow by breaking down complex tasks into executable steps
+   - Structured step-by-step breakdown of development tasks related to the project and features.
+   - Divide the steps in 3 sections: set up, development of features, and deployment.
+   - Ensure consistent alignment with project guides.
+   - Maintain development flow by breaking down PRD content into executable steps
    - Provide clear checkpoints for AI to validate progress and maintain quality
 
 Project Information:
-Project Name: ${project.name}
+Product Name: ${brief?.product_name || ''}
 
 Brief Data:
 ${JSON.stringify(brief?.brief_data || {}, null, 2)}
-
-Product Name: ${brief?.product_name || ''}
 
 PRD Content:
 ${JSON.stringify(prd.content, null, 2)}
