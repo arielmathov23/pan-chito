@@ -277,8 +277,8 @@ export default function Projects() {
       
       // Check project limits
       try {
-        const status = await projectLimitService.checkCanCreateProject();
-        setLimitStatus(status);
+      const status = await projectLimitService.checkCanCreateProject();
+      setLimitStatus(status);
       } catch (limitError) {
         console.error('Error checking project limits:', limitError);
         // Set a default limit status to allow navigation to continue
@@ -702,48 +702,45 @@ export default function Projects() {
                         {/* Add Screens Link */}
                         {nextStage > 3 && (
                           <button
-                            onClick={async () => {
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Use the briefs we already have instead of filtering
                               (async () => {
                                 try {
-                                  // Find the latest PRD for this project
-                                  const projectBriefs = briefs.filter(b => b.projectId === project.id);
-                                  
-                                  if (projectBriefs.length === 0) {
+                                  // We already have the briefs for this project
+                                  if (briefs.length === 0) {
                                     console.error('No briefs found for project');
                                     return;
                                   }
+                                    
+                                  // Get PRDs for the first brief
+                                  const brief = briefs[0];
+                                  const prds = await prdService.getPRDsByBriefId(brief.id);
                                   
-                                  // Get all PRDs for all briefs in this project
-                                  const allPrds: any[] = [];
-                                  for (const brief of projectBriefs) {
-                                    const briefPrds = await prdService.getPRDsByBriefId(brief.id);
-                                    allPrds.push(...briefPrds);
-                                  }
-                                  
-                                  if (allPrds.length === 0) {
-                                    console.error('No PRDs found for project briefs');
+                                  if (!prds || prds.length === 0) {
+                                    console.error('No PRDs found for brief:', brief.id);
                                     return;
                                   }
                                   
                                   // Sort PRDs by creation date (newest first)
-                                  allPrds.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                                  prds.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                                   
-                                  const latestPrd = allPrds[0];
+                                  const latestPrd = prds[0];
                                   console.log('Latest PRD:', latestPrd);
                                   
-                                  // Use direct navigation to ensure it works
-                                  window.location.href = `/screens/${latestPrd.id}`;
+                                  // Navigate to screens page with the PRD ID
+                                  router.push(`/screens/${latestPrd.id}`);
                                 } catch (error) {
                                   console.error('Error navigating to screens:', error);
-                                  window.location.href = `/project/${project.id}`;
+                                  router.push(`/project/${project.id}`);
                                 }
                               })();
                             }}
                             className="inline-flex items-center justify-center border px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             style={{ 
-                              borderColor: COLORS.docs.border,
-                              color: COLORS.docs.primary,
-                              backgroundColor: COLORS.docs.light
+                              borderColor: COLORS.project.border,
+                              color: COLORS.project.primary,
+                              backgroundColor: COLORS.project.light
                             }}
                           >
                             View Screens

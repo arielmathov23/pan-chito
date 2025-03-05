@@ -35,6 +35,7 @@ export default function ScreensPage() {
   const [stepToDelete, setStepToDelete] = useState<string | null>(null);
   const [stepDescription, setStepDescription] = useState('');
   const [selectedScreenId, setSelectedScreenId] = useState<string | undefined>();
+  const [afterStepId, setAfterStepId] = useState<string | undefined>('start');
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -359,6 +360,7 @@ export default function ScreensPage() {
     setEditingStep(null);
     setStepDescription('');
     setSelectedScreenId(undefined);
+    setAfterStepId('start');
     setIsModalOpen(true);
   };
 
@@ -398,7 +400,7 @@ export default function ScreensPage() {
     }
   };
 
-  const handleSaveStep = async (stepData: { description: string; screenId?: string }) => {
+  const handleSaveStep = async (stepData: { description: string; screenId?: string; afterStepId?: string }) => {
     if (!screenSet) return;
 
     try {
@@ -407,16 +409,37 @@ export default function ScreensPage() {
         // Update existing step
         updatedSteps = screenSet.appFlow.steps.map(step =>
           step.id === editingStep.id
-            ? { ...step, ...stepData }
+            ? { ...step, description: stepData.description, screenId: stepData.screenId }
             : step
         );
       } else {
         // Add new step
         const newStep = {
           id: uuidv4(),
-          ...stepData
+          description: stepData.description,
+          screenId: stepData.screenId
         };
-        updatedSteps = [...screenSet.appFlow.steps, newStep];
+        
+        // If afterStepId is 'start', add to beginning
+        if (stepData.afterStepId === 'start') {
+          updatedSteps = [newStep, ...screenSet.appFlow.steps];
+        } else if (stepData.afterStepId === 'end') {
+          // If afterStepId is 'end', add to end
+          updatedSteps = [...screenSet.appFlow.steps, newStep];
+        } else {
+          // Otherwise, insert after the specified step
+          const afterIndex = screenSet.appFlow.steps.findIndex(step => step.id === stepData.afterStepId);
+          if (afterIndex !== -1) {
+            updatedSteps = [
+              ...screenSet.appFlow.steps.slice(0, afterIndex + 1),
+              newStep,
+              ...screenSet.appFlow.steps.slice(afterIndex + 1)
+            ];
+          } else {
+            // Fallback to adding at the end if step not found
+            updatedSteps = [...screenSet.appFlow.steps, newStep];
+          }
+        }
       }
 
       const updatedAppFlow = { ...screenSet.appFlow, steps: updatedSteps };
@@ -433,6 +456,8 @@ export default function ScreensPage() {
         appFlow: updatedAppFlow
       });
 
+      // Close the modal
+      setIsModalOpen(false);
       setIsStepModalOpen(false);
       setEditingStep(null);
     } catch (error) {
@@ -866,6 +891,26 @@ export default function ScreensPage() {
                 ))}
               </select>
             </div>
+            {!editingStep && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Add After Step
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#0F533A] focus:border-[#0F533A]"
+                  value={afterStepId}
+                  onChange={(e) => setAfterStepId(e.target.value)}
+                >
+                  <option value="start">At the beginning</option>
+                  {screenSet?.appFlow.steps.map((step, index) => (
+                    <option key={step.id} value={step.id}>
+                      After Step {index + 1}: {step.description.substring(0, 30)}{step.description.length > 30 ? '...' : ''}
+                    </option>
+                  ))}
+                  <option value="end">At the end</option>
+                </select>
+              </div>
+            )}
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -874,7 +919,11 @@ export default function ScreensPage() {
                 Cancel
               </button>
               <button
-                onClick={() => handleSaveStep({ description: stepDescription, screenId: selectedScreenId })}
+                onClick={() => handleSaveStep({ 
+                  description: stepDescription, 
+                  screenId: selectedScreenId,
+                  afterStepId: afterStepId
+                })}
                 className="px-4 py-2 text-sm bg-[#0F533A] text-white rounded-md hover:bg-[#0a3f2c]"
               >
                 Save Step
