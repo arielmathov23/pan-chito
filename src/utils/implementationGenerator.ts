@@ -148,6 +148,8 @@ export async function generateImplementationGuides(
    - Must include high-level architectural decisions
    - Must incorporate technical stack details and UI guidelines
    - Should be written in a way that guides an AI coding assistant
+   - Detail how to manage contrast, accessibility, and responsive desing.
+   - Place the code in a src/ directory, use App Router, use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
 
 2. Implementation Steps (.md file):
    - Structured step-by-step breakdown of development tasks related to the project and features.
@@ -155,7 +157,7 @@ export async function generateImplementationGuides(
    - Maintain development flow by breaking down PRD content into executable steps
    - Provide clear checkpoints for AI to validate progress and maintain quality
    - Consider that your first goal is to have a working project running in local host with info saved in local. 
-   - Organize your steps in stages: 1) features with mock integrations running in local, 2) add integrations if needed, 3) integrate database
+   - Organize your steps in stages: 1) features with mock integrations running in local with a backend running all in the same port 2) add integrations if needed (i.e. openai) and login/sign up if needed 3) integrate database for saving info and auth
 
 Project Information:
 Product Name: ${brief?.product_name || ''}

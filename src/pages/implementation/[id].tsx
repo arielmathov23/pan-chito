@@ -344,9 +344,8 @@ export default function ImplementationGuidePage() {
                   <li>Generate the Implementation Guide based on your Brief, PRD, Screens, and Tech Doc</li>
                   <li>Copy the generated guides: Implementation Guide and Implementation Steps</li>
                   <li>For Cursor: Download both guides as .md files and place them in your project's source directory</li>
-                  <li>Open the files in Cursor and ask the assistant to implement the code based on these instructions with a prompt like: "Please read through these implementation guides and build the project following the steps outlined. After each step is completed, mark it as 'Done' before moving to the next step."</li>
+                  <li>Open the AI Assistant in Cursor and paste the 'AI Assistant Prompt'</li>
                 </ol>
-                <p className="mt-2">The guides are structured to help AI systems understand your project requirements and generate appropriate code. For best results in Cursor, keep the .md files in your project's source directory while implementing.</p>
               </div>
             </div>
           </div>
