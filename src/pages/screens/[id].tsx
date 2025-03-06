@@ -248,37 +248,89 @@ export default function ScreensPage() {
       // Show a message to the user that this might take a while
       setGenerationStatus('Generating screens. This may take a few minutes for complex products...');
       
-      // Generate screens using OpenAI
-      const { screens, appFlow } = await generateScreens(brief, prd);
-      
-      // Save screens to Supabase
-      await screenService.saveScreenSet(prd.id, screens, appFlow);
-      
-      // Update local state
-      setScreenSet({
-        screens,
-        appFlow
-      });
-      setIsGenerating(false);
-      setGenerationStatus('');
-      
-    } catch (err) {
-      console.error('Error generating screens:', err);
-      setIsGenerating(false);
-      
-      // Provide more user-friendly error messages based on the error
-      if (err.message && err.message.includes('timed out')) {
-        setError('Screen generation timed out. This can happen with complex products. Please try again or simplify your PRD.');
-      } else if (err.message && err.message.includes('Network error')) {
-        setError('Network error. Please check your internet connection and try again.');
-      } else if (err.message && err.message.includes('API request failed with status 504')) {
-        setError('The server took too long to respond. Screen generation can take a while for complex products. Please try again in a moment.');
-      } else {
-        setError(`Failed to generate screens: ${err.message || 'Unknown error'}`);
+      try {
+        // Generate screens using OpenAI
+        const { screens, appFlow } = await generateScreens(brief, prd);
+        
+        // Save screens to Supabase
+        await screenService.saveScreenSet(prd.id, screens, appFlow);
+        
+        // Update local state
+        setScreenSet({
+          screens,
+          appFlow
+        });
+        
+        // Check if these are fallback screens (basic screens with fewer elements)
+        const isFallbackScreens = screens.length <= 2 && 
+                                 screens.some(s => s.name === "Login Screen") && 
+                                 screens.every(s => s.elements.length <= 4);
+        
+        if (isFallbackScreens) {
+          // Show a warning that these are basic fallback screens
+          setError('We encountered an issue generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
+        }
+        
+        setIsGenerating(false);
+        setGenerationStatus('');
+        
+      } catch (err) {
+        console.error('Error in primary screen generation:', err);
+        
+        // If the error is a timeout, try to generate basic screens as a fallback
+        if (err.message && (err.message.includes('timed out') || err.message.includes('504'))) {
+          setGenerationStatus('Timeout occurred. Creating basic screens instead...');
+          
+          try {
+            // Generate basic screens directly
+            const { screens, appFlow } = await generateScreens(brief, prd);
+            
+            // Save screens to Supabase
+            await screenService.saveScreenSet(prd.id, screens, appFlow);
+            
+            // Update local state
+            setScreenSet({
+              screens,
+              appFlow
+            });
+            
+            setIsGenerating(false);
+            setGenerationStatus('');
+            
+            // Show a warning that these are basic fallback screens
+            setError('We encountered a timeout generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
+            
+          } catch (fallbackErr) {
+            console.error('Error in fallback screen generation:', fallbackErr);
+            handleGenerationError(fallbackErr);
+          }
+        } else {
+          handleGenerationError(err);
+        }
       }
-      
-      setGenerationStatus('');
+    } catch (err) {
+      console.error('Error in overall screen generation process:', err);
+      handleGenerationError(err);
     }
+  };
+
+  // Helper function to handle generation errors
+  const handleGenerationError = (err: any) => {
+    console.error('Error generating screens:', err);
+    setIsGenerating(false);
+    
+    // Provide more user-friendly error messages based on the error
+    if (err.message && err.message.includes('timed out')) {
+      setError('Screen generation timed out. This can happen with complex products. Please try again or simplify your PRD.');
+    } else if (err.message && err.message.includes('Network error')) {
+      setError('Network error. Please check your internet connection and try again.');
+    } else if (err.message && err.message.includes('API request failed with status 504')) {
+      setError('The server took too long to respond. Screen generation can take a while for complex products. Please try again in a moment.');
+    } else {
+      setError(`Failed to generate screens: ${err.message || 'Unknown error'}`);
+    }
+    
+    setGenerationStatus('');
   };
 
   const handleDeleteScreens = () => {
