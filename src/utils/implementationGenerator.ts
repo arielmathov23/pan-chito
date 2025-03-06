@@ -3,6 +3,7 @@ import { Project } from './projectStore';
 import { PRD } from './prdStore';
 import { TechDoc } from '../services/techDocService';
 import { Brief } from '../services/briefService';
+import { ScreenSet } from './screenStore';
 
 // Check if API key is available
 const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
@@ -27,6 +28,14 @@ const openai = new OpenAI({
 export interface ImplementationGuides {
   implementationGuide: string;
   implementationSteps: string;
+}
+
+export interface Implementation {
+  techStack: string;
+  architecture: string;
+  components: string;
+  apiEndpoints: string;
+  databaseSchema: string;
 }
 
 // Mock implementation for testing purposes
@@ -115,17 +124,9 @@ export async function generateImplementationGuides(
   // Use mock implementation if API key is missing
   if (USE_MOCK) {
     console.log('Using mock implementation for implementation guides');
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
     return generateMockImplementationGuides();
   }
 
-  if (!apiKey) {
-    console.error('OpenAI API key is missing');
-    throw new Error('OpenAI API key is missing. Please add OPENAI_API_KEY to your .env.local file.');
-  }
-
-  // Validate inputs
   if (!project || !project.name) {
     console.error('Invalid project data:', project);
     throw new Error('Invalid project data. Project name is required.');
@@ -143,28 +144,8 @@ export async function generateImplementationGuides(
 
   const prompt = `You are an expert engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project:
 
-1. Implementation Guide (.md file):
-   - A comprehensive overview of how to implement the project
-   - Must include high-level architectural decisions
-   - Must incorporate technical stack details and UI guidelines
-   - Should be written in a way that guides an AI coding assistant
-   - Detail how to manage contrast, accessibility, and responsive desing.
-   - Place the code in a src/ directory, use App Router
-   - Avoid Nested Directory Issues
-   - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
-
-2. Implementation Steps (.md file):
-   - Structured step-by-step breakdown of development tasks related to the project and features.
-   - Ensure consistent alignment with project guides.
-   - Maintain development flow by breaking down feature content into executable steps
-   - Your first goal is to have a working project running in local host with info saved in local with backend running all in the same port. 
-   - Organize your steps in stages: 1) features running in local with a backend running all in the same port. if there is an external service use a mock integration 2) add integrations if needed (i.e. openai) and login/sign up if needed 3) integrate database for saving info and auth
-
 Project Information:
 Product Name: ${brief?.product_name || ''}
-
-Brief Data:
-${JSON.stringify(brief?.brief_data || {}, null, 2)}
 
 PRD Content:
 ${JSON.stringify(prd.content, null, 2)}
@@ -174,6 +155,25 @@ Tech Stack: ${techDoc.techStack || 'Not specified'}
 Frontend: ${techDoc.frontend || 'Not specified'}
 Backend: ${techDoc.backend || 'Not specified'}
 Content: ${JSON.stringify(techDoc.content || {}, null, 2)}
+
+You task is to create two files:
+
+1. Implementation Guide (.md file):
+   - A comprehensive overview of how to implement the project
+   - Must include high-level architectural decisions
+   - Must incorporate technical stack details and UI guidelines
+   - Detail how to manage contrast, accessibility, and responsive desing.
+   - Definition to place the code in a src/ directory, use App Router
+   - Avoid Nested Directory Issues
+   - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
+
+2. Implementation Steps (.md file):
+   - Structured step-by-step breakdown to develop all the pages and features. Breaking down feature content into executable steps (one step per feature).
+   - Ensure consistent alignment with project guides, do not create any new features or pages that are not defined in the PRD, Screens definitions and App Flow.
+   - Ensure all the details coming from the PRD, Screens definitions and App Flow are inlcuded.
+   - Do not add any code here just prompt and descriptions.
+   - Backend is not mocked, it will be running in the same port as the frontend.
+   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
 
 Please provide your response as two separate text blocks, clearly labeled as "IMPLEMENTATION_GUIDE" and "IMPLEMENTATION_STEPS". Each should be formatted in markdown and be comprehensive enough to guide an AI agent through the entire implementation process.`;
 
@@ -270,4 +270,113 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
       throw new Error('Failed to generate implementation guides. Please check your OpenAI API key and try again.');
     }
   }
+}
+
+export async function generateImplementation(prd: PRD, screenSet: ScreenSet | null): Promise<Implementation> {
+  console.log("=== Implementation Generation Started ===");
+  console.log(`PRD ID: ${prd.id}`);
+  
+  // Prepare the input data - include complete PRD and screens info, remove brief
+  const inputData = {
+    prdContent: prd.content,
+    screens: screenSet ? {
+      screens: screenSet.screens,
+      appFlow: screenSet.appFlow
+    } : null
+  };
+  
+  console.log(`Input data prepared, PRD content length: ${JSON.stringify(prd.content).length}`);
+  if (screenSet) {
+    console.log(`Including ${screenSet.screens.length} screens and app flow with ${screenSet.appFlow.steps.length} steps`);
+  } else {
+    console.log("No screens data available");
+  }
+  
+  // Implement the OpenAI API call to generate implementation
+  if (!USE_MOCK && apiKey) {
+    try {
+      const prompt = `You are an expert engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project:
+
+PRD Content:
+${JSON.stringify(inputData.prdContent, null, 2)}
+
+${inputData.screens ? `
+App Screens:
+${JSON.stringify(inputData.screens.screens, null, 2)}
+
+App Flow:
+${JSON.stringify(inputData.screens.appFlow, null, 2)}
+` : 'No screen data available.'}
+
+You task is to create two files:
+
+1. Implementation Guide (.md file):
+   - A comprehensive overview of how to implement the project
+   - Must include high-level architectural decisions
+   - Must incorporate technical stack details and UI guidelines
+   - Detail how to manage contrast, accessibility, and responsive desing.
+   - Definition to place the code in a src/ directory, use App Router
+   - Avoid Nested Directory Issues
+   - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
+
+2. Implementation Steps (.md file):
+   - Structured step-by-step breakdown to develop all the pages and features. Breaking down feature content into executable steps (one step per feature).
+   - Ensure consistent alignment with project guides.
+   - Ensure all the details coming from the PRD, Screens definitions and App Flow are respected.
+   - Do not add any code here just prompt and descriptions.
+   - Backend is not mocked, it will be running in the same port as the frontend.
+   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
+
+Please provide your response as two separate text blocks, clearly labeled as "IMPLEMENTATION_GUIDE" and "IMPLEMENTATION_STEPS". Each should be formatted in markdown and be comprehensive enough to guide an AI agent through the entire implementation process.`;
+
+      console.log("Sending request to OpenAI API...");
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4-turbo',
+        messages: [
+          { role: 'system', content: 'You are an expert software architect with deep knowledge of modern web development.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 4000
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Failed to generate implementation. Empty response from OpenAI.');
+      }
+
+      console.log("Parsing OpenAI response...");
+      
+      // Extract sections from the response
+      const implementationGuideMatch = content.match(/IMPLEMENTATION_GUIDE[\s\S]*?(?=IMPLEMENTATION_STEPS|$)/i);
+      const implementationStepsMatch = content.match(/IMPLEMENTATION_STEPS[\s\S]*?(?=$)/i);
+
+      // For the Implementation interface, extract sections from the implementation guide
+      const techStackMatch = content.match(/Tech Stack:[\s\S]*?(?=Architecture:|$)/i);
+      const architectureMatch = content.match(/Architecture:[\s\S]*?(?=Components:|$)/i);
+      const componentsMatch = content.match(/Components:[\s\S]*?(?=API Endpoints:|$)/i);
+      const apiEndpointsMatch = content.match(/API Endpoints:[\s\S]*?(?=Database Schema:|$)/i);
+      const databaseSchemaMatch = content.match(/Database Schema:[\s\S]*?(?=IMPLEMENTATION_STEPS|$)/i);
+
+      return {
+        techStack: techStackMatch ? techStackMatch[0].replace(/Tech Stack:/i, '').trim() : "Not specified",
+        architecture: architectureMatch ? architectureMatch[0].replace(/Architecture:/i, '').trim() : "Not specified",
+        components: componentsMatch ? componentsMatch[0].replace(/Components:/i, '').trim() : "Not specified",
+        apiEndpoints: apiEndpointsMatch ? apiEndpointsMatch[0].replace(/API Endpoints:/i, '').trim() : "Not specified",
+        databaseSchema: databaseSchemaMatch ? databaseSchemaMatch[0].replace(/Database Schema:/i, '').trim() : "Not specified"
+      };
+    } catch (error: any) {
+      console.error("Error generating implementation:", error);
+      throw new Error(`Failed to generate implementation: ${error.message}`);
+    }
+  }
+  
+  // Return mock implementation if API call is not available
+  return {
+    techStack: "React, Next.js, TypeScript, Tailwind CSS",
+    architecture: "Client-server architecture with RESTful API",
+    components: "Authentication, Dashboard, User Management, etc.",
+    apiEndpoints: "/api/auth, /api/users, /api/projects",
+    databaseSchema: "Users, Projects, Tasks, etc."
+  };
 } 
