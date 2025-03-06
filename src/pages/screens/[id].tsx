@@ -38,6 +38,8 @@ export default function ScreensPage() {
   const [afterStepId, setAfterStepId] = useState<string | undefined>('start');
   const [isDeleteScreensModalOpen, setIsDeleteScreensModalOpen] = useState(false);
   const [currentScreenIndex, setCurrentScreenIndex] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState<string>('');
+  const [screens, setScreens] = useState<ScreenType[]>([]);
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -237,105 +239,45 @@ export default function ScreensPage() {
   }, [id]);
 
   const handleGenerateScreens = async () => {
-    console.log("handleGenerateScreens called");
-    console.log("brief:", brief);
-    console.log("prd:", prd);
-    
-    if (!brief || !prd) {
-      console.error("Cannot generate screens: brief or prd is missing");
-      
-      if (!brief && prd) {
-        console.log("Attempting to fetch brief again for briefId:", prd.briefId);
-        
-        // First try to get from localStorage
-        const foundBrief = briefStore.getBrief(prd.briefId);
-        
-        if (foundBrief) {
-          console.log("Successfully retrieved brief from localStorage:", foundBrief);
-          setBrief(foundBrief);
-          // Continue with screen generation after setting the brief
-          setTimeout(() => handleGenerateScreens(), 100);
-          return;
-        } else {
-          // If not in localStorage, try to fetch from Supabase
-          console.log("Brief not found in localStorage, trying to fetch from Supabase");
-          try {
-            const supabaseBrief = await briefService.fetchBriefFromSupabase(prd.briefId);
-            
-            if (supabaseBrief) {
-              console.log("Successfully retrieved brief from Supabase:", supabaseBrief);
-              
-              // Convert Supabase brief to local format if needed
-              const localBrief: Brief = {
-                id: supabaseBrief.id,
-                projectId: supabaseBrief.project_id,
-                productName: supabaseBrief.product_name,
-                problemStatement: supabaseBrief.brief_data?.problemStatement || '',
-                targetUsers: supabaseBrief.brief_data?.targetUsers || '',
-                proposedSolution: supabaseBrief.brief_data?.proposedSolution || '',
-                productObjectives: supabaseBrief.brief_data?.productObjectives || '',
-                createdAt: supabaseBrief.created_at,
-                content: JSON.stringify(supabaseBrief.brief_data),
-                briefData: supabaseBrief.brief_data,
-                formData: supabaseBrief.form_data,
-                isEditing: false,
-                showEditButtons: false
-              };
-              
-              // Save to localStorage for future use
-              briefStore.updateBrief(localBrief.id, localBrief.briefData);
-              
-              // Set the brief in state
-              setBrief(localBrief);
-              
-              // Continue with screen generation after setting the brief
-              setTimeout(() => handleGenerateScreens(), 100);
-              return;
-            } else {
-              setError("Brief not found in database. Please ensure the brief exists before generating screens.");
-              return;
-            }
-          } catch (error) {
-            console.error("Error fetching brief from Supabase:", error);
-            setError("Error fetching brief from database. Please try again later.");
-            return;
-          }
-        }
-      }
-      
-      return;
-    }
-    
-    // Check if we're in development mode and need to warn about API key
-    if (process.env.NODE_ENV === 'development' && !process.env.OPENAI_API_KEY && !process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
-      console.warn("OpenAI API key might be missing. Make sure OPENAI_API_KEY or NEXT_PUBLIC_OPENAI_API_KEY is set in .env.local");
-      setError("OpenAI API key might be missing. Check the console for more information.");
-      return;
-    }
-    
-    setIsGenerating(true);
-    setError(null);
-    console.log("Starting screen generation...");
+    if (!brief || !prd) return;
     
     try {
-      console.log("Calling generateScreens with brief and prd");
+      setIsGenerating(true);
+      setError(null);
+      
+      // Show a message to the user that this might take a while
+      setGenerationStatus('Generating screens. This may take a few minutes for complex products...');
+      
+      // Generate screens using OpenAI
       const { screens, appFlow } = await generateScreens(brief, prd);
-      console.log("Screen generation successful:", { screens, appFlow });
       
-      // Save the generated screens to Supabase
-      console.log("Saving screen set to Supabase");
-      const savedScreenSet = await screenService.saveScreenSet(prd.id, screens, appFlow);
-      console.log("Screen set saved to Supabase:", savedScreenSet);
+      // Save screens to Supabase
+      await screenService.saveScreenSet(prd.id, screens, appFlow);
       
-      // Also save to local store for backward compatibility
-      screenStore.saveScreenSet(prd.id, screens, appFlow);
-      
-      setScreenSet(savedScreenSet);
+      // Update local state
+      setScreenSet({
+        screens,
+        appFlow
+      });
       setIsGenerating(false);
-    } catch (error) {
-      console.error("Error generating screens:", error);
-      setError("Failed to generate screens. Please try again later.");
+      setGenerationStatus('');
+      
+    } catch (err) {
+      console.error('Error generating screens:', err);
       setIsGenerating(false);
+      
+      // Provide more user-friendly error messages based on the error
+      if (err.message && err.message.includes('timed out')) {
+        setError('Screen generation timed out. This can happen with complex products. Please try again or simplify your PRD.');
+      } else if (err.message && err.message.includes('Network error')) {
+        setError('Network error. Please check your internet connection and try again.');
+      } else if (err.message && err.message.includes('API request failed with status 504')) {
+        setError('The server took too long to respond. Screen generation can take a while for complex products. Please try again in a moment.');
+      } else {
+        setError(`Failed to generate screens: ${err.message || 'Unknown error'}`);
+      }
+      
+      setGenerationStatus('');
     }
   };
 
@@ -703,31 +645,38 @@ export default function ScreensPage() {
                 <button
                   onClick={handleGenerateScreens}
                   disabled={isGenerating}
-                  className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   {isGenerating ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Generating...
+                      Generating Screens...
                     </>
                   ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.5 12H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12.5 15L15.5 12L12.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Generate Screens
-                    </>
+                    'Generate App Screens'
                   )}
                 </button>
               )}
             </div>
           </div>
         </div>
+
+        {/* Generation Status Message */}
+        {generationStatus && (
+          <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-md text-sm">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 8V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M11.9945 16H12.0035" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <p>{generationStatus}</p>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-8 grid-cols-1">
           {!screenSet || (screenSet.screens && screenSet.screens.length === 0) ? (

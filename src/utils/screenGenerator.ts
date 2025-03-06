@@ -80,7 +80,7 @@ Guidelines:
 
     // Improved timeout handling with AbortController
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2-minute timeout
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // Increased to 3-minute timeout
 
     try {
       console.log("Making API request to OpenAI");
@@ -110,7 +110,15 @@ Guidelines:
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Full error response:', errorData);
-        throw new Error(`API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
+        
+        // Handle specific error codes with more user-friendly messages
+        if (response.status === 504) {
+          throw new Error('The request timed out. Screen generation can take a while for complex products. Please try again or try with a simpler PRD.');
+        } else if (response.status === 429) {
+          throw new Error('Too many requests. Please wait a moment before trying again.');
+        } else {
+          throw new Error(`API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
+        }
       }
 
       const data = await response.json();
@@ -135,7 +143,20 @@ Guidelines:
       clearTimeout(timeoutId); // Ensure timeout is cleared on error
       
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out. The operation took too long to complete. Please try again.');
+        throw new Error('Request timed out. Screen generation can take a while for complex products. Please try again or try with a simpler PRD.');
+      }
+      
+      // If it's already a custom error message, pass it through
+      if (error.message && error.message.includes('timed out')) {
+        throw error;
+      }
+      
+      // Check for network-related errors
+      if (error.message && (
+        error.message.includes('Failed to fetch') || 
+        error.message.includes('Network request failed')
+      )) {
+        throw new Error('Network error. Please check your internet connection and try again.');
       }
       
       throw error;

@@ -393,7 +393,7 @@ export default function ProjectDetail() {
       
       // Check each PRD for screens
       for (const brief of briefs) {
-        const prd = prds.find(p => p.briefId === brief.id);
+      const prd = prds.find(p => p.briefId === brief.id);
         if (prd) {
           // First try to get the screen set
           const screenSet = screenStore.getScreenSetByPrdId(prd.id);
@@ -977,28 +977,28 @@ export default function ProjectDetail() {
             ) : (
               <div className="bg-[#f8f9fa] rounded-lg p-8">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-lg font-medium text-[#111827] mb-2">
+                      <div>
+                        <h3 className="text-lg font-medium text-[#111827] mb-2">
                       {hasScreens ? 'Screens Generated' : 'App Screens'}
-                    </h3>
-                    <p className="text-[#6b7280]">
+                        </h3>
+                        <p className="text-[#6b7280]">
                       {hasScreens 
                         ? 'App screens have been generated based on your PRD'
                         : 'Generate app screens based on your PRD to visualize your product'}
-                    </p>
-                  </div>
+                        </p>
+                      </div>
                   <div className="flex items-center gap-2">
-                    <Link
+                      <Link
                       href={prds.length > 0 ? `/screens/${prds[0].id}` : '#'}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                    >
+                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                      >
                       {hasScreens ? 'View Screens' : 'Generate Screens'}
-                      <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </Link>
+                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </Link>
+                    </div>
                   </div>
-                </div>
               </div>
             )}
           </div>
