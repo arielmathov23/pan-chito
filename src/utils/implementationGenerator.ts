@@ -149,7 +149,9 @@ export async function generateImplementationGuides(
    - Must incorporate technical stack details and UI guidelines
    - Should be written in a way that guides an AI coding assistant
    - Detail how to manage contrast, accessibility, and responsive desing.
-   - Place the code in a src/ directory, use App Router, use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
+   - Place the code in a src/ directory, use App Router
+   - Avoid Nested Directory Issues
+   - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
 
 2. Implementation Steps (.md file):
    - Structured step-by-step breakdown of development tasks related to the project and features.
