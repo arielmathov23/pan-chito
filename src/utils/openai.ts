@@ -50,7 +50,7 @@ ${formData.keyFeatures}
 ${formData.successMetrics}
 
 ## Implementation Considerations
-- Timeline: 3-6 months
+- Timeline: 2-4 months
 - Resources needed: Development team, design team, QA team
 - Technical requirements: To be determined
 

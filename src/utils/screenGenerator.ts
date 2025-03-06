@@ -22,7 +22,7 @@ Problem: ${brief.briefData?.problemStatement || 'Not specified'}
 Users: ${brief.briefData?.targetUsers || 'Not specified'}
 
 PRD Summary:
-${JSON.stringify(prd.content).slice(0, 800)}...
+${extractPRDSummary(prd.content)}
 
 Required Output Format:
 {
@@ -203,4 +203,49 @@ function parseScreenResponse(responseText: string, prdId: string): { screens: Sc
 // Function to parse screens from a raw text response
 export function parseScreens(responseText: string, prdId: string): { screens: Screen[], appFlow: AppFlow } {
   return parseScreenResponse(responseText, prdId);
+}
+
+function extractPRDSummary(prdContent: any): string {
+  try {
+    // Convert to string if it's not already
+    const prdString = typeof prdContent === 'string' ? prdContent : JSON.stringify(prdContent);
+    
+    // If PRD is relatively small, send it all
+    if (prdString.length < 3000) {
+      return prdString;
+    }
+    
+    // For larger PRDs, extract key sections
+    const prdObj = typeof prdContent === 'object' ? prdContent : JSON.parse(prdString);
+    
+    // Create a focused summary with the most important parts
+    const summary = {
+      title: prdObj.title || prdObj.name,
+      overview: prdObj.overview || prdObj.summary || prdObj.description,
+      requirements: prdObj.requirements || prdObj.functionalRequirements || [],
+      userFlows: prdObj.userFlows || prdObj.flows || prdObj.userJourneys || [],
+      keyFeatures: prdObj.keyFeatures || prdObj.features || []
+    };
+    
+    // Limit arrays to reasonable sizes if they exist
+    if (Array.isArray(summary.requirements) && summary.requirements.length > 5) {
+      summary.requirements = summary.requirements.slice(0, 5);
+    }
+    
+    if (Array.isArray(summary.userFlows) && summary.userFlows.length > 3) {
+      summary.userFlows = summary.userFlows.slice(0, 3);
+    }
+    
+    if (Array.isArray(summary.keyFeatures) && summary.keyFeatures.length > 5) {
+      summary.keyFeatures = summary.keyFeatures.slice(0, 5);
+    }
+    
+    return JSON.stringify(summary);
+  } catch (error) {
+    console.error("Error extracting PRD summary:", error);
+    // Fallback to original truncation method
+    return typeof prdContent === 'string' 
+      ? prdContent.slice(0, 1500) 
+      : JSON.stringify(prdContent).slice(0, 1500) + "...";
+  }
 } 

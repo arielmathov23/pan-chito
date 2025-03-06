@@ -15,6 +15,7 @@ import { techDocService } from '../../services/techDocService';
 import { useFeedbackModal } from '../../hooks/useFeedbackModal';
 import FeedbackModal from '../../components/FeedbackModal';
 import { implementationGuideService } from '../../services/implementationGuideService';
+import screenService from '../../services/screenService';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -77,35 +78,66 @@ export default function ProjectDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasImplementationGuide, setHasImplementationGuide] = useState(false);
+  const [hasScreens, setHasScreens] = useState(false);
 
   // Calculate if screens exist for any PRD
-  const hasScreens = briefs.some(brief => {
-    const prd = prds.find(p => p.briefId === brief.id);
-    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-  });
+  useEffect(() => {
+    const checkForScreens = async () => {
+      console.log('Checking for screens in useEffect');
+      if (!prds || prds.length === 0) {
+        console.log('No PRDs found, setting hasScreens to false');
+        setHasScreens(false);
+        return;
+      }
+
+      try {
+        // Check each PRD for screens using screenService
+        for (const prd of prds) {
+          console.log(`Checking screens for PRD ${prd.id} using screenService`);
+          const screenSet = await screenService.getScreenSetByPrdId(prd.id);
+          console.log(`Screen set from screenService for PRD ${prd.id}:`, screenSet);
+          
+          if (screenSet && screenSet.screens && screenSet.screens.length > 0) {
+            console.log(`Found ${screenSet.screens.length} screens for PRD ${prd.id}`);
+            setHasScreens(true);
+            return;
+          }
+        }
+        
+        console.log('No screens found for any PRD, setting hasScreens to false');
+        setHasScreens(false);
+      } catch (error) {
+        console.error('Error checking for screens:', error);
+        setHasScreens(false);
+      }
+    };
+
+    checkForScreens();
+  }, [prds]);
+
+  console.log('Final hasScreens value:', hasScreens);
 
   const nextStepButtonText = !briefs.length ? 'Create Brief' : 
     featureSets.length > 0 && prds.length === 0 ? 'Generate PRD' :
     briefs.length > 0 && featureSets.length === 0 ? 'Generate Features' :
-    prds.length > 0 && !briefs.some(brief => {
-      const prd = prds.find(p => p.briefId === brief.id);
-      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-    }) ? 'Generate Screens' :
+    prds.length > 0 && !hasScreens ? 'Generate Screens' :
     'Create Tech Docs';
+    
+  console.log('Final nextStepButtonText:', nextStepButtonText);
 
   const handleGenerateNextStep = () => {
     if (!project) return;
+    console.log('handleGenerateNextStep called, hasScreens:', hasScreens);
     
     if (!briefs.length) {
       router.push(`/brief/new?projectId=${project.id}`);
     } else if (featureSets.length > 0 && prds.length === 0) {
       router.push(`/prd/new?projectId=${project.id}`);
     } else if (briefs.length > 0 && featureSets.length === 0) {
-      router.push(`/brief/${briefs[0].id}/ideate`);
-    } else if (prds.length > 0 && !briefs.some(brief => {
-      const prd = prds.find(p => p.briefId === brief.id);
-      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-    })) {
+      // Navigate to the first brief to generate features
+      router.push(`/features/${briefs[0].id}`);
+    } else if (prds.length > 0 && !hasScreens) {
+      // If no screens exist, navigate to create screens
       const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
       if (brief) {
         const prdList = prds.filter(p => p.briefId === brief.id);
@@ -114,10 +146,11 @@ export default function ProjectDetail() {
         }
       }
     } else {
-      const brief = briefs.find((brief: Brief) => prds.find(p => p.briefId === brief.id));
-      const prd = brief ? prds.find(p => p.briefId === brief.id) : null;
-      if (prd) {
-        router.push(`/docs/${prd.id}`);
+      // If screens exist but tech docs don't, navigate to create tech docs
+      if (prds.length > 0) {
+        router.push(`/docs/${prds[0].id}`);
+      } else {
+        router.push(`/brief/${briefs[0].id}/ideate`);
       }
     }
   };
@@ -351,11 +384,30 @@ export default function ProjectDetail() {
     }
     
     // Add Screens section if available
-    const hasScreens = briefs.some(brief => {
-      // Find the PRD for this brief from the prds array
-      const prd = prds.find(p => p.briefId === brief.id);
-      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-    });
+    let hasScreens = false;
+    
+    try {
+      // Import screenStore directly
+      const screenStoreModule = require('../../utils/screenStore');
+      const screenStore = screenStoreModule.screenStore;
+      
+      // Check each PRD for screens
+      for (const brief of briefs) {
+        const prd = prds.find(p => p.briefId === brief.id);
+        if (prd) {
+          // First try to get the screen set
+          const screenSet = screenStore.getScreenSetByPrdId(prd.id);
+          // Check if there are any screens for this PRD
+          const screensForPrd = screenStore.screens.filter(screen => screen.prdId === prd.id);
+          if (screensForPrd && screensForPrd.length > 0) {
+            hasScreens = true;
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for screens:', error);
+    }
 
     if (hasScreens) {
       markdown += `## Screens\n\n`;
@@ -580,10 +632,7 @@ export default function ProjectDetail() {
                 {!briefs.length ? '0' : 
                  !featureSets.length ? '1' : 
                  !prds.length ? '2' : 
-                 !briefs.some(brief => {
-                   const prd = prds.find(p => p.briefId === brief.id);
-                   return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                 }) ? '3' : 
+                 !hasScreens ? '3' : 
                  !prds.some(prd => techDocs[prd.id]) ? '4' : '5'}/5 steps completed
               </div>
             </div>
@@ -597,10 +646,7 @@ export default function ProjectDetail() {
                     width: !briefs.length ? '0%' : 
                            !featureSets.length ? '20%' :
                            !prds.length ? '40%' :
-                           !briefs.some(brief => {
-                             const prd = prds.find(p => p.briefId === brief.id);
-                             return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                           }) ? '60%' : 
+                           !hasScreens ? '60%' : 
                            !prds.some(prd => techDocs[prd.id]) ? '80%' : '100%',
                     backgroundColor: COLORS.project.primary
                   }}
@@ -621,22 +667,10 @@ export default function ProjectDetail() {
                     status = prds.length > 0 ? 'completed' : 
                              featureSets.length > 0 ? 'active' : 'upcoming';
                   } else if (index === 3) {
-                    const hasScreens = briefs.some(brief => {
-                      const prd = prds.find(p => p.briefId === brief.id);
-                      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                    });
-                    
                     status = hasScreens ? 'completed' : 
                              prds.length > 0 ? 'active' : 'upcoming';
                   } else if (index === 4) {
-                    const hasScreens = briefs.some(brief => {
-                      const prd = prds.find(p => p.briefId === brief.id);
-                      return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                    });
-                    
-                    const hasTechDocs = prds.some(prd => techDocs[prd.id]);
-                    
-                    status = hasTechDocs ? 'completed' : 
+                    status = prds.some(prd => techDocs[prd.id]) ? 'completed' : 
                              hasScreens ? 'active' : 'upcoming';
                   }
                   
@@ -669,17 +703,8 @@ export default function ProjectDetail() {
                     {!briefs.length ? 'Create a Brief to get started' : 
                      featureSets.length > 0 && prds.length === 0 ? 'Generate a PRD based on your features' :
                      briefs.length > 0 && featureSets.length === 0 ? 'Generate features for your product' :
-                     prds.length > 0 && !briefs.some(brief => {
-                       const prd = prds.find(p => p.briefId === brief.id);
-                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                     }) ? 'Generate app screens based on your PRD' :
-                     briefs.some(brief => {
-                       const prd = prds.find(p => p.briefId === brief.id);
-                       return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                     }) && !briefs.some(brief => {
-                       const prd = prds.find(p => p.briefId === brief.id);
-                       return prd && require('../../utils/techDocStore').techDocStore.getTechDocByPrdId(prd.id);
-                     }) ? 'Create technical documentation for your project' :
+                     prds.length > 0 && !hasScreens ? 'Generate app screens based on your PRD' :
+                     hasScreens && Object.values(techDocs).every(val => !val) ? 'Create technical documentation for your project' :
                      '🎉 Congratulations! All stages are completed. Generate an implementation guide for AI coding assistants.'}
                   </p>
                 </div>
@@ -926,101 +951,54 @@ export default function ProjectDetail() {
           </div>
 
           {/* Screens Section */}
-          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8 mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div className="flex items-center">
                 <div className={`w-2 h-2 rounded-full ${
-                  briefs.some(brief => {
-                    const prd = prds.find(p => p.briefId === brief.id);
-                    return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                  }) ? 'bg-[#10b981]' : 
+                  hasScreens ? 'bg-[#10b981]' : 
                   prds.length > 0 ? 'bg-[#0F533A]' : 'bg-[#9ca3af]'
                 } mr-2`}></div>
                 <h2 className="text-xl font-semibold text-[#111827]">Screens</h2>
               </div>
               <div className={`${
                 !prds.length ? 'bg-[#f0f2f5] text-[#6b7280]' : 
-                briefs.some(brief => {
-                  const prd = prds.find(p => p.briefId === brief.id);
-                  return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                }) ? 'bg-[#e6f0eb] text-[#0F533A]' : 
+                hasScreens ? 'bg-[#e6f0eb] text-[#0F533A]' : 
                 'bg-[#e6f0eb] text-[#0F533A]'
               } px-3 py-1 rounded-full text-xs font-medium`}>
-                {!prds.length ? 'Locked' : 
-                 briefs.some(brief => {
-                   const prd = prds.find(p => p.briefId === brief.id);
-                   return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                 }) ? 'Completed' : 'Active'}
+                {!prds.length ? 'Locked' : hasScreens ? 'Completed' : 'Active'}
               </div>
             </div>
             
             {!prds.length ? (
               <div className="bg-[#f8f9fa] rounded-lg p-8 text-center">
                 <h3 className="text-lg font-medium text-[#111827] mb-2">Complete PRD First</h3>
-                <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Generate a PRD to unlock Screen Design</p>
+                <p className="text-[#6b7280] mb-6 max-w-md mx-auto">Generate a PRD to unlock Screen creation</p>
               </div>
             ) : (
               <div className="bg-[#f8f9fa] rounded-lg p-8">
-                {!briefs.some(brief => {
-                  const prd = prds.find(p => p.briefId === brief.id);
-                  return prd && require('../../utils/screenStore').screenStore.getScreenSetByPrdId(prd.id);
-                }) ? (
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium text-[#111827] mb-2">No Screens yet</h3>
-                    <p className="text-[#6b7280] mb-6 max-w-md mx-auto">
-                      Generate app screens based on your PRD to visualize your product
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-[#111827] mb-2">
+                      {hasScreens ? 'Screens Generated' : 'App Screens'}
+                    </h3>
+                    <p className="text-[#6b7280]">
+                      {hasScreens 
+                        ? 'App screens have been generated based on your PRD'
+                        : 'Generate app screens based on your PRD to visualize your product'}
                     </p>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Link
-                      href={`/screens/${(() => {
-                        const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
-                        if (brief) {
-                          const prdList = prds.filter(p => p.briefId === brief.id);
-                          if (prdList.length > 0) {
-                            return prdList[0].id;
-                          }
-                        }
-                        return '';
-                      })()}`}
+                      href={prds.length > 0 ? `/screens/${prds[0].id}` : '#'}
                       className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                     >
-                      Generate Screens
+                      {hasScreens ? 'View Screens' : 'Generate Screens'}
                       <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </Link>
                   </div>
-                ) : (
-                  <div>
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
-                      <div>
-                        <h3 className="text-lg font-medium text-[#111827] mb-2">
-                          Screens Created
-                        </h3>
-                        <p className="text-[#6b7280]">
-                          Your app screens have been generated and are ready to view
-                        </p>
-                      </div>
-                      <Link
-                        href={`/screens/${(() => {
-                          const brief = briefs.find((b: Brief) => prds.find(p => p.briefId === b.id));
-                          if (brief) {
-                            const prdList = prds.filter(p => p.briefId === brief.id);
-                            if (prdList.length > 0) {
-                              return prdList[0].id;
-                            }
-                          }
-                          return '';
-                        })()}`}
-                        className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
-                      >
-                        View Screens
-                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M8.91 19.92L15.43 13.4C16.2 12.63 16.2 11.37 15.43 10.6L8.91 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </Link>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -1081,7 +1059,7 @@ export default function ProjectDetail() {
                     </div>
                     <div className="flex items-center gap-2">
                     <Link
-                        href={`/docs/new?projectId=${project.id}`}
+                        href={`/docs/${prds[0].id}`}
                         className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
                       >
                         Create Tech Docs

@@ -36,6 +36,8 @@ export default function ScreensPage() {
   const [stepDescription, setStepDescription] = useState('');
   const [selectedScreenId, setSelectedScreenId] = useState<string | undefined>();
   const [afterStepId, setAfterStepId] = useState<string | undefined>('start');
+  const [isDeleteScreensModalOpen, setIsDeleteScreensModalOpen] = useState(false);
+  const [currentScreenIndex, setCurrentScreenIndex] = useState(0);
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -337,22 +339,27 @@ export default function ScreensPage() {
     }
   };
 
-  const handleDeleteScreens = async () => {
+  const handleDeleteScreens = () => {
+    if (!screenSet || !prd) return;
+    setIsDeleteScreensModalOpen(true);
+  };
+
+  const confirmDeleteScreens = async () => {
     if (!screenSet || !prd) return;
     
-    if (window.confirm(`Are you sure you want to delete these screens?\n\nThis action cannot be undone.`)) {
-      try {
-        // Delete from Supabase
-        await screenService.deleteScreenSet(screenSet.appFlow.id);
-        
-        // Also delete from local storage for backward compatibility
-        screenStore.deleteScreenSet(screenSet.appFlow.id);
-        
-        setScreenSet(null);
-      } catch (error) {
-        console.error('Error deleting screens:', error);
-        setError('Failed to delete screens. Please try again.');
-      }
+    try {
+      // Delete from Supabase
+      await screenService.deleteScreenSet(screenSet.appFlow.id);
+      
+      // Also delete from local storage for backward compatibility
+      screenStore.deleteScreenSet(screenSet.appFlow.id);
+      
+      setScreenSet(null);
+      setIsDeleteScreensModalOpen(false);
+    } catch (error) {
+      console.error('Error deleting screens:', error);
+      setError('Failed to delete screens. Please try again.');
+      setIsDeleteScreensModalOpen(false);
     }
   };
 
@@ -476,19 +483,26 @@ export default function ScreensPage() {
     };
 
     return (
-      <div key={screen.id} className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden mb-6">
-        <div className="bg-gradient-to-r from-[#0F533A]/5 to-transparent px-6 py-4 border-b border-[#e5e7eb]">
+      <div key={screen.id} className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden h-full flex flex-col">
+        <div className="bg-gradient-to-r from-[#0F533A]/10 to-transparent px-6 py-4 border-b border-[#e5e7eb]">
           <h3 className="text-lg font-medium text-[#111827]">{screen.name}</h3>
-          <p className="text-[#6b7280] mt-1">{screen.description}</p>
+          <p className="text-[#6b7280] mt-1 line-clamp-2">{screen.description}</p>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 flex-grow overflow-y-auto">
           {/* Images Section */}
           {elements.images.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151]">Images</h4>
+              <h4 className="text-sm font-medium text-[#374151] flex items-center">
+                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 10C10.1046 10 11 9.10457 11 8C11 6.89543 10.1046 6 9 6C7.89543 6 7 6.89543 7 8C7 9.10457 7.89543 10 9 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2.67 18.95L7.6 15.64C8.39 15.11 9.53 15.17 10.24 15.78L10.57 16.07C11.35 16.74 12.61 16.74 13.39 16.07L17.55 12.5C18.33 11.83 19.59 11.83 20.37 12.5L22 13.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Images
+              </h4>
               {elements.images.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
                   <p className="text-[#4b5563] text-sm">{element.properties.description || 'No description provided'}</p>
                 </div>
               ))}
@@ -498,9 +512,16 @@ export default function ScreensPage() {
           {/* Inputs Section */}
           {elements.inputs.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151]">Input Fields</h4>
+              <h4 className="text-sm font-medium text-[#374151] flex items-center">
+                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7.5 8.34961H16.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7.5 15.6504H13.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Input Fields
+              </h4>
               {elements.inputs.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
                   <p className="text-[#4b5563] text-sm">{element.properties.description || 'No description provided'}</p>
                 </div>
               ))}
@@ -510,9 +531,20 @@ export default function ScreensPage() {
           {/* Information Section */}
           {elements.text.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151]">Information</h4>
+              <h4 className="text-sm font-medium text-[#374151] flex items-center">
+                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M16 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3.5 9.08984H20.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M11.9955 13.7002H12.0045" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8.29431 13.7002H8.30329" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8.29431 16.7002H8.30329" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Information
+              </h4>
               {elements.text.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
                   <p className="text-[#4b5563] text-sm">{element.properties.content}</p>
                 </div>
               ))}
@@ -522,13 +554,28 @@ export default function ScreensPage() {
           {/* Navigation Section */}
           {elements.buttons.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151]">Navigation</h4>
+              <h4 className="text-sm font-medium text-[#374151] flex items-center">
+                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.28 10.45L21 6.72998L17.28 3.01001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 6.72998H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6.72 13.55L3 17.27L6.72 20.99" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 17.27H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Navigation
+              </h4>
               {elements.buttons.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4">
+                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="text-[#4b5563] text-sm font-medium">{element.properties.content}</span>
                     {element.properties.action && (
-                      <span className="text-[#0F533A] text-sm">→ {element.properties.action}</span>
+                      <span className="text-[#0F533A] text-sm flex items-center">
+                        <span className="mr-1">to</span>
+                        <svg className="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none">
+                          <path d="M14.4301 5.92993L20.5001 11.9999L14.4301 18.0699" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M3.5 12H20.33" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {element.properties.action}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -704,28 +751,28 @@ export default function ScreensPage() {
                     <li className="flex items-start">
                       <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       Visualize user interface and flow
                     </li>
                     <li className="flex items-start">
                       <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       Define navigation and interactions
                     </li>
                     <li className="flex items-start">
                       <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       Guide development and design teams
                     </li>
                     <li className="flex items-start">
                       <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       Validate user experience early
                     </li>
@@ -845,10 +892,92 @@ export default function ScreensPage() {
                     <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
                     <h2 className="text-xl font-semibold text-[#111827]">App Screens</h2>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-[#6b7280]">
+                      {currentScreenIndex + 1} of {screenSet.screens.length}
+                    </span>
+                    <div className="flex items-center space-x-1">
+                      <button 
+                        onClick={() => setCurrentScreenIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentScreenIndex === 0}
+                        className={`p-1.5 rounded-full ${currentScreenIndex === 0 ? 'text-[#d1d5db] cursor-not-allowed' : 'text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6]'} transition-colors`}
+                        aria-label="Previous screen"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={() => setCurrentScreenIndex(prev => Math.min(screenSet.screens.length - 1, prev + 1))}
+                        disabled={currentScreenIndex === screenSet.screens.length - 1}
+                        className={`p-1.5 rounded-full ${currentScreenIndex === screenSet.screens.length - 1 ? 'text-[#d1d5db] cursor-not-allowed' : 'text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6]'} transition-colors`}
+                        aria-label="Next screen"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M9 19.92L15.52 13.4C16.29 12.63 16.29 11.37 15.52 10.6L9 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="space-y-6">
-                  {screenSet.screens.map(screen => renderScreen(screen))}
+                <div className="relative">
+                  {/* Screen Carousel */}
+                  <div className="overflow-hidden">
+                    <div 
+                      className="transition-transform duration-300 ease-in-out flex"
+                      style={{ transform: `translateX(-${currentScreenIndex * 100}%)` }}
+                    >
+                      {screenSet.screens.map((screen, index) => (
+                        <div 
+                          key={screen.id} 
+                          className="w-full flex-shrink-0 flex-grow-0"
+                          style={{ 
+                            minWidth: '100%',
+                            opacity: Math.abs(currentScreenIndex - index) > 1 ? 0.4 : 1,
+                          }}
+                        >
+                          <div className="h-[500px] max-h-[70vh] px-1">
+                            {renderScreen(screen)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Navigation Buttons (for larger screens) */}
+                  <button 
+                    onClick={() => setCurrentScreenIndex(prev => Math.max(0, prev - 1))}
+                    disabled={currentScreenIndex === 0}
+                    className={`absolute top-1/2 left-0 transform -translate-y-1/2 -ml-4 p-2 rounded-full bg-white shadow-md border border-[#e5e7eb] ${currentScreenIndex === 0 ? 'opacity-0 cursor-default' : 'opacity-100 hover:border-[#0F533A]/30'} transition-all hidden md:block z-10`}
+                    aria-label="Previous screen"
+                  >
+                    <svg className="w-5 h-5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  <button 
+                    onClick={() => setCurrentScreenIndex(prev => Math.min(screenSet.screens.length - 1, prev + 1))}
+                    disabled={currentScreenIndex === screenSet.screens.length - 1}
+                    className={`absolute top-1/2 right-0 transform -translate-y-1/2 -mr-4 p-2 rounded-full bg-white shadow-md border border-[#e5e7eb] ${currentScreenIndex === screenSet.screens.length - 1 ? 'opacity-0 cursor-default' : 'opacity-100 hover:border-[#0F533A]/30'} transition-all hidden md:block z-10`}
+                    aria-label="Next screen"
+                  >
+                    <svg className="w-5 h-5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 19.92L15.52 13.4C16.29 12.63 16.29 11.37 15.52 10.6L9 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Screen Indicators */}
+                <div className="flex justify-center mt-6 space-x-1.5">
+                  {screenSet.screens.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentScreenIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-all ${currentScreenIndex === index ? 'bg-[#0F533A] w-6' : 'bg-[#d1d5db] hover:bg-[#9ca3af]'}`}
+                      aria-label={`Go to screen ${index + 1}`}
+                    />
+                  ))}
                 </div>
               </div>
             </>
@@ -951,6 +1080,33 @@ export default function ScreensPage() {
               </button>
               <button
                 onClick={confirmDeleteStep}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Delete Screens Confirmation Modal */}
+        <Modal
+          isOpen={isDeleteScreensModalOpen}
+          onClose={() => setIsDeleteScreensModalOpen(false)}
+          title="Delete Screens"
+        >
+          <div className="p-6">
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete these screens? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setIsDeleteScreensModalOpen(false)}
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteScreens}
                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
               >
                 Delete

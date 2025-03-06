@@ -100,7 +100,7 @@ ${formData.targetUsers}
 Existing Solutions:
 ${formData.existingSolutions}
 
-Proposed Solution:
+Proposed General Solution:
 ${formData.proposedSolution}
 
 Project Objectives:
@@ -124,7 +124,7 @@ Please provide your response as a JSON object with the following structure:
   "problemStatement": "Detailed problem statement with data if possible",
   "targetUsers": "Clear segmentation and user profiles as a string, not an object",
   "existingSolutions": "Analysis of current alternatives and their limitations",
-  "proposedSolution": "Detailed explanation of how the product solves the problem. IMPORTANT: Include a clear recommendation on the optimal platform type (mobile app, web app, responsive web app, desktop app, etc.) with justification based on the target users and use cases",
+  "proposedSolution": "Detailed explanation of how the product solves the problem. IMPORTANT: Include a clear recommendation on the optimal platform type (mobile app, web app, responsive web app, desktop app, etc.) with justification based on the target users and use cases, prioritizing best in terms of effort and impact",
   "productObjectives": "Specific, measurable, achievable, relevant, and time-bound objectives for the short term",
   "keyFeatures": "Recommended features and functionality based on the ideas provided",
   "marketAnalysis": "Size, competitors, trends, opportunities",

@@ -141,7 +141,7 @@ export async function generateImplementationGuides(
     throw new Error('Invalid technical documentation. Tech doc is required.');
   }
 
-  const prompt = `You are an expert AI engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project:
+  const prompt = `You are an expert engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project:
 
 1. Implementation Guide (.md file):
    - A comprehensive overview of how to implement the project
@@ -151,10 +151,11 @@ export async function generateImplementationGuides(
 
 2. Implementation Steps (.md file):
    - Structured step-by-step breakdown of development tasks related to the project and features.
-   - Divide the steps in 3 sections: set up, development of features, and deployment.
    - Ensure consistent alignment with project guides.
    - Maintain development flow by breaking down PRD content into executable steps
    - Provide clear checkpoints for AI to validate progress and maintain quality
+   - Consider that your first goal is to have a working project running in local host with info saved in local. 
+   - Organize your steps in stages: 1) features with mock integrations running in local, 2) add integrations if needed, 3) integrate database
 
 Project Information:
 Product Name: ${brief?.product_name || ''}

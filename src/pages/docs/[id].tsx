@@ -438,7 +438,7 @@ export default function TechDocPage() {
               {techDoc && project && (
                 <Link
                   href={`/implementation/${project.id}`}
-                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors"
+                  className="inline-flex items-center justify-center bg-[#8b5cf6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#7c3aed] transition-colors"
                 >
                   Implementation Guide
                   <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -125,7 +125,7 @@ Please provide your response as a JSON object with the following structure:
   },
   "frontendGuidelines": {
     "overview": "Brief overview of the frontend guidelines",
-    "colorPalette": "Recommended color palette with hex codes based on the product's brand and purpose",
+    "colorPalette": "Recommended color palette with hex codes based on the product's brand and purpose, make it minimalist. Choose a main color, a secondary color, and a background color. Choose a preferred dark or light color scheme.",
     "typography": "Typography recommendations including font families and sizes",
     "componentStructure": "How components should be organized and structured",
     "responsiveDesign": "Guidelines for ensuring the application works across devices",
@@ -145,8 +145,8 @@ Please provide your response as a JSON object with the following structure:
 Technical Requirements and Preferences:
 
 1. Tech Stack:
-   - Frontend: Prefer Next.js or React, with Tailwind CSS for styling
-   - Backend: Node.js with Express.js is preferred
+   - Frontend: if it is a web app we prefer Next.js or React, with Tailwind CSS for styling.
+   - Backend: Node.js with Express.js is preferred if possible with the solution overview
    - Database: Supabase (PostgreSQL)
    - Deployment: Vercel for hosting
 
