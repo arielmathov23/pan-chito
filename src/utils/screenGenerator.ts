@@ -19,7 +19,6 @@ You are a senior UX designer creating detailed screen specifications for a mobil
 Context:
 Product: ${brief.productName}
 
-
 PRD Summary:
 ${extractPRDSummary(prd.content)}
 
