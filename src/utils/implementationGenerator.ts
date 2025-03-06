@@ -154,10 +154,9 @@ export async function generateImplementationGuides(
 2. Implementation Steps (.md file):
    - Structured step-by-step breakdown of development tasks related to the project and features.
    - Ensure consistent alignment with project guides.
-   - Maintain development flow by breaking down PRD content into executable steps
-   - Provide clear checkpoints for AI to validate progress and maintain quality
-   - Consider that your first goal is to have a working project running in local host with info saved in local. 
-   - Organize your steps in stages: 1) features with mock integrations running in local with a backend running all in the same port 2) add integrations if needed (i.e. openai) and login/sign up if needed 3) integrate database for saving info and auth
+   - Maintain development flow by breaking down feature content into executable steps
+   - Your first goal is to have a working project running in local host with info saved in local with backend running all in the same port. 
+   - Organize your steps in stages: 1) features running in local with a backend running all in the same port. if there is an external service use a mock integration 2) add integrations if needed (i.e. openai) and login/sign up if needed 3) integrate database for saving info and auth
 
 Project Information:
 Product Name: ${brief?.product_name || ''}
