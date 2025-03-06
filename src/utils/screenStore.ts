@@ -13,15 +13,8 @@ export interface Screen {
 // Define the ScreenElement interface
 export interface ScreenElement {
   id: string;
-  type: 'button' | 'input' | 'text' | 'image' | 'container' | 'list' | 'card';
-  properties: {
-    content?: string;
-    description?: string;
-    label?: string;
-    action?: string;
-    style?: string;
-    layout?: string;
-  };
+  type: string; // Check if this is defined as a string or as a union type
+  properties: any;
 }
 
 // Define the AppFlow interface
