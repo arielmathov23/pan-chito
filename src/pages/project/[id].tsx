@@ -627,7 +627,10 @@ export default function ProjectDetail() {
           {/* Project Progress Summary */}
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h2 className="text-xl font-semibold text-[#111827]">Project Progress: Complete all steps to start development</h2>
+              <h2 className="text-xl font-semibold text-[#111827] tracking-tight flex items-center">
+                <span className="mr-2">Project Progress:</span>
+                <span className="text-[#4b5563] font-medium text-lg">Complete all steps to start development</span>
+              </h2>
               <div className="bg-[#e6f0eb] text-[#0F533A] text-sm px-3 py-1 rounded-full font-medium">
                 {!briefs.length ? '0' : 
                  !featureSets.length ? '1' : 

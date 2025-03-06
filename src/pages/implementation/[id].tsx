@@ -260,7 +260,7 @@ export default function ImplementationGuidePage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold text-[#111827]">Implementation Guide</h1>
-              <p className="text-[#6b7280] mt-2">AI-ready implementation instructions for {project?.name}</p>
+              <p className="text-[#6b7280] mt-2">Implement {project?.name} with a dev team or AI coding assistants</p>
             </div>
             {guideGenerated && (
               <button
@@ -327,52 +327,7 @@ export default function ImplementationGuidePage() {
             </div>
           </div>
         )}
-        
-        {/* Information Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">How to use with AI coding assistants</h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <p>These implementation guides are designed specifically for AI coding assistants like Cursor, Lovable, Replit, or other coding tools that can follow structured instructions.</p>
-                <ol className="list-decimal pl-5 mt-2 space-y-1">
-                  <li>Generate the Implementation Guide based on your Brief, PRD, Screens, and Tech Doc</li>
-                  <li>Copy the generated guides: Implementation Guide and Implementation Steps</li>
-                  <li>For Cursor: Download both guides as .md files and place them in your project's source directory</li>
-                  <li>Open the AI Assistant in Cursor and paste the 'AI Assistant Prompt'</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Prompt Section */}
-        <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-start gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-[#111827] mb-2">AI Assistant Prompt</h2>
-              <p className="text-[#6b7280] text-sm mb-4">Copy this prompt to use with your AI coding assistant</p>
-            </div>
-            <button
-              onClick={() => handleCopyToClipboard("To get started with this new project follow these instructions carefully: 1) Start by thoroughly reading the implementationguide.md file to understand the project's scope and high-level definitions. 2) Next, read the implementationsteps.md file to familiarize yourself with all the steps required to develop the solution. 3) Create a new file named executionsteps.md to log your progress. 4) Implement Sequentially: Begin implementing the steps one by one, starting from step 1, as outlined in implementationsteps.md. 5) Handle Stages (if present): If the steps in implementationsteps.md are organized under stage headings: a) Complete all steps under a stage heading before moving to the next stage. b) After finishing the last step of a stage, ask the user: 'Stage [X] completed. Are you ready to proceed to Stage [Y]?' before starting the first step of the next stage. c) In executionsteps.md, include the stage headings and list the completed steps under their respective stages, marking each as 'Done'. d) Handle Steps Without Stages: If the steps are not organized into stages, complete each step in order and log them in executionsteps.md with 'Done' after each one. 6) Log Progress: For each completed step, add an entry to executionsteps.md with: The step number, A brief description of the task, The word 'Done', The stage it belongs to (if applicable).")}
-              className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium bg-[#f0f2f5] text-[#4b5563] hover:bg-[#e5e7eb] transition-colors"
-            >
-              <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 12.9V17.1C16 20.6 14.6 22 11.1 22H6.9C3.4 22 2 20.6 2 17.1V12.9C2 9.4 3.4 8 6.9 8H11.1C14.6 8 16 9.4 16 12.9Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M22 6.9V11.1C22 14.6 20.6 16 17.1 16H16V12.9C16 9.4 14.6 8 11.1 8H8V6.9C8 3.4 9.4 2 12.9 2H17.1C20.6 2 22 3.4 22 6.9Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Copy Prompt
-            </button>
-          </div>
-          <div className="bg-[#f8f9fa] rounded-lg p-4 font-mono text-sm text-[#4b5563] whitespace-pre-wrap">
-          To get started with this new project follow these instructions carefully: 1) Start by thoroughly reading the implementationguide.md file to understand the project's scope and high-level definitions. 2) Next, read the implementationsteps.md file to familiarize yourself with all the steps required to develop the solution. 3) Create a new file named executionsteps.md to log your progress. 4) Implement Sequentially: Begin implementing the steps one by one, starting from step 1, as outlined in implementationsteps.md. 5) Handle Stages (if present): If the steps in implementationsteps.md are organized under stage headings: a) Complete all steps under a stage heading before moving to the next stage. b) After finishing the last step of a stage, ask the user: Stage [X] completed. Are you ready to proceed to Stage [Y]?" before starting the first step of the next stage. c) In executionsteps.md, include the stage headings and list the completed steps under their respective stages, marking each as "Done". d) Handle Steps Without Stages: If the steps are not organized into stages, complete each step in order and log them in executionsteps.md with "Done" after each one. 6) Log Progress: For each completed step, add an entry to executionsteps.md with: The step number, A brief description of the task, The word "Done", The stage it belongs to (if applicable)
-          </div>
-        </div>
+
         
         {!guideGenerated ? (
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-8 text-center">
@@ -415,49 +370,231 @@ export default function ImplementationGuidePage() {
           </div>
         ) : (
           <div className="grid gap-8 grid-cols-1">
-            {/* Implementation Guide */}
+            {/* Development Team Section */}
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
-                  <h2 className="text-xl font-semibold text-[#111827]">Implementation Guide</h2>
-                </div>
-                <button
-                  onClick={() => handleCopyToClipboard(implementationGuide)}
-                  className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors"
+                <button 
+                  onClick={() => {
+                    const devTeamContent = document.getElementById('dev-team-content');
+                    if (devTeamContent) {
+                      devTeamContent.classList.toggle('hidden');
+                      const expandIcon = document.getElementById('dev-team-expand');
+                      if (expandIcon) {
+                        expandIcon.classList.toggle('rotate-180');
+                      }
+                    }
+                  }}
+                  className="flex items-center text-left flex-1 hover:text-[#111827] transition-colors"
                 >
-                  <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 19V9C17 8.44772 16.5523 8 16 8Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
+                  <h2 className="text-xl font-semibold text-[#111827]">Development Team</h2>
+                </button>
+                <button 
+                  onClick={() => {
+                    const devTeamContent = document.getElementById('dev-team-content');
+                    if (devTeamContent) {
+                      devTeamContent.classList.toggle('hidden');
+                      const expandIcon = document.getElementById('dev-team-expand');
+                      if (expandIcon) {
+                        expandIcon.classList.toggle('rotate-180');
+                      }
+                    }
+                  }}
+                  className="text-[#6b7280] hover:text-[#111827] transition-colors"
+                >
+                  <svg id="dev-team-expand" className="w-5 h-5 transition-transform duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 9L12 16L5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Copy
                 </button>
               </div>
-              <div className="border border-[#e5e7eb] rounded-lg p-4 bg-[#f8f9fa] overflow-auto max-h-[500px]">
-                <pre className="text-sm text-[#374151] whitespace-pre-wrap">{implementationGuide}</pre>
+              
+              {/* Trello Integration - Coming Soon */}
+              <div id="dev-team-content" className="transition-all duration-300 hidden">
+                <div className="bg-white border border-[#e5e7eb] rounded-xl p-6 mb-6 shadow-sm">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 mr-4">
+                      <div className="w-12 h-12 bg-[#0079BF] rounded-md flex items-center justify-center">
+                        <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M19.2 3H4.8C3.81 3 3 3.81 3 4.8V19.2C3 20.19 3.81 21 4.8 21H19.2C20.19 21 21 20.19 21 19.2V4.8C21 3.81 20.19 3 19.2 3ZM10.5 16.5C10.5 16.91 10.16 17.25 9.75 17.25H6.75C6.34 17.25 6 16.91 6 16.5V6.75C6 6.34 6.34 6 6.75 6H9.75C10.16 6 10.5 6.34 10.5 6.75V16.5ZM18 12.75C18 13.16 17.66 13.5 17.25 13.5H14.25C13.84 13.5 13.5 13.16 13.5 12.75V6.75C13.5 6.34 13.84 6 14.25 6H17.25C17.66 6 18 6.34 18 6.75V12.75Z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center">
+                        <h3 className="text-lg font-medium text-[#111827]">Trello Integration</h3>
+                        <span className="ml-2 text-xs font-medium bg-[#f3f4f6] text-[#6b7280] px-2 py-0.5 rounded-full">Coming Soon</span>
+                      </div>
+                      <p className="text-sm text-[#6b7280] mt-1">
+                        Export your project as epics and user stories to organize your development workflow
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex space-x-4">
+                    <div className="flex-1 border border-[#e5e7eb] rounded-lg p-3 bg-white">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-[#ff9f1a] mr-2"></div>
+                        <h4 className="font-medium text-[#4b5563] text-sm">Epics</h4>
+                      </div>
+                      <p className="text-xs text-[#6b7280] mt-1 pl-4">Create boards from major features</p>
+                    </div>
+                    <div className="flex-1 border border-[#e5e7eb] rounded-lg p-3 bg-white">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-[#36b37e] mr-2"></div>
+                        <h4 className="font-medium text-[#4b5563] text-sm">User Stories</h4>
+                      </div>
+                      <p className="text-xs text-[#6b7280] mt-1 pl-4">Generate cards from implementation steps</p>
+                    </div>
+                  </div>
+                  
+                  <button disabled className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium bg-[#0079BF] text-white opacity-50 cursor-not-allowed">
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M7.75 12L10.58 14.83L16.25 9.17" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Connect to Trello
+                  </button>
+                </div>
               </div>
             </div>
             
-            {/* Implementation Steps */}
+            {/* AI Coding Assistants Section */}
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
-                  <h2 className="text-xl font-semibold text-[#111827]">Implementation Steps</h2>
-                </div>
-                <button
-                  onClick={() => handleCopyToClipboard(implementationSteps)}
-                  className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors"
+                <button 
+                  onClick={() => {
+                    const aiAssistantContent = document.getElementById('ai-assistant-content');
+                    if (aiAssistantContent) {
+                      aiAssistantContent.classList.toggle('hidden');
+                      const expandIcon = document.getElementById('ai-assistant-expand');
+                      if (expandIcon) {
+                        expandIcon.classList.toggle('rotate-180');
+                      }
+                    }
+                  }}
+                  className="flex items-center text-left flex-1 hover:text-[#111827] transition-colors"
                 >
-                  <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 19V9C17 8.44772 16.5523 8 16 8Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <div className="w-2 h-2 rounded-full bg-[#8b5cf6] mr-2"></div>
+                  <h2 className="text-xl font-semibold text-[#111827]">AI Coding Assistants</h2>
+                </button>
+                <button 
+                  onClick={() => {
+                    const aiAssistantContent = document.getElementById('ai-assistant-content');
+                    if (aiAssistantContent) {
+                      aiAssistantContent.classList.toggle('hidden');
+                      const expandIcon = document.getElementById('ai-assistant-expand');
+                      if (expandIcon) {
+                        expandIcon.classList.toggle('rotate-180');
+                      }
+                    }
+                  }}
+                  className="text-[#6b7280] hover:text-[#111827] transition-colors"
+                >
+                  <svg id="ai-assistant-expand" className="w-5 h-5 transition-transform duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 9L12 16L5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Copy
                 </button>
               </div>
-              <div className="border border-[#e5e7eb] rounded-lg p-4 bg-[#f8f9fa] overflow-auto max-h-[500px]">
-                <pre className="text-sm text-[#374151] whitespace-pre-wrap">{implementationSteps}</pre>
+              
+              <div id="ai-assistant-content" className="transition-all duration-300">
+                {/* How to use with AI coding assistants */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center">
+                  
+                    <div className="ml-3 flex-1">
+                      <div className="flex items-center">
+                        <h3 className="text-base font-semibold text-blue-800">
+                          How to use with AI coding assistants
+                        </h3>
+                        <div className="flex items-center ml-4 space-x-2">
+                          <div className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200">
+                            <img src="/cursor.jpg" alt="Cursor" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200">
+                            <img src="/replit.png" alt="Replit" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200">
+                            <img src="/lovable.jpeg" alt="Lovable" className="w-full h-full object-cover" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-sm text-blue-700">
+                        <p>These implementation guides are designed specifically for AI coding assistants like Cursor, Lovable, Replit, or other coding tools that can follow structured instructions.</p>
+                        <ol className="list-decimal pl-5 mt-2 space-y-1">
+                          <li>Generate the Implementation Guide based on your Brief, PRD, Screens, and Tech Doc</li>
+                          <li>Copy the generated guides: Implementation Guide and Implementation Steps</li>
+                          <li>For Cursor: Download both guides as .md files and place them in your project's source directory</li>
+                          <li>Open the AI Assistant in Cursor and paste the 'AI Assistant Prompt'</li>
+                        </ol>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* AI Assistant Prompt */}
+                <div className="mb-8">
+                  <div className="flex justify-between items-start gap-4 mb-4">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#111827]">AI Assistant Prompt</h3>
+                      <p className="text-[#6b7280] text-sm">Copy this prompt to use with your AI coding assistant</p>
+                    </div>
+                    <button
+                      onClick={() => handleCopyToClipboard("To get started with this new project follow these instructions carefully: 1) Start by thoroughly reading the implementationguide.md file to understand the project's scope and high-level definitions. 2) Next, read the implementationsteps.md file to familiarize yourself with all the steps required to develop the solution. 3) Create a new file named executionsteps.md to log your progress. 4) Implement Sequentially: Begin implementing the steps one by one, starting from step 1, as outlined in implementationsteps.md. 5) Handle Stages (if present): If the steps in implementationsteps.md are organized under stage headings: a) Complete all steps under a stage heading before moving to the next stage. b) After finishing the last step of a stage, ask the user: 'Stage [X] completed. Are you ready to proceed to Stage [Y]?' before starting the first step of the next stage. c) In executionsteps.md, include the stage headings and list the completed steps under their respective stages, marking each as 'Done'. d) Handle Steps Without Stages: If the steps are not organized into stages, complete each step in order and log them in executionsteps.md with 'Done' after each one. 6) Log Progress: For each completed step, add an entry to executionsteps.md with: The step number, A brief description of the task, The word 'Done', The stage it belongs to (if applicable).")}
+                      className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium bg-[#f0f2f5] text-[#4b5563] hover:bg-[#e5e7eb] transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 12.9V17.1C16 20.6 14.6 22 11.1 22H6.9C3.4 22 2 20.6 2 17.1V12.9C2 9.4 3.4 8 6.9 8H11.1C14.6 8 16 9.4 16 12.9Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M22 6.9V11.1C22 14.6 20.6 16 17.1 16H16V12.9C16 9.4 14.6 8 11.1 8H8V6.9C8 3.4 9.4 2 12.9 2H17.1C20.6 2 22 3.4 22 6.9Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Copy Prompt
+                    </button>
+                  </div>
+                  <div className="bg-[#f8f9fa] rounded-lg p-4 font-mono text-sm text-[#4b5563] whitespace-pre-wrap">
+                  To get started with this new project follow these instructions carefully: 1) Start by thoroughly reading the @implementationguide.md file to understand the project's scope and high-level definitions. 2) Next, read the @implementationsteps.md file to familiarize yourself with all the steps required to develop the solution. 3) Create a new file named executionsteps.md to log your progress. 4) Implement Sequentially: Begin implementing the steps one by one, starting from step 1, as outlined in implementationsteps.md. 5) Handle Stages (if present): If the steps in implementationsteps.md are organized under stage headings: a) Complete all steps under a stage heading before moving to the next stage. b) After finishing the last step of a stage, ask the user: Stage [X] completed. Are you ready to proceed to Stage [Y]?" before starting the first step of the next stage. c) In executionsteps.md, include the stage headings and list the completed steps under their respective stages, marking each as "Done". d) Handle Steps Without Stages: If the steps are not organized into stages, complete each step in order and log them in executionsteps.md with "Done" after each one. 6) Log Progress: For each completed step, add an entry to executionsteps.md with: The step number, A brief description of the task, The word "Done", The stage it belongs to (if applicable)
+                  </div>
+                </div>
+                
+                {/* Implementation Guide */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-[#111827]">Implementation Guide</h3>
+                    <button
+                      onClick={() => handleCopyToClipboard(implementationGuide)}
+                      className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 19V9C17 8.44772 16.5523 8 16 8Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-sm text-[#6b7280] -mt-2 mb-2 ">Copy this info and paste it as an .md document in Directory files.</p>
+                  <div className="border border-[#e5e7eb] rounded-lg p-4 bg-[#f8f9fa] overflow-auto max-h-[500px]">
+                    <pre className="text-sm text-[#374151] whitespace-pre-wrap">{implementationGuide}</pre>
+                  </div>
+                </div>
+                
+                {/* Implementation Steps */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-[#111827]">Implementation Steps</h3>
+                    <button
+                      onClick={() => handleCopyToClipboard(implementationSteps)}
+                      className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 19V9C17 8.44772 16.5523 8 16 8Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-sm text-[#6b7280] -mt-2 mb-2 italic">Copy this info and paste it as an .md document in Directory files.</p>
+                  <div className="border border-[#e5e7eb] rounded-lg p-4 bg-[#f8f9fa] overflow-auto max-h-[500px]">
+                    <pre className="text-sm text-[#374151] whitespace-pre-wrap">{implementationSteps}</pre>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
