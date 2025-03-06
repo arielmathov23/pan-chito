@@ -7,6 +7,7 @@ import { Project, projectService } from '../../../services/projectService';
 import { Brief, briefService } from '../../../services/briefService';
 import { Feature, FeatureSet } from '../../../utils/featureStore';
 import { featureService } from '../../../services/featureService';
+import { prdService } from '../../../services/prdService';
 import { generateFeatures } from '../../../utils/featureGenerator';
 import Modal from '../../../components/Modal';
 import { Brief as BriefStore } from '../../../utils/briefStore';
@@ -302,6 +303,28 @@ export default function IdeateFeatures() {
     }
   };
 
+  // Check if PRD exists for this brief and redirect to it
+  const handleContinue = async () => {
+    if (!brief) return;
+    
+    try {
+      // Check if PRDs exist for this brief
+      const existingPRDs = await prdService.getPRDsByBriefId(brief.id);
+      
+      if (existingPRDs && existingPRDs.length > 0) {
+        // If PRDs exist, redirect to the first PRD
+        router.push(`/prd/${existingPRDs[0].id}`);
+      } else {
+        // If no PRDs exist, redirect to the new PRD page with the project ID
+        router.push(`/prd/new?projectId=${brief.project_id}`);
+      }
+    } catch (error) {
+      console.error('Error checking for existing PRDs:', error);
+      // Default to the new PRD page if there's an error
+      router.push(`/prd/new?projectId=${brief.project_id}`);
+    }
+  };
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return 'bg-green-100 text-green-800 border border-green-200';
@@ -431,12 +454,12 @@ export default function IdeateFeatures() {
               <p className="text-[#6b7280] mt-2">Define and prioritize features for {brief?.product_name}</p>
             </div>
             {featureSet && (
-              <Link
-                href={`/prd/new?projectId=${project?.id}`}
+              <button
+                onClick={handleContinue}
                 className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
               >
                 Continue
-              </Link>
+              </button>
             )}
           </div>
 
