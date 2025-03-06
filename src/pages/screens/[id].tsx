@@ -16,6 +16,7 @@ import { briefService } from '../../services/briefService';
 import screenService from '../../services/screenService';
 import { prdService } from '../../services/prdService';
 import { projectService } from '../../services/projectService';
+import CheckIcon from '../../components/CheckIcon';
 
 export default function ScreensPage() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function ScreensPage() {
   const [currentScreenIndex, setCurrentScreenIndex] = useState(0);
   const [generationStatus, setGenerationStatus] = useState<string>('');
   const [screens, setScreens] = useState<ScreenType[]>([]);
+  const [progressPercentage, setProgressPercentage] = useState(0);
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -245,14 +247,33 @@ export default function ScreensPage() {
       setIsGenerating(true);
       setError(null);
       
-      // Show a message to the user that this might take a while
-      setGenerationStatus('Generating screens. This may take a few minutes for complex products...');
+      // Initialize progress
+      setProgressPercentage(10);
+      setGenerationStatus('Initializing screen generation...');
       
       try {
+        // Analyzing features
+        setProgressPercentage(30);
+        setGenerationStatus('Analyzing features and requirements...');
+        
+        // Generating content
+        setProgressPercentage(50);
+        setGenerationStatus('Generating screen layouts and content...');
+        
         // Generate screens using OpenAI
         const { screens, appFlow } = await generateScreens(brief, prd);
         
+        // Processing content
+        setProgressPercentage(70);
+        setGenerationStatus('Processing generated screens...');
+        
+        // Parsing and validating
+        setProgressPercentage(80);
+        setGenerationStatus('Parsing and validating screen data...');
+        
         // Save screens to Supabase
+        setProgressPercentage(90);
+        setGenerationStatus('Saving screens...');
         await screenService.saveScreenSet(prd.id, screens, appFlow);
         
         // Update local state
@@ -261,31 +282,45 @@ export default function ScreensPage() {
           appFlow
         });
         
-        // Check if these are fallback screens (basic screens with fewer elements)
+        // Complete
+        setProgressPercentage(100);
+        setGenerationStatus('Completed! Loading screens...');
+        
+        // Check if these are fallback screens
         const isFallbackScreens = screens.length <= 2 && 
                                  screens.some(s => s.name === "Login Screen") && 
                                  screens.every(s => s.elements.length <= 4);
         
         if (isFallbackScreens) {
-          // Show a warning that these are basic fallback screens
           setError('We encountered an issue generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
         }
         
-        setIsGenerating(false);
-        setGenerationStatus('');
+        setTimeout(() => {
+          setIsGenerating(false);
+          setGenerationStatus('');
+          setProgressPercentage(0);
+        }, 1000);
         
       } catch (err) {
         console.error('Error in primary screen generation:', err);
         
-        // If the error is a timeout, try to generate basic screens as a fallback
         if (err.message && (err.message.includes('timed out') || err.message.includes('504'))) {
           setGenerationStatus('Timeout occurred. Creating basic screens instead...');
+          setProgressPercentage(30);
           
           try {
             // Generate basic screens directly
+            setProgressPercentage(50);
+            setGenerationStatus('Generating basic screens...');
+            
             const { screens, appFlow } = await generateScreens(brief, prd);
             
+            setProgressPercentage(80);
+            setGenerationStatus('Processing and validating basic screens...');
+            
             // Save screens to Supabase
+            setProgressPercentage(90);
+            setGenerationStatus('Saving basic screens...');
             await screenService.saveScreenSet(prd.id, screens, appFlow);
             
             // Update local state
@@ -294,10 +329,15 @@ export default function ScreensPage() {
               appFlow
             });
             
-            setIsGenerating(false);
-            setGenerationStatus('');
+            setProgressPercentage(100);
+            setGenerationStatus('Completed! Loading basic screens...');
             
-            // Show a warning that these are basic fallback screens
+            setTimeout(() => {
+              setIsGenerating(false);
+              setGenerationStatus('');
+              setProgressPercentage(0);
+            }, 1000);
+            
             setError('We encountered a timeout generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
             
           } catch (fallbackErr) {
@@ -750,32 +790,20 @@ export default function ScreensPage() {
                   </p>
                   <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[#4b5563]">
                     <li className="flex items-start">
-                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Visualize user interface and flow
+                      <CheckIcon className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-[#0F533A]">Visualize user interface and navigation flow</span>
                     </li>
                     <li className="flex items-start">
-                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Define navigation and interactions
+                      <CheckIcon className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-[#0F533A]">Guide developers with clear implementation details</span>
                     </li>
                     <li className="flex items-start">
-                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Guide development and design teams
+                      <CheckIcon className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-[#0F533A]">Ensure consistent user experience across features</span>
                     </li>
                     <li className="flex items-start">
-                      <svg className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 11L12 14L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Validate user experience early
+                      <CheckIcon className="w-5 h-5 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-[#0F533A]">Validate design decisions before development</span>
                     </li>
                   </ul>
                 </div>

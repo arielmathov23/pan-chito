@@ -42,6 +42,8 @@ export default function NewPRD() {
   const [generatedPRD, setGeneratedPRD] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
+  const [generationStep, setGenerationStep] = useState<string>('');
+  const [progressPercentage, setProgressPercentage] = useState(0);
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -91,12 +93,20 @@ export default function NewPRD() {
   }, [projectId, router]);
 
   const handleGeneratePRD = async () => {
+    console.log("handleGeneratePRD called", {
+      hasBrief: !!brief,
+      hasFeatureSet: !!featureSet,
+      featureCount: featureSet?.features?.length
+    });
+
     if (!brief) {
+      console.log("No brief found");
       setError('No brief found for this project. Please create a brief first.');
       return;
     }
     
     if (!featureSet || featureSet.features.length === 0) {
+      console.log("No features found", { featureSet });
       setError('No features available. Please create features first.');
       return;
     }
@@ -104,15 +114,35 @@ export default function NewPRD() {
     try {
       setError(null);
       setIsGenerating(true);
+      setGenerationStep('Initializing PRD generation...');
+      setProgressPercentage(10);
       
       // Generate the PRD using the brief and feature set
+      setGenerationStep('Analyzing features and requirements...');
+      setProgressPercentage(30);
+      
+      console.log("Calling generatePRD with:", {
+        briefId: brief.id,
+        featureSetId: featureSet.id,
+        featureCount: featureSet.features.length
+      });
+
+      setGenerationStep('Generating PRD content...');
+      setProgressPercentage(50);
       const response = await generatePRD(brief, featureSet);
+      
+      setGenerationStep('Processing generated content...');
+      setProgressPercentage(70);
       setGeneratedPRD(response);
       
       // Automatically save the PRD without requiring user interaction
+      setGenerationStep('Parsing and validating PRD...');
+      setProgressPercentage(80);
       const parsedPRD = parsePRD(response);
       
       // Create a new PRD object
+      setGenerationStep('Saving PRD...');
+      setProgressPercentage(90);
       const newPRD = {
         id: crypto.randomUUID(),
         briefId: brief.id,
@@ -133,18 +163,19 @@ export default function NewPRD() {
         updatedAt: new Date().toISOString()
       };
       
-      // Save the PRD using the PRD service
       const savedPRD = await prdService.savePRD(newPRD);
-      console.log("Saved PRD:", savedPRD);
+      setProgressPercentage(100);
+      setGenerationStep('Completed! Redirecting...');
       
-      // Redirect to the PRD page with the new PRD ID
       router.push(`/prd/${savedPRD.id}`);
       
     } catch (error) {
-      console.error('Error generating PRD:', error);
+      console.error('Error in PRD generation process:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate PRD. Please check your OpenAI API key.');
     } finally {
       setIsGenerating(false);
+      setGenerationStep('');
+      setProgressPercentage(0);
     }
   };
 
@@ -353,7 +384,7 @@ export default function NewPRD() {
           </div>
 
           {/* Generate PRD button */}
-          <div className="flex justify-center mb-8">
+          <div className="flex flex-col items-center mb-8">
             <button
               onClick={handleGeneratePRD}
               disabled={isGenerating || !featureSet || (featureSet && featureSet.features.length === 0)}
@@ -375,6 +406,24 @@ export default function NewPRD() {
                 'Generate PRD'
               )}
             </button>
+            
+            {isGenerating && (
+              <div className="mt-4 w-full max-w-md">
+                <div className="mb-2 flex justify-between items-center">
+                  <span className="text-sm text-[#4b5563]">{generationStep}</span>
+                  <span className="text-sm font-medium text-[#0F533A]">{progressPercentage}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-[#0F533A] h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercentage}%` }}
+                  ></div>
+                </div>
+                <p className="mt-2 text-xs text-[#6b7280] text-center">
+                  This process may take a few minutes. Please don't close this page.
+                </p>
+              </div>
+            )}
           </div>
           
           {/* Error message */}

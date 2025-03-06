@@ -8,10 +8,13 @@ type ElementType = ScreenElement['type'];
 
 // Function to generate screens using OpenAI
 export async function generateScreens(brief: Brief, prd: PRD): Promise<{ screens: Screen[], appFlow: AppFlow }> {
-  console.log("generateScreens function called with:", { 
+  const startTime = Date.now();
+  console.log("=== Screen Generation Started ===");
+  console.log("Input data:", { 
     briefId: brief?.id, 
     prdId: prd?.id,
-    productName: brief?.productName
+    productName: brief?.productName,
+    prdContentSize: typeof prd.content === 'string' ? (prd.content as string).length : JSON.stringify(prd.content as object).length
   });
   
   try {
@@ -82,19 +85,30 @@ Guidelines:
     // Maximum number of retry attempts
     const MAX_RETRIES = 2;
     let retryCount = 0;
-    let lastError = null;
+    let lastError: Error | null = null;
 
     // Retry loop
     while (retryCount <= MAX_RETRIES) {
+      const attemptStartTime = Date.now();
       try {
-        console.log(`API request attempt ${retryCount + 1} of ${MAX_RETRIES + 1}`);
+        console.log(`API request attempt ${retryCount + 1} of ${MAX_RETRIES + 1}`, {
+          retryCount,
+          timeSinceStart: Date.now() - startTime,
+          promptSize: prompt.length
+        });
         
         // Improved timeout handling with AbortController
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3-minute timeout
+        const timeoutId = setTimeout(() => {
+          console.log("Request timeout triggered after 180s");
+          controller.abort();
+        }, 180000); // 3-minute timeout
         
         try {
-          console.log("Making API request to OpenAI");
+          console.log("Making API request to OpenAI", {
+            timestamp: new Date().toISOString(),
+            endpoint: '/api/openai'
+          });
           
           // Check if we're in development mode and warn about API key
           if (process.env.NODE_ENV === 'development') {
@@ -115,12 +129,20 @@ Guidelines:
             signal: controller.signal
           });
 
-          clearTimeout(timeoutId); // Clear the timeout if the request completes
-          console.log("API response status:", response.status);
+          clearTimeout(timeoutId);
+          console.log("API response received", {
+            status: response.status,
+            statusText: response.statusText,
+            responseTime: Date.now() - attemptStartTime
+          });
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error('Full error response:', errorData);
+            console.error('API error details:', {
+              status: response.status,
+              errorData,
+              headers: Object.fromEntries(response.headers.entries())
+            });
             
             // Handle specific error codes with more user-friendly messages
             if (response.status === 504) {
@@ -133,13 +155,25 @@ Guidelines:
           }
 
           const data = await response.json();
+          console.log("API response parsed successfully", {
+            hasChoices: !!data.choices,
+            messageLength: data.choices?.[0]?.message?.content?.length || 0
+          });
           
           if (!data.choices?.[0]?.message?.content) {
-            console.error('Full API response:', data);
+            console.error('Invalid API response structure:', {
+              hasChoices: !!data.choices,
+              hasMessage: !!data.choices?.[0]?.message,
+              hasContent: !!data.choices?.[0]?.message?.content
+            });
             throw new Error('Invalid API response format');
           }
 
           const content = data.choices[0].message.content;
+          console.log("Processing API response content", {
+            contentLength: content.length,
+            processingTime: Date.now() - attemptStartTime
+          });
           
           // Ensure the content is valid JSON before parsing
           try {
@@ -191,14 +225,22 @@ Guidelines:
     
     // If we've exhausted all retries, use the fallback approach
     if (lastError) {
-      console.log("All API attempts failed, using fallback approach");
+      console.log("All API attempts failed, using fallback approach", {
+        totalAttempts: retryCount + 1,
+        totalTime: Date.now() - startTime,
+        lastError: lastError.message
+      });
       return generateFallbackScreens(brief, prd);
     }
     
     // This should never be reached due to the throw in the catch block
     throw new Error("Unexpected error in screen generation");
   } catch (error) {
-    console.error('Error generating screens:', error);
+    console.error('Error in screen generation:', {
+      error: error.message,
+      stack: error.stack,
+      totalTime: Date.now() - startTime
+    });
     throw error;
   }
 }

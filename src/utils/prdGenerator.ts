@@ -226,17 +226,26 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
   try {
     const briefData = brief.brief_data;
     
-    // Filter for Must and Should features only
-    const priorityFeatures = featureSet.features.filter(
-      feature => feature.priority === 'must' || feature.priority === 'should'
-    );
+    // Filter and sort features by priority
+    const priorityFeatures = featureSet.features
+      .filter(feature => feature.priority === 'must' || feature.priority === 'should')
+      .sort((a, b) => {
+        // Sort 'must' before 'should'
+        if (a.priority === 'must' && b.priority === 'should') return -1;
+        if (a.priority === 'should' && b.priority === 'must') return 1;
+        return 0;
+      });
     
-    // Limit to a reasonable number of features to prevent timeouts
-    // If there are more than 5 features, only process the first 5
-    const featuresForPRD = priorityFeatures.slice(0, 5);
+    // Increase limit to 8 features
+    const FEATURE_LIMIT = 8;
+    const featuresForPRD = priorityFeatures.slice(0, FEATURE_LIMIT);
+    
+    // Add a note if features were limited
+    const wasLimited = priorityFeatures.length > FEATURE_LIMIT;
     
     const prompt = `
       Create a detailed Product Requirements Document (PRD) for each feature.
+      ${wasLimited ? `\nNote: Processing ${FEATURE_LIMIT} highest priority features out of ${priorityFeatures.length} total priority features.` : ''}
       
       Product Context:
       - Name: ${brief.product_name}
