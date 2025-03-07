@@ -104,7 +104,7 @@ export default function Upgrade() {
                 </div>
                 <h2 className="text-xl font-bold text-[#111827]">Alpha Testing in Progress</h2>
                 <p className="text-[#6b7280] mt-2 max-w-md mx-auto">
-                  We're currently in alpha testing. We've recorded your interest in upgrading and will contact you when this feature becomes available.
+                  We've recorded your interest in upgrading and will contact you when this feature becomes available.
                 </p>
               </div>
 

@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
+import FeedbackModal from './FeedbackModal';
 
 const Navbar = () => {
   const router = useRouter();
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => {
@@ -80,6 +82,21 @@ const Navbar = () => {
           
           {isAuthenticated && user && (
             <div className="flex items-center relative" ref={dropdownRef}>
+              {/* Feedback Button */}
+              <button
+                onClick={() => setShowFeedbackModal(true)}
+                className="mr-3 inline-flex items-center justify-center px-3 py-1.5 rounded-lg transition-all duration-200 bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200"
+                title="Give feedback"
+              >
+                <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7.5 12H16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7.5 8.25H16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7.5 15.75H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7.5 19.5H16.5C18.1569 19.5 19.5 18.1569 19.5 16.5V7.5C19.5 5.84315 18.1569 4.5 16.5 4.5H7.5C5.84315 4.5 4.5 5.84315 4.5 7.5V16.5C4.5 18.1569 5.84315 19.5 7.5 19.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-sm font-medium">Feedback</span>
+              </button>
+              
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className={`inline-flex items-center justify-center h-8 w-8 rounded-full transition-all duration-200 ${
@@ -129,6 +146,13 @@ const Navbar = () => {
           )}
         </div>
       </div>
+      
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        projectId={router.query.id as string || "general"}
+      />
     </nav>
   );
 };
