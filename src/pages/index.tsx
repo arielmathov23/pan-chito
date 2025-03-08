@@ -869,7 +869,7 @@ const Home = () => {
                   <h3 className="text-xl font-bold text-gray-900">Product Teams</h3>
                 </div>
                 <p className="text-gray-600 mb-4">
-                  Create comprehensive product briefs in minutes instead of days with AI-powered assistance.
+                  Generate complete product documentation in minutes—from user stories and PRDs to UI specifications and technical requirements—all in one platform.
                 </p>
                 <div className="text-sm text-[#16a34a] font-medium">
                   Perfect for: Product Managers, UX/UI Designers, Researchers
