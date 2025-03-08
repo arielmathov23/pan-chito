@@ -302,7 +302,7 @@ const Home = () => {
                   </span>
                 </h1>
                 <p className="mt-8 text-xl text-gray-600 leading-relaxed max-w-lg">
-                  Your shortcut to define products right the first time, in minutes. No coding yet, no endless tweaks later—just clear actionable specs from day one.
+                  Your shortcut to defining products right the first time, in minutes. No coding yet, no endless tweaks later. Just clear, actionable specs from day one.
                 </p>
                 
                 {/* Platform Logos */}
