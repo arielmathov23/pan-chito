@@ -115,7 +115,7 @@ const Home = () => {
     if (isAuthenticated) {
       router.push('/projects');
     } else {
-      router.push('/login');
+      router.push('/signup');
     }
   };
 
