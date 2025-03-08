@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import Head from 'next/head';
 import Image from 'next/image';
+import { Analytics } from "@vercel/analytics/react";
 
 // Define types for geometric elements
 interface Rectangle {
@@ -221,6 +222,7 @@ const Home = () => {
       <Head>
         <title>021 - From Zero to One | AI-Powered Product Development Platform</title>
         <meta name="description" content="Transform your product development process with AI-powered workflows. From concept to implementation, all in one platform." />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="min-h-screen bg-white overflow-hidden">
@@ -976,6 +978,7 @@ const Home = () => {
           </div>
         </footer>
       </div>
+      <Analytics />
     </>
   );
 };
