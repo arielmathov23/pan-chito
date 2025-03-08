@@ -773,9 +773,9 @@ const Home = () => {
         </section>
 
         {/* Work Process Section */}
-        <section id="workflow" className="py-20 px-6 relative bg-white">
+        <section id="workflow" className="pt-12 pb-32 px-6 relative bg-white">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mx-auto max-w-2xl mb-12">
+            <div className="text-center mx-auto max-w-2xl mb-8">
               <h2 className="text-3xl font-bold text-gray-900">Product definition workflow</h2>
               <p className="mt-2 text-lg text-gray-500">
                 Our streamlined process takes you from idea to implementation
@@ -840,7 +840,7 @@ const Home = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Development Teams */}
+              {/* Software Factories */}
               <div className="bg-white rounded-xl p-6 border-t-4 border border-t-[#0F533A] border-gray-200 shadow-sm transform transition-transform hover:-translate-y-1">
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 rounded-lg bg-[#0F533A]/10 flex items-center justify-center mr-3">
@@ -848,13 +848,13 @@ const Home = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Development Teams</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Software Factories</h3>
                 </div>
                 <p className="text-gray-600 mb-4">
-                  Get clear, actionable specifications that eliminate ambiguity and reduce development time by 40%.
+                  Transform client requirements into precise specifications that streamline development, improve client communication, and reduce project ambiguity by 60%.
                 </p>
                 <div className="text-sm text-[#0F533A] font-medium">
-                  Perfect for: Engineering, QA, DevOps
+                  Perfect for: Agencies, Consultancies, Development Studios
                 </div>
               </div>
               
@@ -876,21 +876,21 @@ const Home = () => {
                 </div>
               </div>
               
-              {/* Business Teams */}
+              {/* Founders & Startups */}
               <div className="bg-white rounded-xl p-6 border-t-4 border border-t-[#0c4a6e] border-gray-200 shadow-sm transform transition-transform hover:-translate-y-1">
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 rounded-lg bg-[#0c4a6e]/10 flex items-center justify-center mr-3">
                     <svg className="w-5 h-5 text-[#0c4a6e]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Business Teams</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Founders & Startups</h3>
                 </div>
                 <p className="text-gray-600 mb-4">
-                  Validate ideas faster and reduce time-to-market with structured product planning.
+                  Reduce time-to-market by 60% with structured product planning that turns your vision into actionable roadmaps and solid products.
                 </p>
                 <div className="text-sm text-[#0c4a6e] font-medium">
-                  Perfect for: Founders, Executives, Marketing Teams
+                  Perfect for: Solo Founders, Early-stage Startups, Bootstrapped Ventures
                 </div>
               </div>
             </div>
