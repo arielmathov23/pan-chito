@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import authDebug from '../utils/authDebug';
 
 // List of public routes that don't require authentication
-const publicRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
+const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();

@@ -5,7 +5,7 @@ import LoadingScreen from './LoadingScreen';
 import authDebug from '../utils/authDebug';
 
 // List of public routes that don't require authentication
-const publicRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
+const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
 
 interface ProtectedRouteProps {
   children: ReactNode;
