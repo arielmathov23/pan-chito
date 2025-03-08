@@ -954,7 +954,7 @@ const Home = () => {
                   <span className="text-2xl font-medium">021</span>
                 </div>
                 <p className="text-white/80 mb-6 max-w-sm">
-                  021 is built by <a href="https://panchito.xyz" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a> product lab, helping teams build better products through Product Launch, Improvement and AI-powered tools.
+                  021 is built by <a href="https://panchito.xyz" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a> product lab, where innovation meets rapid execution. We launch MVPs for clients in just 1 month and craft our own AI-powered products.
                 </p>
                 
               </div>
