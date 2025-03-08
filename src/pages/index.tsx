@@ -117,6 +117,8 @@ const Home = () => {
       router.push('/projects');
     } else {
       router.push('/signup');
+       // Store redirect path for after login
+       sessionStorage.setItem('redirectAfterLogin', '/projects');
     }
   };
 
@@ -254,13 +256,18 @@ const Home = () => {
                 <>
                   {!isAuthenticated ? (
                     <>
-                      <Link href="/login" className="text-gray-800 hover:text-[#0F533A] transition-colors font-medium relative group">
+                      <Link 
+                        href="/login" 
+                        className="text-gray-800 hover:text-[#0F533A] transition-colors font-medium relative group"
+                        onClick={() => sessionStorage.setItem('redirectAfterLogin', '/projects')}
+                      >
                         Login
                         <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0F533A] transition-all group-hover:w-full"></div>
                       </Link>
                       <Link 
                         href="/signup" 
                         className="relative group overflow-hidden bg-[#0F533A] px-6 py-2 rounded-full"
+                        onClick={() => sessionStorage.setItem('redirectAfterLogin', '/projects')}
                       >
                         <span className="relative z-10 text-white font-medium">Get Started</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-[#16a34a] to-[#0F533A] opacity-0 group-hover:opacity-100 transition-opacity"></div>

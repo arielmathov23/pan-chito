@@ -145,10 +145,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           error: null,
         });
         
-        // Redirect to stored path or home page after successful login
-        const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+        // Redirect to stored path or projects page after successful login
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
         sessionStorage.removeItem('redirectAfterLogin');
-        router.push(redirectPath);
+        router.push(redirectPath || '/projects');
       }
     } catch (error: any) {
       setAuthState(prev => ({
@@ -187,10 +187,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           error: null,
         });
         
-        // Redirect to stored path or home page after successful signup
-        const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+        // Redirect to stored path or projects page after successful signup
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
         sessionStorage.removeItem('redirectAfterLogin');
-        router.push(redirectPath);
+        router.push(redirectPath || '/projects');
       }
     } catch (error: any) {
       setAuthState(prev => ({

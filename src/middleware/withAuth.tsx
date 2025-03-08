@@ -35,7 +35,7 @@ export function withAuth<P extends {}>(
       
       // If user is authenticated and trying to access login/signup
       if (isAuthenticated && publicRoutes.includes(currentPath)) {
-        router.push('/');
+        router.push('/projects');
       }
     }, [isAuthenticated, isLoading, router, isClient]);
 
