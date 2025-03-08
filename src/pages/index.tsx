@@ -381,7 +381,7 @@ const Home = () => {
             <div className="text-center mb-8 max-w-2xl mx-auto">
               <h2 className="text-3xl font-bold text-gray-900">Why 021 is a game-changer in product creation</h2>
               <p className="mt-3 text-xl text-gray-500">
-                Stop the guesswork and interations, align your team effortlessly
+                Stop the guesswork and iterations, align your team effortlessly
               </p>
             </div>
 
