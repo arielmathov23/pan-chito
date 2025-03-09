@@ -46,7 +46,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href={isAuthenticated ? "/projects" : "/"} className="flex items-center space-x-2">
               <svg className="w-8 h-8 logo-pulse" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -75,6 +75,36 @@ const Navbar = () => {
                   className={`${isActive('/prds')} inline-flex items-center px-1 pt-1 border-b-2 text-sm transition-colors`}
                 >
                   All PRDs
+                </Link>
+                <Link
+                  href="/upgrade"
+                  className={`inline-flex items-center ml-4 px-3 py-1 rounded-md text-sm font-medium bg-gradient-to-r from-[#0F533A]/10 to-[#16a34a]/10 text-[#0F533A] border border-[#0F533A]/20 hover:bg-[#0F533A]/20 transition-colors`}
+                >
+                  Upgrade
+                </Link>
+              </div>
+            )}
+            
+            {/* Mobile Navigation */}
+            {isAuthenticated && (
+              <div className="sm:hidden flex items-center space-x-4">
+                <Link
+                  href="/projects"
+                  className={`${isActive('/projects')} text-sm transition-colors`}
+                >
+                  Projects
+                </Link>
+                <Link
+                  href="/prds"
+                  className={`${isActive('/prds')} text-sm transition-colors`}
+                >
+                  PRDs
+                </Link>
+                <Link
+                  href="/upgrade"
+                  className={`text-sm font-medium px-2 py-1 rounded-md bg-gradient-to-r from-[#0F533A]/10 to-[#16a34a]/10 text-[#0F533A] border border-[#0F533A]/20`}
+                >
+                  Upgrade
                 </Link>
               </div>
             )}
