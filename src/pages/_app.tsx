@@ -6,6 +6,7 @@ import { AuthProvider } from '../context/AuthContext';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { useRouter } from 'next/router';
 import authDebug from '../utils/authDebug';
+import { supabase } from '../lib/supabaseClient';
 
 // List of public routes that don't require authentication
 const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
@@ -15,6 +16,33 @@ function MyApp({ Component, pageProps }: AppProps) {
   
   // Check if the current route is a public route
   const isPublicRoute = publicRoutes.includes(router.pathname);
+
+  // Handle OAuth callback and errors
+  useEffect(() => {
+    // Check for OAuth error in URL
+    const { error, error_description } = router.query;
+    if (error && error === 'invalid_request' && error_description) {
+      console.error('OAuth Error:', error_description);
+      
+      // If there's a bad_oauth_state error, clear the session and redirect to login
+      if (router.query.error_code === 'bad_oauth_state') {
+        supabase.auth.signOut().then(() => {
+          router.push('/login');
+        });
+      }
+    }
+
+    // Handle auth state change from OAuth redirect
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/projects');
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
 
   // Debug navigation in development mode
   useEffect(() => {

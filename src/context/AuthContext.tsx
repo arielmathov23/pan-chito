@@ -17,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   login: async () => {},
   signup: async () => {},
+  loginWithGoogle: async () => {},
   logout: () => {},
   clearError: () => {},
 });
@@ -201,6 +202,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Login with Google function
+  const loginWithGoogle = async () => {
+    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // The redirect will happen automatically by Supabase
+      // When the user returns, the session will be handled by the auth state listener
+    } catch (error: any) {
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || 'Google login failed',
+      }));
+    }
+  };
+
   // Logout function
   const logout = async () => {
     try {
@@ -238,6 +266,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...authState,
     login,
     signup,
+    loginWithGoogle,
     logout,
     clearError,
   };

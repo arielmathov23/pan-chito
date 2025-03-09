@@ -24,6 +24,7 @@ export interface SignupCredentials {
 export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (credentials: SignupCredentials) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
   clearError: () => void;
 } 
