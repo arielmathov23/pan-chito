@@ -31,11 +31,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     // Only redirect to login if not authenticated AND not on a public route
     if (!isLoading && !isAuthenticated && !isPublicRoute) {
       // Store the current path to redirect back after login
-      sessionStorage.setItem('redirectAfterLogin', router.pathname);
+      // Make sure to store the full URL including query parameters for project pages
+      const fullPath = router.asPath; // Use asPath instead of pathname to include query params
+      sessionStorage.setItem('redirectAfterLogin', fullPath);
       
       if (process.env.NODE_ENV === 'development') {
         authDebug.logRedirect(
-          router.pathname, 
+          fullPath, 
           '/login', 
           'User not authenticated on protected route'
         );

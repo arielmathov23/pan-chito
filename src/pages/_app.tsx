@@ -34,8 +34,15 @@ function MyApp({ Component, pageProps }: AppProps) {
 
     // Handle auth state change from OAuth redirect
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Only redirect to projects if the user just signed in and is on a login-related page
+      // This prevents redirects when returning to tabs with upgrade or project pages
       if (event === 'SIGNED_IN' && session) {
-        router.push('/projects');
+        const currentPath = router.pathname;
+        const loginRelatedPages = ['/login', '/signup', '/auth/callback', '/'];
+        
+        if (loginRelatedPages.includes(currentPath)) {
+          router.push('/projects');
+        }
       }
     });
 

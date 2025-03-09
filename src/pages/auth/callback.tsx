@@ -17,8 +17,18 @@ export default function AuthCallback() {
         return;
       }
       
-      // Redirect to projects page on successful authentication
-      router.push('/projects');
+      // Check if there's a stored redirect path
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      
+      if (redirectPath) {
+        // Clear the stored path
+        sessionStorage.removeItem('redirectAfterLogin');
+        // Redirect to the stored path
+        router.push(redirectPath);
+      } else {
+        // Default to projects page if no stored path
+        router.push('/projects');
+      }
     };
 
     // Only run if we're on the client side
