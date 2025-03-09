@@ -10,7 +10,7 @@ export default function AuthCallback() {
     const handleAuthCallback = async () => {
       try {
         // Get the session from the URL
-        const { error } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error processing auth callback:', error.message);
@@ -18,17 +18,16 @@ export default function AuthCallback() {
           return;
         }
         
-        // Check if there's a stored redirect path
-        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+        // Log the session for debugging
+        console.log('Auth callback session:', data.session ? 'Session exists' : 'No session');
         
-        if (redirectPath) {
-          // Clear the stored path
-          sessionStorage.removeItem('redirectAfterLogin');
-          // Redirect to the stored path
-          router.push(redirectPath);
+        // If we have a session, redirect to projects
+        if (data.session) {
+          // Force a hard redirect to the projects page to avoid any client-side routing issues
+          window.location.href = '/projects';
         } else {
-          // Default to projects page if no stored path
-          router.push('/projects');
+          // If no session, redirect to login
+          router.push('/login');
         }
       } catch (err) {
         console.error('Unexpected error in auth callback:', err);
@@ -38,7 +37,8 @@ export default function AuthCallback() {
 
     // Only run if we're on the client side
     if (typeof window !== 'undefined') {
-      handleAuthCallback();
+      // Add a small delay to ensure Supabase has time to process the auth state
+      setTimeout(handleAuthCallback, 500);
     }
   }, [router]);
 
@@ -46,6 +46,7 @@ export default function AuthCallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-12 h-12 border-4 border-t-[#0F533A] border-gray-200 rounded-full animate-spin"></div>
+      <p className="ml-4 text-gray-600">Processing authentication...</p>
     </div>
   );
 } 

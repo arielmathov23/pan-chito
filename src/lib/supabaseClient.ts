@@ -8,36 +8,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. Check your .env.local file.');
 }
 
-// Create Supabase client with additional options
+// Create Supabase client with minimal options to avoid issues
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    // Ensure cookies are used for session storage
-    storageKey: 'supabase.auth.token',
-    storage: {
-      getItem: (key) => {
-        if (typeof window === 'undefined') {
-          return null;
-        }
-        const found = document.cookie
-          .split('; ')
-          .find(row => row.startsWith(`${key}=`));
-        
-        return found ? found.split('=')[1] : null;
-      },
-      setItem: (key, value) => {
-        if (typeof window !== 'undefined') {
-          document.cookie = `${key}=${value}; path=/; max-age=2592000; SameSite=Lax; secure`;
-        }
-      },
-      removeItem: (key) => {
-        if (typeof window !== 'undefined') {
-          document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; secure`;
-        }
-      },
-    },
+    detectSessionInUrl: true
   },
 });
 

@@ -32,8 +32,22 @@ function MyApp({ Component, pageProps }: AppProps) {
       }
     }
 
+    // Check if we're on the callback page with a hash in the URL
+    if (typeof window !== 'undefined' && 
+        window.location.hash && 
+        window.location.hash.includes('access_token') && 
+        window.location.hostname === 'localhost') {
+      // We're on localhost with an access token in the URL
+      // Redirect to the production callback URL
+      const productionUrl = 'https://from021.io';
+      window.location.href = `${productionUrl}/auth/callback${window.location.hash}`;
+      return;
+    }
+
     // Handle auth state change from OAuth redirect
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
+      
       // Only redirect to projects if the user just signed in and is on a login-related page
       // This prevents redirects when returning to tabs with upgrade or project pages
       if (event === 'SIGNED_IN' && session) {
