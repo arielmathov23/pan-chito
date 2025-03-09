@@ -8,26 +8,31 @@ export default function AuthCallback() {
   useEffect(() => {
     // Process the OAuth callback
     const handleAuthCallback = async () => {
-      // The hash contains the token
-      const { error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error processing auth callback:', error.message);
+      try {
+        // Get the session from the URL
+        const { error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error processing auth callback:', error.message);
+          router.push('/login');
+          return;
+        }
+        
+        // Check if there's a stored redirect path
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+        
+        if (redirectPath) {
+          // Clear the stored path
+          sessionStorage.removeItem('redirectAfterLogin');
+          // Redirect to the stored path
+          router.push(redirectPath);
+        } else {
+          // Default to projects page if no stored path
+          router.push('/projects');
+        }
+      } catch (err) {
+        console.error('Unexpected error in auth callback:', err);
         router.push('/login');
-        return;
-      }
-      
-      // Check if there's a stored redirect path
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
-      
-      if (redirectPath) {
-        // Clear the stored path
-        sessionStorage.removeItem('redirectAfterLogin');
-        // Redirect to the stored path
-        router.push(redirectPath);
-      } else {
-        // Default to projects page if no stored path
-        router.push('/projects');
       }
     };
 

@@ -207,10 +207,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // Use the production URL for the redirect
+      const productionUrl = 'https://from021.io';
+      const redirectTo = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+        ? `${window.location.origin}/auth/callback`
+        : `${productionUrl}/auth/callback`;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo,
         }
       });
       
