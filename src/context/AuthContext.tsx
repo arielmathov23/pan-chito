@@ -285,4 +285,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-export default AuthContext; 
+export default AuthContext;
+
+export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Don't redirect if still loading
+    if (isLoading) return;
+    
+    // If no user is logged in and we're not on a public route, redirect to login
+    if (!user && !isPublicRoute(router.pathname)) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
+
+  // Check if we're on the client and still loading
+  if (isClient && isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// Helper function to determine if a route is public
+function isPublicRoute(pathname: string): boolean {
+  const publicRoutes = [
+    '/',
+    '/login',
+    '/signup',
+    '/auth/callback',
+    '/auth/reset-password',
+    '/upgrade',
+    '/privacy',
+    '/terms',
+  ];
+  
+  // Check if the current path is in the public routes list
+  // or starts with a public route prefix
+  return publicRoutes.includes(pathname) || 
+         pathname.startsWith('/auth/');
+} 

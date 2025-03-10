@@ -30,7 +30,7 @@ type GeometricElement = Rectangle | Circle;
 
 const Home = () => {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [isHovering, setIsHovering] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '../styles/globals.css';
@@ -13,6 +13,8 @@ const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-pass
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Check if the current route is a public route
   const isPublicRoute = publicRoutes.includes(router.pathname);
@@ -45,20 +47,26 @@ function MyApp({ Component, pageProps }: AppProps) {
     }
 
     // Handle auth state change from OAuth redirect
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
-      
-      // Only redirect to projects if the user just signed in and is on a login-related page
-      // This prevents redirects when returning to tabs with upgrade or project pages
-      if (event === 'SIGNED_IN' && session) {
-        const currentPath = router.pathname;
-        const loginRelatedPages = ['/login', '/signup', '/auth/callback', '/'];
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        // Update the auth state
+        setUser(session?.user ?? null);
+        setIsLoading(false);
         
-        if (loginRelatedPages.includes(currentPath)) {
-          router.push('/projects');
+        // Handle redirects based on auth state
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Only redirect to /projects if coming from auth-related pages
+          const currentPath = window.location.pathname;
+          if (currentPath.includes('/auth/') || currentPath === '/login' || currentPath === '/signup') {
+            router.push('/projects');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          // Clear any user data from localStorage
+          localStorage.removeItem('supabase.auth.token');
+          router.push('/login');
         }
       }
-    });
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
