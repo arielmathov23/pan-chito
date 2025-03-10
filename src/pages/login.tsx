@@ -74,7 +74,7 @@ const Login = () => {
                   Welcome to <span className="animated-gradient-text text-3xl">021</span>
                 </h2>
                 <p className="text-sm text-gray-600 max-w-md mx-auto">
-                  Sign in to continue building the future
+                  Sign in to continue building your products
                 </p>
               </div>
             </div>
