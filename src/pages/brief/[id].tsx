@@ -409,18 +409,6 @@ export default function BriefDetail() {
               <div className="border-b border-[#e5e7eb] pb-6">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-[#111827]">Executive Summary</h3>
-                  {!isEditing && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditing(true);
-                      }}
-                      className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                    >
-                      Edit
-                    </button>
-                  )}
                 </div>
                 <RenderField 
                   content={editedBriefData?.executiveSummary || brief.brief_data.executiveSummary} 
@@ -434,18 +422,6 @@ export default function BriefDetail() {
               <div className="border-b border-[#e5e7eb] pb-6">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-[#111827]">Problem Statement</h3>
-                  {!isEditing && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditing(true);
-                      }}
-                      className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                    >
-                      Edit
-                    </button>
-                  )}
                 </div>
                 <RenderField 
                   content={editedBriefData?.problemStatement || brief.brief_data.problemStatement} 
@@ -459,18 +435,6 @@ export default function BriefDetail() {
               <div className="border-b border-[#e5e7eb] pb-6">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-[#111827]">Target Users</h3>
-                  {!isEditing && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditing(true);
-                      }}
-                      className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                    >
-                      Edit
-                    </button>
-                  )}
                 </div>
                 <RenderField 
                   content={editedBriefData?.targetUsers || brief.brief_data.targetUsers} 
@@ -484,18 +448,6 @@ export default function BriefDetail() {
               <div className="border-b border-[#e5e7eb] pb-6">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-[#111827]">Existing Solutions</h3>
-                  {!isEditing && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditing(true);
-                      }}
-                      className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                    >
-                      Edit
-                    </button>
-                  )}
                 </div>
                 <RenderField 
                   content={editedBriefData?.existingSolutions || brief.brief_data.existingSolutions} 
@@ -509,18 +461,6 @@ export default function BriefDetail() {
               <div className="border-b border-[#e5e7eb] pb-6">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-[#111827]">Proposed Solution</h3>
-                  {!isEditing && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditing(true);
-                      }}
-                      className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                    >
-                      Edit
-                    </button>
-                  )}
                 </div>
                 <RenderField 
                   content={editedBriefData?.proposedSolution || brief.brief_data.proposedSolution} 
@@ -534,18 +474,6 @@ export default function BriefDetail() {
               <div className="border-b border-[#e5e7eb] pb-6">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-[#111827]">Product Objectives</h3>
-                  {!isEditing && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditing(true);
-                      }}
-                      className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                    >
-                      Edit
-                    </button>
-                  )}
                 </div>
                 <RenderField 
                   content={editedBriefData?.productObjectives || brief.brief_data.productObjectives} 
@@ -559,18 +487,6 @@ export default function BriefDetail() {
               <div className="border-b border-[#e5e7eb] pb-6">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-[#111827]">Key Features</h3>
-                  {!isEditing && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditing(true);
-                      }}
-                      className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                    >
-                      Edit
-                    </button>
-                  )}
                 </div>
                 <RenderField 
                   content={editedBriefData?.keyFeatures || brief.brief_data.keyFeatures} 
@@ -585,18 +501,6 @@ export default function BriefDetail() {
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Market Analysis</h3>
-                    {!isEditing && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsEditing(true);
-                        }}
-                        className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                      >
-                        Edit
-                      </button>
-                    )}
                   </div>
                   <RenderField 
                     content={editedBriefData?.marketAnalysis || brief.brief_data.marketAnalysis || ''} 
@@ -612,18 +516,6 @@ export default function BriefDetail() {
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Technical Risks</h3>
-                    {!isEditing && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsEditing(true);
-                        }}
-                        className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                      >
-                        Edit
-                      </button>
-                    )}
                   </div>
                   <RenderField 
                     content={editedBriefData?.technicalRisks || brief.brief_data.technicalRisks || ''} 
@@ -639,18 +531,6 @@ export default function BriefDetail() {
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Business Risks</h3>
-                    {!isEditing && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsEditing(true);
-                        }}
-                        className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                      >
-                        Edit
-                      </button>
-                    )}
                   </div>
                   <RenderField 
                     content={editedBriefData?.businessRisks || brief.brief_data.businessRisks || ''} 
@@ -666,18 +546,6 @@ export default function BriefDetail() {
                 <div className="border-b border-[#e5e7eb] pb-6">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Implementation Strategy</h3>
-                    {!isEditing && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsEditing(true);
-                        }}
-                        className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                      >
-                        Edit
-                      </button>
-                    )}
                   </div>
                   <RenderField 
                     content={editedBriefData?.implementationStrategy || brief.brief_data.implementationStrategy || ''} 
@@ -693,18 +561,6 @@ export default function BriefDetail() {
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-[#111827]">Success Metrics</h3>
-                    {!isEditing && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsEditing(true);
-                        }}
-                        className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5]"
-                      >
-                        Edit
-                      </button>
-                    )}
                   </div>
                   <RenderField 
                     content={editedBriefData?.successMetrics || brief.brief_data.successMetrics || ''} 
