@@ -244,7 +244,7 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
     const wasLimited = priorityFeatures.length > FEATURE_LIMIT;
     
     const prompt = `
-      Create a detailed Product Requirements Document (PRD) for each feature.
+      Create a detailed Product Requirements Document (PRD) for all the features of a new product.
       ${wasLimited ? `\nNote: Processing ${FEATURE_LIMIT} highest priority features out of ${priorityFeatures.length} total priority features.` : ''}
       
       Product Context:

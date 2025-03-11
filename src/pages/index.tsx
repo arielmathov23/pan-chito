@@ -557,7 +557,7 @@ const Home = () => {
                   Project Management
                 </h3>
                 <p className="text-gray-600 mb-8">
-                  Export user stories and epics directly to your preferred project management platform, making handoff to development teams seamless.
+                  Export features to project management tools for team collaboration.
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   {[
@@ -954,7 +954,7 @@ const Home = () => {
                   <span className="text-2xl font-medium">021</span>
                 </div>
                 <p className="text-white/80 mb-6 max-w-sm">
-                  021 is built by <a href="https://panchito.xyz" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a> product lab, where innovation meets rapid execution. We launch MVPs for clients in just 1 month and craft our own AI-powered products.
+                  021 is built by <a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a> product lab, where innovation meets rapid execution. We launch MVPs for clients in just 1 month and craft our own AI-powered products.
                 </p>
                 
               </div>
@@ -969,14 +969,14 @@ const Home = () => {
               <div>
                 <h4 className="font-medium text-white mb-4">Company</h4>
                 <ul className="space-y-3">
-                  <li><a href="https://panchito.xyz/about" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">About</a></li>
-                  <li><a href="https://panchito.xyz/blog" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Blog</a></li>
+                  <li><a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">About</a></li>
+                  <li><a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Blog</a></li>
                   <li><a href="mailto:hello@panchito.xyz" className="text-white/70 hover:text-white transition-colors">Contact</a></li>
                 </ul>
               </div>
             </div>
             <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center">
-              <p className="text-white/70 mb-4 md:mb-0">© {currentYear} From Zero to One. Built by <a href="https://panchito.xyz" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a></p>
+              <p className="text-white/70 mb-4 md:mb-0">© {currentYear} From Zero to One. Built by <a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a></p>
               <div className="flex space-x-6">
                 <a href="#" className="text-white/70 hover:text-white transition-colors">Privacy</a>
                 <a href="#" className="text-white/70 hover:text-white transition-colors">Terms</a>
