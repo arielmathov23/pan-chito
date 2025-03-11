@@ -119,7 +119,8 @@ export async function generateImplementationGuides(
   project: Project,
   brief: Brief,
   prd: PRD,
-  techDoc: TechDoc
+  techDoc: TechDoc,
+  screenSet?: ScreenSet | null
 ): Promise<ImplementationGuides> {
   // Use mock implementation if API key is missing
   if (USE_MOCK) {
@@ -142,11 +143,41 @@ export async function generateImplementationGuides(
     throw new Error('Invalid technical documentation. Tech doc is required.');
   }
 
-  const prompt = `You are an expert engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project:
+  // Prepare screen data for the prompt
+  let screenData = 'No screen data available';
+  if (screenSet && screenSet.screens && screenSet.screens.length > 0) {
+    // Format screen data with feature relationships
+    const screensWithFeatures = screenSet.screens.map(screen => {
+      return {
+        id: screen.id,
+        name: screen.name,
+        description: screen.description,
+        featureId: screen.featureId || 'unspecified', // Handle cases where featureId might not exist
+        elements: screen.elements.map(el => ({
+          type: el.type,
+          properties: el.properties
+        }))
+      };
+    });
 
-Project Information:
+    // Include app flow data
+    const appFlowData = screenSet.appFlow ? {
+      steps: screenSet.appFlow.steps.map(step => ({
+        description: step.description,
+        screenId: step.screenId
+      }))
+    } : { steps: [] };
+
+    screenData = JSON.stringify({
+      screens: screensWithFeatures,
+      appFlow: appFlowData
+    }, null, 2);
+  }
+
+  const prompt = `You are an expert engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project Implementation guides and Implemenation steps. To do so you have the context:
+
+
 Product Name: ${brief?.product_name || ''}
-
 PRD Content:
 ${JSON.stringify(prd.content, null, 2)}
 
@@ -156,21 +187,25 @@ Frontend: ${techDoc.frontend || 'Not specified'}
 Backend: ${techDoc.backend || 'Not specified'}
 Content: ${JSON.stringify(techDoc.content || {}, null, 2)}
 
-You task is to create two files:
+App Screens and Flow:
+${screenData}
+
+With all that info, you task is to create two files, and its critical that you are smart and sharp to follow the instructions below:
 
 1. Implementation Guide (.md file):
    - A comprehensive overview of how to implement the project
-   - Must include high-level architectural decisions
    - Must incorporate technical stack details and UI guidelines
+   - Must include high-level architectural decisions
    - Detail how to manage contrast, accessibility, and responsive desing.
    - Definition to place the code in a src/ directory, use App Router
    - Avoid Nested Directory Issues
    - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
 
 2. Implementation Steps (.md file):
-   - Structured step-by-step breakdown to develop all the pages and features. Breaking down feature content into executable steps (one step per feature).
+   - Structured step-by-step breakdown to develop all the pages and features. Breaking down complex features into executable steps (one step per feature).
    - Ensure consistent alignment with project guides, do not create any new features or pages that are not defined in the PRD, Screens definitions and App Flow.
    - Ensure all the details coming from the PRD, Screens definitions and App Flow are inlcuded.
+   - If screen data is available, use the relationship between screens and features (via featureId) to organize implementation steps. For screens without a featureId, group them logically based on their purpose.
    - Do not add any code here just prompt and descriptions.
    - Backend is not mocked, it will be running in the same port as the frontend.
    - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
@@ -312,17 +347,18 @@ You task is to create two files:
 
 1. Implementation Guide (.md file):
    - A comprehensive overview of how to implement the project
-   - Must include high-level architectural decisions
    - Must incorporate technical stack details and UI guidelines
+   - Must include high-level architectural decisions
    - Detail how to manage contrast, accessibility, and responsive desing.
    - Definition to place the code in a src/ directory, use App Router
    - Avoid Nested Directory Issues
    - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
 
 2. Implementation Steps (.md file):
-   - Structured step-by-step breakdown to develop all the pages and features. Breaking down feature content into executable steps (one step per feature).
-   - Ensure consistent alignment with project guides.
-   - Ensure all the details coming from the PRD, Screens definitions and App Flow are respected.
+   - Structured step-by-step breakdown to develop all the pages and features. Breaking down complex features into executable steps (one step per feature).
+   - Ensure consistent alignment with project guides, do not create any new features or pages that are not defined in the PRD, Screens definitions and App Flow.
+   - Ensure all the details coming from the PRD, Screens definitions and App Flow are inlcuded.
+   - If screen data is available, use the relationship between screens and features (via featureId) to organize implementation steps. For screens without a featureId, group them logically based on their purpose.
    - Do not add any code here just prompt and descriptions.
    - Backend is not mocked, it will be running in the same port as the frontend.
    - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
@@ -331,7 +367,7 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
 
       console.log("Sending request to OpenAI API...");
       const response = await openai.chat.completions.create({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: 'You are an expert software architect with deep knowledge of modern web development.' },
           { role: 'user', content: prompt }

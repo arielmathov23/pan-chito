@@ -20,9 +20,14 @@ export async function generateScreens(brief: Brief, prd: PRD): Promise<{ screens
   try {
     console.log("Preparing prompt for OpenAI");
     const prompt = `
-You are a senior UX designer creating detailed screen specifications for a mobile/web application. Based on the following product brief and PRD, generate a user interface design specification in JSON format.
+You are a senior UX designer responsible for creating detailed experience and screen specifications for a new product. Based on the following product brief and PRD, generate a user interface design specification in JSON format.
 
-Context:
+Your output should include:
+1. A user journey outlining all the steps in the happy path.
+2. Detailed specifications for each screen required for design and development, aligned with the user journey above.
+3. IMPORTANT: Each screen MUST be explicitly linked to a specific feature from the PRD. Include a "featureId" field for each screen that contains the EXACT id of the feature from the PRD that this screen implements. Do not make up feature IDs - use only the IDs provided in the features list.
+
+The context:
 Product: ${brief.productName}
 
 PRD Summary:
@@ -42,6 +47,7 @@ Required Output Format:
     {
       "name": "Screen name",
       "description": "Detailed description of screen purpose and functionality",
+      "featureId": "EXACT id of the feature from the PRD that this screen implements (e.g., 'user_profile', 'payment_processing')",
       "elements": [
         {
           "type": "image",
@@ -80,7 +86,8 @@ Guidelines:
 4. Keep the interface clean and focused on core functionality
 5. Use consistent naming across screens and flow steps
 6. Organize content logically within each screen
-7. Include all necessary navigation paths between screens`;
+7. Include all necessary navigation paths between screens
+8. IMPORTANT: Use the EXACT feature IDs from the PRD summary - do not create new ones`;
 
     // Maximum number of retry attempts
     const MAX_RETRIES = 2;
@@ -253,11 +260,15 @@ function parseScreenResponse(responseText: string, prdId: string): { screens: Sc
     
     // Create screens
     const screens: Screen[] = (parsedData.screens || []).map((screenData: any) => {
+      // Ensure featureId is a string, defaulting to empty string if not provided
+      const featureId = screenData.featureId || '';
+      
       return {
         id: uuidv4(),
         prdId,
         name: screenData.name || 'Unnamed Screen',
         description: screenData.description || '',
+        featureId: featureId,
         elements: (screenData.elements || []).map((element: any) => {
           return {
             id: uuidv4(),
@@ -317,29 +328,36 @@ function extractPRDSummary(prdContent: any): string {
     // For larger PRDs, extract key sections
     const prdObj = typeof prdContent === 'object' ? prdContent : JSON.parse(prdString);
     
+    // Extract features with their IDs
+    const features = extractFeaturesFromPRD(prdObj);
+    
     // Create a focused summary with the most important parts
     const summary = {
       title: prdObj.title || prdObj.name,
       overview: prdObj.overview || prdObj.summary || prdObj.description,
       requirements: prdObj.requirements || prdObj.functionalRequirements || [],
       userFlows: prdObj.userFlows || prdObj.flows || prdObj.userJourneys || [],
-      keyFeatures: prdObj.keyFeatures || prdObj.features || []
+      features: features
     };
     
     // Limit arrays to reasonable sizes if they exist
-    if (Array.isArray(summary.requirements) && summary.requirements.length > 5) {
-      summary.requirements = summary.requirements.slice(0, 5);
+    if (Array.isArray(summary.requirements) && summary.requirements.length > 8) {
+      summary.requirements = summary.requirements.slice(0, 8);
     }
     
-    if (Array.isArray(summary.userFlows) && summary.userFlows.length > 3) {
-      summary.userFlows = summary.userFlows.slice(0, 3);
+    if (Array.isArray(summary.userFlows) && summary.userFlows.length > 5) {
+      summary.userFlows = summary.userFlows.slice(0, 5);
     }
     
-    if (Array.isArray(summary.keyFeatures) && summary.keyFeatures.length > 5) {
-      summary.keyFeatures = summary.keyFeatures.slice(0, 5);
-    }
+    // Add a note to emphasize the importance of linking screens to features
+    const summaryWithNote = {
+      ...summary,
+      note: "IMPORTANT: Each screen must be linked to one of the features listed above using the feature's id. Use the exact feature id as provided."
+    };
     
-    return JSON.stringify(summary);
+    console.log("Extracted features for prompt:", features);
+    
+    return JSON.stringify(summaryWithNote, null, 2);
   } catch (error) {
     console.error("Error extracting PRD summary:", error);
     // Fallback to original truncation method
@@ -354,38 +372,41 @@ function generateFallbackScreens(brief: Brief, prd: PRD): { screens: Screen[], a
   console.log("Generating fallback screens");
   
   try {
-    // Extract feature names from PRD content
+    // Extract features with IDs from PRD content
     const features = extractFeaturesFromPRD(prd.content);
+    console.log("Extracted features for fallback:", features);
     
     // Create basic screens based on common patterns and extracted features
     const screens: Screen[] = [];
     
-    // Add common screens
+    // Add common screens with defensive feature ID handling
     screens.push(createBasicScreen("Login Screen", "User authentication screen", prd.id, [
       createElement("text" as const, { content: `Welcome to ${brief.productName}` }),
       createElement("input" as const, { description: "Email input field" }),
       createElement("input" as const, { description: "Password input field" }),
       createElement("button" as const, { content: "Login", action: "Navigate to Home Screen" })
-    ]));
+    ], "authentication"));
     
     screens.push(createBasicScreen("Home Screen", "Main dashboard for the application", prd.id, [
       createElement("text" as const, { content: `${brief.productName} Dashboard` }),
       createElement("text" as const, { content: "Welcome back, User" }),
-      ...features.slice(0, 3).map(feature => 
-        createElement("button" as const, { content: feature, action: `Navigate to ${feature} Screen` })
-      )
-    ]));
+      ...(features.slice(0, 3).map(feature => 
+        createElement("button" as const, { content: feature.name, action: `Navigate to ${feature.name} Screen` })
+      ))
+    ], "dashboard"));
     
     // Add feature-specific screens
-    features.forEach(feature => {
-      screens.push(createBasicScreen(`${feature} Screen`, `Screen for the ${feature} feature`, prd.id, [
-        createElement("text" as const, { content: feature }),
-        createElement("text" as const, { content: `This screen handles the ${feature} functionality` }),
-        createElement("button" as const, { content: "Back to Home", action: "Navigate to Home Screen" })
-      ]));
+    features.forEach((feature) => {
+      if (feature && feature.id && feature.name) {
+        screens.push(createBasicScreen(`${feature.name} Screen`, `Screen for the ${feature.name} feature`, prd.id, [
+          createElement("text" as const, { content: feature.name }),
+          createElement("text" as const, { content: `This screen handles the ${feature.name} functionality` }),
+          createElement("button" as const, { content: "Back to Home", action: "Navigate to Home Screen" })
+        ], feature.id));
+      }
     });
     
-    // Create app flow
+    // Create app flow with defensive checks
     const appFlow: AppFlow = {
       id: uuidv4(),
       prdId: prd.id,
@@ -393,18 +414,24 @@ function generateFallbackScreens(brief: Brief, prd: PRD): { screens: Screen[], a
         {
           id: uuidv4(),
           description: "User logs in to the application",
-          screenId: screens[0].id
+          screenId: screens[0]?.id
         },
         {
           id: uuidv4(),
           description: "User views the home dashboard",
-          screenId: screens[1].id
+          screenId: screens[1]?.id
         },
-        ...features.slice(0, 3).map((feature, index) => ({
-          id: uuidv4(),
-          description: `User navigates to the ${feature} feature`,
-          screenId: screens[index + 2].id
-        }))
+        ...(features.slice(0, 3)
+          .filter(feature => feature && feature.name)
+          .map((feature, index) => {
+            const screenIndex = index + 2;
+            return {
+              id: uuidv4(),
+              description: `User navigates to the ${feature.name} feature`,
+              screenId: screens[screenIndex]?.id
+            };
+          })
+          .filter(step => step.screenId)) // Only include steps with valid screenIds
       ],
       createdAt: Date.now()
     };
@@ -417,12 +444,12 @@ function generateFallbackScreens(brief: Brief, prd: PRD): { screens: Screen[], a
     const loginScreen = createBasicScreen("Login Screen", "User authentication screen", prd.id, [
       createElement("text" as const, { content: `Welcome to ${brief.productName}` }),
       createElement("button" as const, { content: "Login", action: "Navigate to Home Screen" })
-    ]);
+    ], "authentication");
     
     const homeScreen = createBasicScreen("Home Screen", "Main dashboard", prd.id, [
       createElement("text" as const, { content: "Home Dashboard" }),
       createElement("text" as const, { content: "No features available" })
-    ]);
+    ], "dashboard");
     
     const appFlow: AppFlow = {
       id: uuidv4(),
@@ -449,13 +476,14 @@ function generateFallbackScreens(brief: Brief, prd: PRD): { screens: Screen[], a
   }
 }
 
-// Helper function to create a basic screen
-function createBasicScreen(name: string, description: string, prdId: string, elements: ScreenElement[]): Screen {
+// Helper function to create a basic screen with defensive feature ID handling
+function createBasicScreen(name: string, description: string, prdId: string, elements: ScreenElement[], featureId: string = ''): Screen {
   return {
     id: uuidv4(),
     prdId,
     name,
     description,
+    featureId: featureId ? String(featureId).trim() : '',
     elements,
     createdAt: Date.now()
   };
@@ -473,40 +501,113 @@ function createElement(type: string, properties: any): ScreenElement {
 }
 
 // Helper function to extract features from PRD content
-function extractFeaturesFromPRD(prdContent: any): string[] {
+function extractFeaturesFromPRD(prdContent: any): Array<{id: string, name: string}> {
   try {
     // If prdContent is a string, try to parse it
     const content = typeof prdContent === 'string' ? JSON.parse(prdContent) : prdContent;
     
     // Try to extract features from different possible structures
-    let features: string[] = [];
+    let features: Array<{id: string, name: string}> = [];
     
-    if (content.sections && Array.isArray(content.sections)) {
-      // Extract feature names from sections
-      features = content.sections.map((section: any) => section.featureName || section.title || section.name || "Feature")
-        .filter((name: string) => name && name !== "Feature");
-    } else if (content.features && Array.isArray(content.features)) {
-      // Extract from features array
-      features = content.features.map((feature: any) => {
-        if (typeof feature === 'string') return feature;
-        return feature.name || feature.title || "Feature";
-      }).filter((name: string) => name && name !== "Feature");
-    } else if (content.keyFeatures && Array.isArray(content.keyFeatures)) {
-      // Extract from keyFeatures array
-      features = content.keyFeatures.map((feature: any) => {
-        if (typeof feature === 'string') return feature;
-        return feature.name || feature.title || "Feature";
-      }).filter((name: string) => name && name !== "Feature");
+    // First, check for explicit features array which should have proper IDs
+    if (content.features && Array.isArray(content.features)) {
+      features = content.features
+        .map((feature: any) => {
+          if (typeof feature === 'string') {
+            return { id: feature.replace(/\s+/g, '_').toLowerCase(), name: feature };
+          }
+          return { 
+            id: feature.id || feature.featureId || feature.name?.replace(/\s+/g, '_').toLowerCase() || '', 
+            name: feature.name || feature.title || feature.id || ''
+          };
+        })
+        .filter(f => f.id && f.name);
+    }
+    
+    // Check for keyFeatures array
+    if (features.length === 0 && content.keyFeatures && Array.isArray(content.keyFeatures)) {
+      features = content.keyFeatures
+        .map((feature: any) => {
+          if (typeof feature === 'string') {
+            return { id: feature.replace(/\s+/g, '_').toLowerCase(), name: feature };
+          }
+          return { 
+            id: feature.id || feature.featureId || feature.name?.replace(/\s+/g, '_').toLowerCase() || '', 
+            name: feature.name || feature.title || feature.id || ''
+          };
+        })
+        .filter(f => f.id && f.name);
+    }
+    
+    // Check for functional requirements which often contain feature information
+    if (features.length === 0 && content.functionalRequirements && Array.isArray(content.functionalRequirements)) {
+      const featureMap = new Map<string, {id: string, name: string}>();
+      
+      content.functionalRequirements.forEach((req: any) => {
+        let featureName = '';
+        let featureId = '';
+        
+        if (typeof req === 'string') {
+          featureName = req;
+          featureId = req.replace(/\s+/g, '_').toLowerCase();
+        } else {
+          featureName = req.feature || req.featureName || req.title || req.name || '';
+          featureId = req.featureId || req.id || (featureName ? featureName.replace(/\s+/g, '_').toLowerCase() : '');
+        }
+        
+        if (featureName && featureId && !featureMap.has(featureId)) {
+          featureMap.set(featureId, { id: featureId, name: featureName });
+        }
+      });
+      
+      features = Array.from(featureMap.values());
+    }
+    
+    // Then check for explicit sections
+    if (features.length === 0 && content.sections && Array.isArray(content.sections)) {
+      features = content.sections
+        .map((section: any) => {
+          const name = section.featureName || section.title || section.name || '';
+          const id = section.featureId || section.id || (name ? name.replace(/\s+/g, '_').toLowerCase() : '');
+          return { id, name };
+        })
+        .filter(f => f.id && f.name);
+    }
+    
+    // Check for userStories which often contain feature information
+    if (features.length === 0 && content.userStories && Array.isArray(content.userStories)) {
+      const featureMap = new Map<string, {id: string, name: string}>();
+      
+      content.userStories.forEach((story: any) => {
+        let featureName = story.feature || story.featureName || story.category || '';
+        let featureId = story.featureId || (featureName ? featureName.replace(/\s+/g, '_').toLowerCase() : '');
+        
+        if (featureName && featureId && !featureMap.has(featureId)) {
+          featureMap.set(featureId, { id: featureId, name: featureName });
+        }
+      });
+      
+      features = Array.from(featureMap.values());
     }
     
     // If we couldn't extract any features, use some generic ones
     if (features.length === 0) {
-      features = ["Profile", "Settings", "Notifications", "Dashboard"];
+      features = [
+        { id: 'profile', name: 'Profile' },
+        { id: 'settings', name: 'Settings' },
+        { id: 'notifications', name: 'Notifications' },
+        { id: 'dashboard', name: 'Dashboard' }
+      ];
     }
     
     return features;
   } catch (error) {
     console.error("Error extracting features from PRD:", error);
-    return ["Profile", "Settings", "Notifications", "Dashboard"];
+    return [
+      { id: 'profile', name: 'Profile' },
+      { id: 'settings', name: 'Settings' },
+      { id: 'notifications', name: 'Notifications' },
+      { id: 'dashboard', name: 'Dashboard' }
+    ];
   }
 } 

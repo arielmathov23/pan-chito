@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
+import { TrelloIntegration } from '../../components/integrations';
+
+// Trello API configuration
+const TRELLO_API_KEY = 'your-trello-api-key'; // Replace with your actual Trello API key
+const TRELLO_AUTH_URL = 'https://trello.com/1/authorize';
+
+// Define integration status type
+interface IntegrationStatus {
+  trello?: {
+    connected: boolean;
+    token: string | null;
+  };
+}
 
 // Define integration data
 const integrations = [
@@ -60,7 +73,7 @@ const integrations = [
         <path d="M19.27 0H4.73C2.11 0 0 2.11 0 4.73v14.54C0 21.89 2.11 24 4.73 24h14.54c2.62 0 4.73-2.11 4.73-4.73V4.73C24 2.11 21.89 0 19.27 0zM10.64 17.82c0 .6-.49 1.09-1.09 1.09H5.45c-.6 0-1.09-.49-1.09-1.09V5.45c0-.6.49-1.09 1.09-1.09h4.09c.6 0 1.09.49 1.09 1.09v12.37zm9 0c0 .6-.49 1.09-1.09 1.09h-4.09c-.6 0-1.09-.49-1.09-1.09V5.45c0-.6.49-1.09 1.09-1.09h4.09c.6 0 1.09.49 1.09 1.09v12.37z" />
       </svg>
     ),
-    status: 'coming-soon'
+    status: 'available'
   },
   {
     id: 'jira',
@@ -101,6 +114,15 @@ const integrations = [
 export default function Integrations() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({});
+
+  // Handle Trello integration status change
+  const handleTrelloStatusChange = (status: { connected: boolean; token: string | null }) => {
+    setIntegrationStatus(prev => ({
+      ...prev,
+      trello: status
+    }));
+  };
 
   if (authLoading) {
     return (
@@ -131,19 +153,49 @@ export default function Integrations() {
 
         {/* Integration Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {integrations.map((integration) => (
+          {integrations
+            .sort((a, b) => {
+              // First, check if the integration is connected based on integrationStatus
+              const aConnected = a.id === 'trello' && integrationStatus.trello?.connected;
+              const bConnected = b.id === 'trello' && integrationStatus.trello?.connected;
+              
+              // Connected integrations come first
+              if (aConnected && !bConnected) return -1;
+              if (!aConnected && bConnected) return 1;
+              
+              // Then sort by status: 'available' comes before 'coming-soon'
+              if (a.status === 'available' && b.status !== 'available') return -1;
+              if (a.status !== 'available' && b.status === 'available') return 1;
+              
+              // Finally sort alphabetically by name
+              return a.name.localeCompare(b.name);
+            })
+            .map((integration) => (
             <div 
               key={integration.id}
-              className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+              className={`bg-white rounded-2xl border ${
+                integration.id === 'trello' && integrationStatus.trello?.connected
+                  ? 'border-green-100 shadow-sm'
+                  : 'border-gray-200 shadow-sm'
+              } overflow-hidden hover:shadow-md transition-shadow`}
             >
               <div className="p-6">
                 <div className="flex items-start">
-                  <div className={`flex-shrink-0 rounded-md p-2 ${
-                    integration.status === 'available' 
-                      ? 'bg-[#0F533A]/10 text-[#0F533A]' 
-                      : 'bg-white border border-gray-100'
+                  <div className={`flex-shrink-0 rounded-xl p-3 relative ${
+                    integration.id === 'trello' && integrationStatus.trello?.connected
+                      ? 'bg-green-50 border border-green-100'
+                      : integration.status === 'available' 
+                        ? 'bg-[#0F533A]/10 text-[#0F533A]' 
+                        : 'bg-white border border-gray-100'
                   }`}>
                     {integration.logo}
+                    {integration.id === 'trello' && integrationStatus.trello?.connected && (
+                      <div className="absolute -top-1.5 -right-1.5 bg-green-500 rounded-full p-0.5 border-2 border-white shadow-sm">
+                        <svg className="w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   <div className="ml-4">
                     <h3 className="text-lg font-medium text-gray-900">{integration.name}</h3>
@@ -151,12 +203,8 @@ export default function Integrations() {
                   </div>
                 </div>
                 <div className="mt-5">
-                  {integration.status === 'available' ? (
-                    <button
-                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#0F533A] hover:bg-[#0F533A]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0F533A]"
-                    >
-                      Connect
-                    </button>
+                  {integration.id === 'trello' ? (
+                    <TrelloIntegration onStatusChange={handleTrelloStatusChange} />
                   ) : (
                     <button
                       disabled

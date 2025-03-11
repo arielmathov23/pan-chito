@@ -508,12 +508,12 @@ export default function ScreensPage() {
   };
 
   const renderScreen = (screen: ScreenType) => {
-    // Group elements by type
+    // Group elements by type, with defensive checks
     const elements = {
-      images: screen.elements.filter(e => e.type === 'image'),
-      inputs: screen.elements.filter(e => e.type === 'input'),
-      text: screen.elements.filter(e => e.type === 'text'),
-      buttons: screen.elements.filter(e => e.type === 'button')
+      images: (screen.elements || []).filter(e => e && e.type === 'image'),
+      inputs: (screen.elements || []).filter(e => e && e.type === 'input'),
+      text: (screen.elements || []).filter(e => e && e.type === 'text'),
+      buttons: (screen.elements || []).filter(e => e && e.type === 'button')
     };
 
     return (
@@ -521,6 +521,13 @@ export default function ScreensPage() {
         <div className="bg-gradient-to-r from-[#0F533A]/10 to-transparent px-6 py-4 border-b border-[#e5e7eb]">
           <h3 className="text-lg font-medium text-[#111827]">{screen.name}</h3>
           <p className="text-[#6b7280] mt-1 line-clamp-2">{screen.description}</p>
+          {screen.featureId && screen.featureId.trim() !== '' && (
+            <div className="mt-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Feature: {screen.featureId}
+              </span>
+            </div>
+          )}
         </div>
         
         <div className="p-6 space-y-6 flex-grow overflow-y-auto">

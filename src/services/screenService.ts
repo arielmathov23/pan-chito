@@ -34,22 +34,82 @@ export interface SupabaseFlowStep {
 
 // Mapping functions
 function mapScreenToSupabase(screen: Screen): Omit<SupabaseScreen, 'created_at' | 'updated_at' | 'user_id'> {
+  console.log(`Mapping screen to Supabase format. Screen ID: ${screen.id}, Has featureId: ${!!screen.featureId}`);
+  
+  // Only add metadata if the screen has a featureId
+  let elementsWithMetadata = [...(screen.elements || [])];
+  
+  if (screen.featureId) {
+    // Check if we already have a metadata element
+    const metadataIndex = elementsWithMetadata.findIndex(el => el.type === '_metadata');
+    
+    if (metadataIndex >= 0) {
+      // Update existing metadata
+      elementsWithMetadata[metadataIndex] = {
+        ...elementsWithMetadata[metadataIndex],
+        properties: {
+          ...elementsWithMetadata[metadataIndex].properties,
+          featureId: screen.featureId
+        }
+      };
+    } else {
+      // Add new metadata element
+      elementsWithMetadata.push({
+        id: uuidv4(),
+        type: '_metadata',
+        properties: {
+          featureId: screen.featureId
+        }
+      });
+    }
+  }
+  
   return {
     id: screen.id,
     prd_id: screen.prdId,
     name: screen.name,
     description: screen.description || '',
-    elements: screen.elements
+    elements: elementsWithMetadata
   };
 }
 
 function mapSupabaseToScreen(screen: SupabaseScreen): Screen {
+  // Extract featureId from metadata in elements with defensive checks
+  let featureId = '';
+  let elements: any[] = [];
+  
+  // Check if elements array exists
+  if (Array.isArray(screen.elements)) {
+    elements = [...screen.elements];
+    
+    // Look for metadata element
+    const metadataIndex = elements.findIndex(el => el && el.type === '_metadata');
+    
+    if (metadataIndex >= 0) {
+      // Extract featureId from metadata if it exists
+      const metadata = elements[metadataIndex];
+      if (metadata && metadata.properties && metadata.properties.featureId) {
+        featureId = metadata.properties.featureId;
+        console.log(`Found featureId in metadata: ${featureId} for screen: ${screen.id}`);
+      }
+      
+      // Remove metadata element from the array that will be displayed
+      elements.splice(metadataIndex, 1);
+    } else {
+      console.log(`No metadata element found for screen: ${screen.id}`);
+    }
+  } else {
+    console.log(`No elements array found for screen: ${screen.id}`);
+    elements = [];
+  }
+  
   return {
     id: screen.id,
     prdId: screen.prd_id,
     name: screen.name,
     description: screen.description,
-    elements: screen.elements,
+    featureId: featureId,
+    elements: elements,
     createdAt: new Date(screen.created_at).getTime()
   };
 }

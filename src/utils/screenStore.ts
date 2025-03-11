@@ -6,6 +6,7 @@ export interface Screen {
   prdId: string;
   name: string;
   description: string;
+  featureId: string;  // Added field to link screen to a specific feature
   elements: ScreenElement[];
   createdAt: number;
 }
