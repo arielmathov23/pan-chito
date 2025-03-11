@@ -123,7 +123,14 @@ export default function TrelloIntegration({ onStatusChange, customReturnUrl }: T
 
   const handleConnect = () => {
     // Trello API key - should be in env vars in production
-    const apiKey = process.env.NEXT_PUBLIC_TRELLO_API_KEY || 'your-trello-api-key';
+    const apiKey = process.env.NEXT_PUBLIC_TRELLO_API_KEY;
+    
+    // Check if API key is available
+    if (!apiKey || apiKey === 'your-trello-api-key') {
+      console.error('Trello API key is not configured. Please set the NEXT_PUBLIC_TRELLO_API_KEY environment variable.');
+      alert('Trello integration is not properly configured. Please contact support.');
+      return;
+    }
     
     // Return URL after OAuth
     const returnUrl = customReturnUrl || `${window.location.origin}${window.location.pathname}`;
