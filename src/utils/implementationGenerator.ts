@@ -307,13 +307,19 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
   }
 }
 
-export async function generateImplementation(prd: PRD, screenSet: ScreenSet | null): Promise<Implementation> {
+export async function generateImplementation(prd: PRD, techDoc: TechDoc, screenSet: ScreenSet | null): Promise<Implementation> {
   console.log("=== Implementation Generation Started ===");
   console.log(`PRD ID: ${prd.id}`);
   
-  // Prepare the input data - include complete PRD and screens info, remove brief
+  // Prepare the input data - include complete PRD, tech doc and screens info
   const inputData = {
     prdContent: prd.content,
+    techDoc: {
+      techStack: techDoc.techStack,
+      frontend: techDoc.frontend,
+      backend: techDoc.backend,
+      content: techDoc.content
+    },
     screens: screenSet ? {
       screens: screenSet.screens,
       appFlow: screenSet.appFlow
@@ -321,6 +327,7 @@ export async function generateImplementation(prd: PRD, screenSet: ScreenSet | nu
   };
   
   console.log(`Input data prepared, PRD content length: ${JSON.stringify(prd.content).length}`);
+  console.log(`Tech doc included: ${techDoc.techStack || 'No tech stack specified'}`);
   if (screenSet) {
     console.log(`Including ${screenSet.screens.length} screens and app flow with ${screenSet.appFlow.steps.length} steps`);
   } else {
@@ -334,6 +341,9 @@ export async function generateImplementation(prd: PRD, screenSet: ScreenSet | nu
 
 PRD Content:
 ${JSON.stringify(inputData.prdContent, null, 2)}
+
+Technical Documentation:
+${JSON.stringify(inputData.techDoc, null, 2)}
 
 ${inputData.screens ? `
 App Screens:
