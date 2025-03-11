@@ -483,13 +483,54 @@ export default function Projects() {
         {/* Header Section */}
         <div className="mb-6">
           {/* Title and Description */}
-          <div className="flex flex-col mb-4">
-            <h1 className="text-3xl font-bold text-[#111827]">Projects</h1>
-            <p className="text-[#6b7280] mt-1">Manage your product development projects</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[#111827]">Projects</h1>
+              <p className="text-[#6b7280] mt-1">Manage your product development projects</p>
+            </div>
+
+            {/* Desktop Actions - Only visible on md and larger screens */}
+            {projects.length > 0 && (
+              <div className="hidden md:flex items-center space-x-4">
+                {limitStatus && (
+                  <div className="text-sm text-[#6b7280] bg-white rounded-lg border border-[#e5e7eb] py-2 px-3">
+                    <span>{limitStatus.currentProjects} of {limitStatus.maxProjects} projects used</span>
+                    {!limitStatus.canCreateProject && (
+                      <Link 
+                        href="/upgrade" 
+                        className="ml-1 text-[#0F533A] hover:text-[#0F533A]/90 font-medium"
+                      >
+                        Upgrade for more
+                      </Link>
+                    )}
+                  </div>
+                )}
+                
+                <Link 
+                  href="/project/new" 
+                  className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium ${
+                    limitStatus && !limitStatus.canCreateProject
+                      ? 'bg-[#0F533A]/60 text-white cursor-not-allowed'
+                      : 'bg-[#0F533A] text-white hover:bg-[#0F533A]/90 transition-colors'
+                  }`}
+                  onClick={(e) => {
+                    if (limitStatus && !limitStatus.canCreateProject) {
+                      e.preventDefault();
+                      router.push('/upgrade');
+                    }
+                  }}
+                >
+                  <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  New Project
+                </Link>
+              </div>
+            )}
           </div>
 
-          {/* Project Limits and Actions */}
-          <div className="flex flex-col space-y-3">
+          {/* Mobile Project Limits and Actions - Only visible on small screens */}
+          <div className="flex flex-col space-y-3 md:hidden mt-4">
             {/* Upgrade Info - Only show if there are projects */}
             {limitStatus && projects.length > 0 && (
               <div className="flex items-center justify-between bg-white rounded-lg border border-[#e5e7eb] p-3">

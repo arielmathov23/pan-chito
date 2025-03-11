@@ -73,6 +73,12 @@ const Navbar = () => {
                   All PRDs
                 </Link>
                 <Link
+                  href="/integrations"
+                  className={`${isActive('/integrations')} inline-flex items-center px-1 pt-1 border-b-2 text-sm transition-colors`}
+                >
+                  Integrations
+                </Link>
+                <Link
                   href="/upgrade"
                   className={`inline-flex items-center ml-4 px-3 py-1 rounded-md text-sm font-medium bg-gradient-to-r from-[#0F533A]/10 to-[#16a34a]/10 text-[#0F533A] border border-[#0F533A]/20 hover:bg-[#0F533A]/20 transition-colors`}
                 >
@@ -213,6 +219,23 @@ const Navbar = () => {
                       <path d="M9 18H17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     All PRDs
+                  </div>
+                </Link>
+                <Link 
+                  href="/integrations"
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                    router.pathname === '/integrations' || router.pathname.startsWith('/integrations/') 
+                      ? 'bg-[#0F533A]/10 text-[#0F533A] border-l-4 border-[#0F533A]' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-[#0F533A]'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13.5 12C13.5 15.18 10.93 17.75 7.75 17.75C4.57 17.75 2 15.18 2 12C2 8.82 4.57 6.25 7.75 6.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 12C10 8.69 12.69 6 16 6C19.31 6 22 8.69 22 12C22 15.31 19.31 18 16 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Integrations
                   </div>
                 </Link>
                 <Link 
