@@ -360,7 +360,7 @@ You task is to create two files:
    - Must incorporate technical stack details and UI guidelines
    - Must include high-level architectural decisions
    - Detail how to manage contrast, accessibility, and responsive desing.
-   - Definition to place the code in a src/ directory, use App Router
+   - Code placement: All code in src/ (e.g., src/app/ for App Router, src/components/ for UI, src/lib/ for utilities like Supabase client).
    - Avoid Nested Directory Issues
    - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
 
