@@ -1230,7 +1230,6 @@ export default function ProjectDetail() {
                             <span className="flex items-center">
                               Export tasks and user stories 
                               <img src="/trello.png" alt="Trello" className="h-5 w-auto rounded opacity-90 mx-1.5" />
-                              <span className="text-xs text-[#6366f1]/70">(coming soon)</span>
                             </span>
                           </li>
                         </ul>

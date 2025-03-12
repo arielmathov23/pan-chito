@@ -737,6 +737,24 @@ export default function ScreensPage() {
             <div>
               <h1 className="text-3xl font-bold text-[#111827] tracking-tight">App Screens</h1>
               <p className="text-[#6b7280] mt-2">Screen designs and app flow for {brief ? brief.productName : 'your product'}</p>
+              <div className="inline-flex items-center mt-3 px-3 py-1.5 bg-[#0F533A]/5 border border-[#0F533A]/10 rounded-full text-sm">
+                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M16 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3.5 9.08984H20.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-[#4b5563]">Up to 4 journey steps and App screens</span>
+                <Link 
+                  href="/upgrade" 
+                  className="ml-2 font-medium text-[#0F533A] hover:text-[#0F533A]/90 flex items-center"
+                >
+                  Upgrade
+                  <svg className="w-3.5 h-3.5 ml-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.91003 19.9201L15.43 13.4001C16.2 12.6301 16.2 11.3701 15.43 10.6001L8.91003 4.08008" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </Link>
+              </div>
             </div>
             <div className="flex items-center space-x-3 self-start">
               {screenSet && screenSet.screens && screenSet.screens.length > 0 ? (

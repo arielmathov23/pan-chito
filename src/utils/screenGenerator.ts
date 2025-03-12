@@ -72,44 +72,44 @@ Guidelines:
 4. Use consistent naming for screen references
 5. Cover the complete user flow from initial interaction to goal completion`;
 
-  // Maximum number of retry attempts
+    // Maximum number of retry attempts
   const MAX_RETRIES = 1; // Reduced from 2 to 1
-  let retryCount = 0;
-  let lastError: Error | null = null;
+    let retryCount = 0;
+    let lastError: Error | null = null;
 
-  // Retry loop
-  while (retryCount <= MAX_RETRIES) {
+    // Retry loop
+    while (retryCount <= MAX_RETRIES) {
     try {
       console.log(`App flow API request attempt ${retryCount + 1} of ${MAX_RETRIES + 1}`);
-      
-      // Improved timeout handling with AbortController
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
+        
+        // Improved timeout handling with AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
         console.log("App flow request timeout triggered after 8s");
-        controller.abort();
+          controller.abort();
       }, 8000); // 8-second timeout (reduced from 120s to align with Vercel's limits)
       
       try {
         console.log("Making API request to OpenAI for app flow");
-        
-        // Call OpenAI API with optimized parameters
-        const response = await fetch('/api/openai', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt,
+          
+          // Call OpenAI API with optimized parameters
+          const response = await fetch('/api/openai', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt,
             max_tokens: 800, // Reduced tokens since we're only generating 4 steps
-            temperature: 0.7
-          }),
-          signal: controller.signal
-        });
+              temperature: 0.7
+            }),
+            signal: controller.signal
+          });
 
-        clearTimeout(timeoutId);
+          clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
           
           // Check if the API suggests using fallback
           if (errorData.fallback) {
