@@ -45,7 +45,7 @@ async function generateAppFlow(brief: Brief, prd: PRD): Promise<AppFlow> {
   const prompt = `
 You are a senior UX designer responsible for creating a user journey for a new product. Based on the following product brief and PRD, generate a user journey in JSON format.
 
-Your output should include ONLY the user journey outlining up to 8 main steps in the happy path. Do not generate screen details yet.
+Your output should include ONLY the user journey outlining up to 4 main steps in the happy path. Do not generate screen details yet.
 
 The context:
 Product: ${brief.productName}
@@ -72,49 +72,56 @@ Guidelines:
 4. Use consistent naming for screen references
 5. Cover the complete user flow from initial interaction to goal completion`;
 
-    // Maximum number of retry attempts
-    const MAX_RETRIES = 2;
-    let retryCount = 0;
-    let lastError: Error | null = null;
+  // Maximum number of retry attempts
+  const MAX_RETRIES = 1; // Reduced from 2 to 1
+  let retryCount = 0;
+  let lastError: Error | null = null;
 
-    // Retry loop
-    while (retryCount <= MAX_RETRIES) {
+  // Retry loop
+  while (retryCount <= MAX_RETRIES) {
     try {
       console.log(`App flow API request attempt ${retryCount + 1} of ${MAX_RETRIES + 1}`);
-        
-        // Improved timeout handling with AbortController
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-        console.log("App flow request timeout triggered after 120s");
-          controller.abort();
-      }, 120000); // 2-minute timeout for app flow (should be faster than full generation)
+      
+      // Improved timeout handling with AbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("App flow request timeout triggered after 8s");
+        controller.abort();
+      }, 8000); // 8-second timeout (reduced from 120s to align with Vercel's limits)
       
       try {
         console.log("Making API request to OpenAI for app flow");
+        
+        // Call OpenAI API with optimized parameters
+        const response = await fetch('/api/openai', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt,
+            max_tokens: 800, // Reduced tokens since we're only generating 4 steps
+            temperature: 0.7
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
           
-          // Call OpenAI API with optimized parameters
-          const response = await fetch('/api/openai', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              prompt,
-            max_tokens: 1000, // Reduced tokens since we're only generating the app flow
-              temperature: 0.7
-            }),
-            signal: controller.signal
-          });
-
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+          // Check if the API suggests using fallback
+          if (errorData.fallback) {
+            console.log("API suggests using fallback app flow");
+            throw new Error("API suggests fallback app flow");
+          }
+          
           throw new Error(`API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
         }
 
         const data = await response.json();
-        
+      
         if (!data.choices?.[0]?.message?.content) {
           throw new Error('Invalid API response format');
         }
@@ -201,7 +208,7 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
   console.log("Preparing screens prompt for OpenAI");
   
   // Retry loop
-  const MAX_RETRIES = 2;
+  const MAX_RETRIES = 1; // Reduced from 2 to 1 to minimize excessive timeouts
   let retryCount = 0;
   let lastError: Error | null = null;
 
@@ -213,9 +220,9 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
       // Improved timeout handling with AbortController
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log("Screens request timeout triggered after 240s");
+        console.log("Screens request timeout triggered after 9s");
         controller.abort();
-      }, 240000); // 4-minute timeout
+      }, 9000); // 9-second timeout (reduced from 240s to align with Vercel's limits)
       
       try {
         console.log("Making API request to OpenAI for screens");
@@ -240,7 +247,7 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
             appFlow: {
               id: appFlow.id,
               prdId: prd.id,
-              steps: appFlow.steps.map(step => ({
+              steps: appFlow.steps.slice(0, 4).map(step => ({
                 id: step.id,
                 description: step.description,
                 screenReference: step.screenReference
@@ -256,14 +263,16 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
         if (!response.ok) {
           let errorMessage = `API request failed with status ${response.status}`;
           
-          // For 504 errors, throw immediately without retrying
-            if (response.status === 504) {
-            throw new Error(`API request failed with status 504: Gateway Timeout`);
-          }
-          
           try {
             // Try to parse the error response as JSON
             const errorData = await response.json();
+            
+            // Check if the API suggests using fallback screens
+            if (errorData.fallback) {
+              console.log("API suggests using fallback screens");
+              throw new Error("API suggests fallback screens");
+            }
+            
             errorMessage += `: ${errorData.error || 'Unknown error'}`;
           } catch (parseError) {
             // If JSON parsing fails, try to get the text response
@@ -438,8 +447,8 @@ function generateFallbackAppFlow(brief: Brief, prd: PRD): AppFlow {
       }
     ];
     
-    // Add feature-specific steps
-    features.slice(0, 3).forEach(feature => {
+    // Add feature-specific steps (limit to 2 more steps for a total of 4)
+    features.slice(0, 2).forEach(feature => {
       if (feature && feature.name) {
         steps.push({
           id: uuidv4(),

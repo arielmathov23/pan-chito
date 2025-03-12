@@ -17,18 +17,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       `  - ${step.description} (Screen: ${step.screenReference})`
     ).join('\n') || '';
 
-    // Create the prompt for OpenAI
+    // Truncate brief content to reduce prompt size
+    const briefContent = typeof brief.content === 'string' 
+      ? brief.content.substring(0, 250) + (brief.content.length > 250 ? '...' : '')
+      : JSON.stringify(brief.content).substring(0, 250) + '...';
+
+    // Create a more concise prompt for OpenAI
     const prompt = `
-You are a senior UX designer responsible for creating detailed screen specifications for a new product. 
-Based on the following product brief, PRD, and user journey, generate up to 4 MAIN screen specifications in JSON format.
-
-Your output should include ONLY the screens array with detailed specifications for each screen required for design and development, aligned with the user journey provided.
-
-The context:
-Product: ${brief.productName}
-
-PRD Summary:
-${typeof brief.content === 'string' ? brief.content : JSON.stringify(brief.content)}
+Generate screen specifications in JSON format for a product called "${brief.productName}".
+Focus on creating ONLY 4 MAIN screens based on this brief summary: ${briefContent}
+PRD Summary: ${typeof brief.content === 'string' ? brief.content : JSON.stringify(brief.content)}
 
 User Journey:
 ${appFlowSteps}
@@ -38,8 +36,8 @@ Required Output Format:
   "screens": [
     {
       "name": "Screen name",
-      "description": "Detailed description of screen purpose and functionality",
-      "featureId": "EXACT id of the feature from the PRD that this screen implements",
+      "description": "Brief description",
+      "featureId": "feature_id",
       "elements": [
         {
           "type": "image",
@@ -72,21 +70,16 @@ Required Output Format:
 }
 
 Guidelines:
- Focus on essential UI elements: images (descriptions only), inputs, text content, and navigation buttons
- Provide clear descriptions for all elements
-Ensure button actions specify the target screen or functionality
-Keep the interface clean and focused on core functionality
-Use consistent naming across screens that matches the screen references in the user journey
-Organize content logically within each screen
-Include all necessary navigation paths between screens
-IMPORTANT: Create screens for ALL screen references mentioned in the user journey`;
+- Create ONLY 4 main screens for the most important screen references
+- Keep elements focused on essential UI components
+- Ensure consistent naming across screens`;
 
-    // Set a longer timeout for the OpenAI request
+    // Set a shorter timeout for the OpenAI request to stay within Vercel limits
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
     try {
-      // Make the OpenAI API call
+      // Make the OpenAI API call with a faster model
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -98,7 +91,7 @@ IMPORTANT: Create screens for ALL screen references mentioned in the user journe
           messages: [
             {
               role: "system",
-              content: "You are a UX design expert who creates detailed screen specifications for applications."
+              content: "You are a UX design expert who creates concise screen specifications. Always limit your response to 4 main screens."
             },
             {
               role: "user",
@@ -106,7 +99,7 @@ IMPORTANT: Create screens for ALL screen references mentioned in the user journe
             }
           ],
           temperature: 0.7,
-          max_tokens: 2000
+          max_tokens: 1500
         }),
         signal: controller.signal
       });
@@ -125,7 +118,18 @@ IMPORTANT: Create screens for ALL screen references mentioned in the user journe
           console.error('Failed to parse OpenAI error response:', parseError);
         }
         
-        return res.status(response.status).json({ error: errorMessage });
+        // Special handling for 504 errors - add fallback flag
+        if (response.status === 504) {
+          return res.status(504).json({ 
+            error: 'Request timed out',
+            fallback: true
+          });
+        }
+        
+        return res.status(response.status).json({ 
+          error: errorMessage,
+          fallback: true
+        });
       }
 
       // Parse the OpenAI response
@@ -134,14 +138,20 @@ IMPORTANT: Create screens for ALL screen references mentioned in the user journe
         data = await response.json();
       } catch (parseError) {
         console.error('Failed to parse OpenAI response:', parseError);
-        return res.status(500).json({ error: 'Invalid response format from OpenAI' });
+        return res.status(500).json({ 
+          error: 'Invalid response format from OpenAI',
+          fallback: true
+        });
       }
 
       // Extract the content from the response
       const content = data.choices?.[0]?.message?.content;
       
       if (!content) {
-        return res.status(500).json({ error: 'Empty response from OpenAI' });
+        return res.status(500).json({ 
+          error: 'Empty response from OpenAI',
+          fallback: true
+        });
       }
 
       // Return the screens data
@@ -151,12 +161,16 @@ IMPORTANT: Create screens for ALL screen references mentioned in the user journe
       
       // Handle specific error types
       if (error.name === 'AbortError') {
-        return res.status(504).json({ error: 'Request timed out' });
+        return res.status(504).json({ 
+          error: 'Request timed out',
+          fallback: true
+        });
       }
       
       console.error('Error calling OpenAI API:', error);
       return res.status(500).json({ 
         error: `Error processing request: ${error.message || 'Unknown error'}`,
+        fallback: true,
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
@@ -164,6 +178,7 @@ IMPORTANT: Create screens for ALL screen references mentioned in the user journe
     console.error('Unhandled error in generate-screens API:', error);
     return res.status(500).json({ 
       error: `Server error: ${error.message || 'Unknown error'}`,
+      fallback: true,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
