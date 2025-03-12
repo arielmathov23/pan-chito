@@ -19,7 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Create the prompt for OpenAI
     const prompt = `
-You are a senior UX designer responsible for creating detailed screen specifications for a new product. Based on the following product brief, PRD, and user journey, generate detailed screen specifications in JSON format.
+You are a senior UX designer responsible for creating detailed screen specifications for a new product. 
+Based on the following product brief, PRD, and user journey, generate up to 4 MAIN screen specifications in JSON format.
 
 Your output should include ONLY the screens array with detailed specifications for each screen required for design and development, aligned with the user journey provided.
 
