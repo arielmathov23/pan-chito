@@ -107,9 +107,9 @@ Guidelines:
         // Improved timeout handling with AbortController
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.log("Request timeout triggered after 180s");
+          console.log("Request timeout triggered after 240s");
           controller.abort();
-        }, 180000); // 3-minute timeout
+        }, 240000); // 4-minute timeout
         
         try {
           console.log("Making API request to OpenAI", {
@@ -130,7 +130,7 @@ Guidelines:
             },
             body: JSON.stringify({
               prompt,
-              max_tokens: 2000,
+              max_tokens: 3000,
               temperature: 0.7
             }),
             signal: controller.signal
