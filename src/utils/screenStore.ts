@@ -31,6 +31,7 @@ export interface FlowStep {
   id: string;
   description: string;
   screenId?: string; // Optional reference to a screen
+  screenReference?: string; // Optional reference to a screen by name (used during generation)
 }
 
 // Define the ScreenSet interface

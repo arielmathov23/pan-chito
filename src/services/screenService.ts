@@ -128,7 +128,9 @@ function mapSupabaseToFlowStep(step: SupabaseFlowStep): FlowStep {
   return {
     id: step.id,
     description: step.description,
-    screenId: step.screen_id || undefined
+    screenId: step.screen_id || undefined,
+    // We won't have screenReference for existing records
+    screenReference: undefined
   };
 }
 

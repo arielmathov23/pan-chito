@@ -68,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       max_tokens,
       response_format: { type: "json_object" }
     }, {
-      timeout: 180000 // 3 minutes timeout for OpenAI API call
+      timeout: 240000 // 3 minutes timeout for OpenAI API call
     });
 
     console.log("OpenAI API response received");

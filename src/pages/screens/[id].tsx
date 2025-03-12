@@ -43,6 +43,14 @@ export default function ScreensPage() {
   const [screens, setScreens] = useState<ScreenType[]>([]);
   const [progressPercentage, setProgressPercentage] = useState(0);
 
+  // Update screens array when screenSet changes and reset currentScreenIndex
+  useEffect(() => {
+    if (screenSet && screenSet.screens) {
+      // Reset to the first screen when screens are loaded or regenerated
+      setCurrentScreenIndex(0);
+    }
+  }, [screenSet]);
+
   useEffect(() => {
     setUsingMockData(isMockData());
     setIsLoading(true);
@@ -361,13 +369,19 @@ export default function ScreensPage() {
     
     // Provide more user-friendly error messages based on the error
     if (err.message && err.message.includes('timed out')) {
-      setError('Screen generation timed out. This can happen with complex products. Please try again or simplify your PRD.');
+      setError('Screen generation timed out. Please try again in a moment.');
     } else if (err.message && err.message.includes('Network error')) {
       setError('Network error. Please check your internet connection and try again.');
     } else if (err.message && err.message.includes('API request failed with status 504')) {
-      setError('The server took too long to respond. Screen generation can take a while for complex products. Please try again in a moment.');
+      setError('The server took too long to respond. Please try again in a moment.');
+    } else if (err.message && (err.message.includes('API request failed with status 500') || 
+                               err.message.includes('API request failed with status 400') ||
+                               err.message.includes('OpenAI API error'))) {
+      setError('We encountered an issue generating your screens. Please try again in a few minutes.');
+    } else if (err.message && err.message.includes('Invalid response format from OpenAI')) {
+      setError('We encountered an issue generating your screens. Please try again in a few minutes.');
     } else {
-      setError(`Failed to generate screens: ${err.message || 'Unknown error'}`);
+      setError('Unable to generate screens at this time. Please try again later.');
     }
     
     setGenerationStatus('');
