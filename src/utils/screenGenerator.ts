@@ -66,7 +66,7 @@ Required Output Format:
 }
 
 Guidelines:
-1. Focus on the core user journey from start to finish, maximum 8 steps
+1. Focus on the core user journey from start to finish, maximum 4 steps
 2. Include all necessary steps a user would take to complete the main tasks
 3. Ensure screen references are clear and descriptive
 4. Use consistent naming for screen references
@@ -259,15 +259,20 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
 
         clearTimeout(timeoutId);
 
-        // Improved error handling
+        // Handle non-OK responses
         if (!response.ok) {
-          let errorMessage = `API request failed with status ${response.status}`;
+          // Special handling for 504 Gateway Timeout
+          if (response.status === 504) {
+            console.log("Received 504 Gateway Timeout, using fallback screens");
+            throw new Error("Gateway Timeout - using fallback screens");
+          }
           
+          // Try to parse error response as JSON
+          let errorMessage = `API request failed with status ${response.status}`;
           try {
-            // Try to parse the error response as JSON
             const errorData = await response.json();
             
-            // Check if the API suggests using fallback screens
+            // Check if API suggests using fallback
             if (errorData.fallback) {
               console.log("API suggests using fallback screens");
               throw new Error("API suggests fallback screens");
@@ -275,21 +280,16 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
             
             errorMessage += `: ${errorData.error || 'Unknown error'}`;
           } catch (parseError) {
-            // If JSON parsing fails, try to get the text response
-            try {
-              const errorText = await response.text();
-              errorMessage += `: ${errorText || 'Invalid response format'}`;
-            } catch (textError) {
-              // If even text extraction fails
-              errorMessage += ': Unable to parse error response';
-            }
+            // If JSON parsing fails, use a generic error
+            console.error('Failed to parse error response:', parseError);
+            errorMessage += ': Error parsing response';
           }
           
           console.error('Screen generation API error:', errorMessage);
           throw new Error(errorMessage);
         }
 
-        // Safely parse the JSON response
+        // Parse the successful response
         let data;
         try {
           data = await response.json();
@@ -502,77 +502,94 @@ function generateFallbackScreens(brief: Brief, prd: PRD, appFlow: AppFlow): Scre
     
     // Create basic screens based on app flow screen references
     const screens: Screen[] = [];
-    const screenReferences = new Set(appFlow.steps.map(step => step.screenReference).filter(Boolean));
+    
+    // Get unique screen references from the app flow, limited to first 4
+    const screenReferences = new Set(
+      appFlow.steps
+        .slice(0, 4) // Limit to first 4 steps
+        .map(step => step.screenReference)
+        .filter(Boolean)
+    );
+    
+    // If we have fewer than 2 screen references, add some defaults
+    if (screenReferences.size < 2) {
+      screenReferences.add("Login Screen");
+      screenReferences.add("Home Screen");
+    }
     
     // Add login screen if referenced
     if (screenReferences.has("Login Screen")) {
       screens.push(createBasicScreen("Login Screen", "User authentication screen", prd.id, [
-        createElement("text" as const, { content: `Welcome to ${brief.productName}` }),
-        createElement("input" as const, { description: "Email input field" }),
-        createElement("input" as const, { description: "Password input field" }),
-        createElement("button" as const, { content: "Login", action: "Navigate to Home Screen" })
+        createElement("text", { content: `Welcome to ${brief.productName}` }),
+        createElement("input", { description: "Email input field" }),
+        createElement("input", { description: "Password input field" }),
+        createElement("button", { content: "Login", action: "Navigate to Home Screen" })
       ], "authentication"));
     }
     
     // Add home screen if referenced
     if (screenReferences.has("Home Screen")) {
       screens.push(createBasicScreen("Home Screen", "Main dashboard for the application", prd.id, [
-        createElement("text" as const, { content: `${brief.productName} Dashboard` }),
-        createElement("text" as const, { content: "Welcome back, User" }),
-        ...(features.slice(0, 3).map(feature => 
-          createElement("button" as const, { content: feature.name, action: `Navigate to ${feature.name} Screen` })
+        createElement("text", { content: `${brief.productName} Dashboard` }),
+        createElement("text", { content: "Welcome back, User" }),
+        ...(features.slice(0, 2).map(feature => 
+          createElement("button", { content: feature.name, action: `Navigate to ${feature.name} Screen` })
         ))
       ], "dashboard"));
     }
     
-    // Add feature-specific screens based on references
-    features.forEach((feature) => {
+    // Add feature-specific screens based on references, limited to 2 main features
+    features.slice(0, 2).forEach((feature) => {
       if (feature && feature.id && feature.name) {
         const screenName = `${feature.name} Screen`;
         if (screenReferences.has(screenName)) {
           screens.push(createBasicScreen(screenName, `Screen for the ${feature.name} feature`, prd.id, [
-            createElement("text" as const, { content: feature.name }),
-            createElement("text" as const, { content: `This screen handles the ${feature.name} functionality` }),
-            createElement("button" as const, { content: "Back to Home", action: "Navigate to Home Screen" })
+            createElement("text", { content: feature.name }),
+            createElement("text", { content: `This screen handles the ${feature.name} functionality` }),
+            createElement("button", { content: "Back to Home", action: "Navigate to Home Screen" })
           ], feature.id));
         }
       }
     });
     
-    // Add generic screens for any remaining references
+    // Add generic screens for any remaining references from the first 4 steps
     screenReferences.forEach(screenRef => {
       if (screenRef && !screens.some(s => s.name === screenRef)) {
         screens.push(createBasicScreen(screenRef, `Screen for ${screenRef}`, prd.id, [
-          createElement("text" as const, { content: screenRef }),
-          createElement("text" as const, { content: `This is the ${screenRef} screen` }),
-          createElement("button" as const, { content: "Back", action: "Navigate to previous screen" })
+          createElement("text", { content: screenRef }),
+          createElement("text", { content: `This is the ${screenRef} screen` }),
+          createElement("button", { content: "Back", action: "Navigate to previous screen" })
         ], ""));
       }
     });
     
+    // Ensure we don't have more than 4 screens
+    const finalScreens = screens.slice(0, 4);
+    
     // Link screens to app flow steps by name
     appFlow.steps.forEach(step => {
       if (step.screenReference) {
-        const matchingScreen = screens.find(screen => screen.name === step.screenReference);
+        const matchingScreen = finalScreens.find(screen => screen.name === step.screenReference);
         if (matchingScreen) {
           step.screenId = matchingScreen.id;
         }
       }
     });
     
-    return screens;
+    console.log(`Generated ${finalScreens.length} fallback screens`);
+    return finalScreens;
   } catch (error) {
     console.error("Error generating fallback screens:", error);
     
-    // Return minimal screens
+    // Return minimal screens (2 screens only)
     const loginScreen = createBasicScreen("Login Screen", "User authentication screen", prd.id, [
-      createElement("text" as const, { content: `Welcome to ${brief.productName}` }),
-      createElement("button" as const, { content: "Login", action: "Navigate to Home Screen" })
+      createElement("text", { content: `Welcome to ${brief.productName}` }),
+      createElement("button", { content: "Login", action: "Navigate to Home Screen" })
     ], "authentication");
     
     const homeScreen = createBasicScreen("Home Screen", "Main dashboard", prd.id, [
-      createElement("text" as const, { content: "Home Dashboard" }),
-      createElement("text" as const, { content: "No features available" })
+      createElement("text", { content: "Home Dashboard" }),
+      createElement("text", { content: "No features available" })
     ], "dashboard");
     
     const screens = [loginScreen, homeScreen];
@@ -586,6 +603,7 @@ function generateFallbackScreens(brief: Brief, prd: PRD, appFlow: AppFlow): Scre
       }
     });
     
+    console.log("Generated 2 minimal fallback screens");
     return screens;
   }
 }
@@ -723,7 +741,7 @@ function createBasicScreen(name: string, description: string, prdId: string, ele
 
 // Helper function to create a screen element
 function createElement(type: string, properties: any): ScreenElement {
-  // Use a type assertion to bypass type checking
+  // Use a type assertion to bypass type checking for this line
   return {
     id: uuidv4(),
     // @ts-ignore - Bypass type checking for this line

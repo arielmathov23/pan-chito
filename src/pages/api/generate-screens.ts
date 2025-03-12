@@ -26,7 +26,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const prompt = `
 Generate screen specifications in JSON format for a product called "${brief.productName}".
 Focus on creating ONLY 4 MAIN screens based on this brief summary: ${briefContent}
-PRD Summary: ${typeof brief.content === 'string' ? brief.content : JSON.stringify(brief.content)}
 
 User Journey:
 ${appFlowSteps}
@@ -87,7 +86,7 @@ Guidelines:
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini", // Adding the required model parameter
+          model: "gpt-3.5-turbo", // Using a faster model
           messages: [
             {
               role: "system",
