@@ -312,48 +312,55 @@ export default function ScreensPage() {
       } catch (err) {
         console.error('Error in primary screen generation:', err);
         
-        if (err.message && (err.message.includes('timed out') || err.message.includes('504'))) {
-          setGenerationStatus('Timeout occurred. Creating basic screens instead...');
+        // Check if it's a timeout error (504)
+        if (err.message && (err.message.includes('504') || err.message.includes('timeout') || err.message.includes('timed out'))) {
+          // For timeout errors, don't try fallback generation - just show error and stop
+          setIsGenerating(false);
+          setGenerationStatus('');
+          setProgressPercentage(0);
+          setError('The screen generation process timed out. Please try again later when the server is less busy.');
+          return;
+        }
+        
+        // For other errors, try fallback generation
+        try {
+          setGenerationStatus('Creating basic screens instead...');
           setProgressPercentage(30);
           
-          try {
-            // Generate basic screens directly
-            setProgressPercentage(50);
-            setGenerationStatus('Generating basic screens...');
-            
-            const { screens, appFlow } = await generateScreens(brief, prd);
-            
-            setProgressPercentage(80);
-            setGenerationStatus('Processing and validating basic screens...');
-            
-            // Save screens to Supabase
-            setProgressPercentage(90);
-            setGenerationStatus('Saving basic screens...');
-            await screenService.saveScreenSet(prd.id, screens, appFlow);
-            
-            // Update local state
-            setScreenSet({
-              screens,
-              appFlow
-            });
-            
-            setProgressPercentage(100);
-            setGenerationStatus('Completed! Loading basic screens...');
-            
-            setTimeout(() => {
-              setIsGenerating(false);
-              setGenerationStatus('');
-              setProgressPercentage(0);
-            }, 1000);
-            
-            setError('We encountered a timeout generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
-            
-          } catch (fallbackErr) {
-            console.error('Error in fallback screen generation:', fallbackErr);
-            handleGenerationError(fallbackErr);
-          }
-        } else {
-          handleGenerationError(err);
+          // Generate basic screens directly
+          setProgressPercentage(50);
+          setGenerationStatus('Generating basic screens...');
+          
+          const { screens, appFlow } = await generateScreens(brief, prd);
+          
+          setProgressPercentage(80);
+          setGenerationStatus('Processing and validating basic screens...');
+          
+          // Save screens to Supabase
+          setProgressPercentage(90);
+          setGenerationStatus('Saving basic screens...');
+          await screenService.saveScreenSet(prd.id, screens, appFlow);
+          
+          // Update local state
+          setScreenSet({
+            screens,
+            appFlow
+          });
+          
+          setProgressPercentage(100);
+          setGenerationStatus('Completed! Loading basic screens...');
+          
+          setTimeout(() => {
+            setIsGenerating(false);
+            setGenerationStatus('');
+            setProgressPercentage(0);
+          }, 1000);
+          
+          setError('We encountered an issue generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
+          
+        } catch (fallbackErr) {
+          console.error('Error in fallback screen generation:', fallbackErr);
+          handleGenerationError(fallbackErr);
         }
       }
     } catch (err) {
@@ -366,14 +373,14 @@ export default function ScreensPage() {
   const handleGenerationError = (err: any) => {
     console.error('Error generating screens:', err);
     setIsGenerating(false);
+    setProgressPercentage(0);
+    setGenerationStatus('');
     
     // Provide more user-friendly error messages based on the error
-    if (err.message && err.message.includes('timed out')) {
-      setError('Screen generation timed out. Please try again in a moment.');
+    if (err.message && (err.message.includes('timed out') || err.message.includes('504') || err.message.includes('timeout'))) {
+      setError('The screen generation process timed out. Please try again later when the server is less busy.');
     } else if (err.message && err.message.includes('Network error')) {
       setError('Network error. Please check your internet connection and try again.');
-    } else if (err.message && err.message.includes('API request failed with status 504')) {
-      setError('The server took too long to respond. Please try again in a moment.');
     } else if (err.message && (err.message.includes('API request failed with status 500') || 
                                err.message.includes('API request failed with status 400') ||
                                err.message.includes('OpenAI API error'))) {
@@ -383,8 +390,6 @@ export default function ScreensPage() {
     } else {
       setError('Unable to generate screens at this time. Please try again later.');
     }
-    
-    setGenerationStatus('');
   };
 
   const handleDeleteScreens = () => {

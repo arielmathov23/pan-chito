@@ -72,44 +72,44 @@ Guidelines:
 4. Use consistent naming for screen references
 5. Cover the complete user flow from initial interaction to goal completion`;
 
-  // Maximum number of retry attempts
-  const MAX_RETRIES = 2;
-  let retryCount = 0;
-  let lastError: Error | null = null;
+    // Maximum number of retry attempts
+    const MAX_RETRIES = 2;
+    let retryCount = 0;
+    let lastError: Error | null = null;
 
-  // Retry loop
-  while (retryCount <= MAX_RETRIES) {
+    // Retry loop
+    while (retryCount <= MAX_RETRIES) {
     try {
       console.log(`App flow API request attempt ${retryCount + 1} of ${MAX_RETRIES + 1}`);
-      
-      // Improved timeout handling with AbortController
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
+        
+        // Improved timeout handling with AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
         console.log("App flow request timeout triggered after 120s");
-        controller.abort();
+          controller.abort();
       }, 120000); // 2-minute timeout for app flow (should be faster than full generation)
       
       try {
         console.log("Making API request to OpenAI for app flow");
-        
-        // Call OpenAI API with optimized parameters
-        const response = await fetch('/api/openai', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt,
+          
+          // Call OpenAI API with optimized parameters
+          const response = await fetch('/api/openai', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt,
             max_tokens: 1000, // Reduced tokens since we're only generating the app flow
-            temperature: 0.7
-          }),
-          signal: controller.signal
-        });
+              temperature: 0.7
+            }),
+            signal: controller.signal
+          });
 
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
           throw new Error(`API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
         }
 
@@ -256,6 +256,11 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
         if (!response.ok) {
           let errorMessage = `API request failed with status ${response.status}`;
           
+          // For 504 errors, throw immediately without retrying
+          if (response.status === 504) {
+            throw new Error(`API request failed with status 504: Gateway Timeout`);
+          }
+          
           try {
             // Try to parse the error response as JSON
             const errorData = await response.json();
@@ -353,44 +358,44 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
       } catch (error) {
         clearTimeout(timeoutId);
           
-        if (error.name === 'AbortError') {
+          if (error.name === 'AbortError') {
           throw new Error('Screens request timed out');
-        }
+          }
           
+          throw error;
+        }
+      } catch (error) {
+        lastError = error;
+        
+        // If it's a timeout or network error, retry
+        const isTimeoutError = error.message && (
+          error.message.includes('timed out') || 
+          error.message.includes('504') ||
+          error.name === 'AbortError'
+        );
+        
+        const isNetworkError = error.message && (
+          error.message.includes('Failed to fetch') || 
+          error.message.includes('Network request failed')
+        );
+        
+        if ((isTimeoutError || isNetworkError) && retryCount < MAX_RETRIES) {
+        console.log(`Screens request failed with error: ${error.message}. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+          retryCount++;
+          
+          // Add exponential backoff delay between retries
+          const delay = Math.pow(2, retryCount) * 1000; // 2s, 4s, 8s, etc.
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // If we've exhausted retries or it's not a retryable error, throw
         throw error;
       }
-    } catch (error) {
-      lastError = error;
-      
-      // If it's a timeout or network error, retry
-      const isTimeoutError = error.message && (
-        error.message.includes('timed out') || 
-        error.message.includes('504') ||
-        error.name === 'AbortError'
-      );
-      
-      const isNetworkError = error.message && (
-        error.message.includes('Failed to fetch') || 
-        error.message.includes('Network request failed')
-      );
-      
-      if ((isTimeoutError || isNetworkError) && retryCount < MAX_RETRIES) {
-        console.log(`Screens request failed with error: ${error.message}. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
-        retryCount++;
-        
-        // Add exponential backoff delay between retries
-        const delay = Math.pow(2, retryCount) * 1000; // 2s, 4s, 8s, etc.
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      
-      // If we've exhausted retries or it's not a retryable error, throw
-      throw error;
     }
-  }
-  
-  // If we've exhausted all retries, use the fallback approach
-  if (lastError) {
+    
+    // If we've exhausted all retries, use the fallback approach
+    if (lastError) {
     console.log("All screens API attempts failed, using fallback approach");
     const screens = generateFallbackScreens(brief, prd, appFlow);
     
