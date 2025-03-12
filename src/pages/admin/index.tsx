@@ -117,6 +117,30 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Contact Messages Card */}
+            <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 bg-[#EFF6FF] p-3 rounded-lg">
+                  <svg className="w-6 h-6 text-[#3B82F6]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h2 className="text-lg font-semibold text-[#111827]">Contact Messages</h2>
+                  <p className="text-[#6b7280] mt-1">View and respond to contact form submissions</p>
+                  <Link 
+                    href="/admin/contact-messages" 
+                    className="inline-flex items-center mt-4 text-sm font-medium text-[#0F533A] hover:text-[#0F533A]/80"
+                  >
+                    View Messages
+                    <svg className="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="mt-8 text-center">

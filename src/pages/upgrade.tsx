@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { projectLimitService } from '../services/projectLimitService';
+import ContactForm from '../components/ContactForm';
 
 export default function Upgrade() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function Upgrade() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false); // Changed to false to not show immediately
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -27,8 +30,10 @@ export default function Upgrade() {
     setShowModal(false);
   };
 
-  const handleUpgradeClick = () => {
-    setShowModal(true);
+  const handleUpgradeClick = (planName) => {
+    setSelectedPlan(planName);
+    setShowContactForm(true);
+    setShowModal(false); // Close the feedback modal if it's open
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -227,7 +232,7 @@ export default function Upgrade() {
                 </p>
                 <div className="mt-auto">
                   <button
-                    onClick={handleUpgradeClick}
+                    onClick={() => handleUpgradeClick('One Project')}
                     className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors h-[50px] flex items-center justify-center"
                   >
                     Choose Plan
@@ -247,7 +252,7 @@ export default function Upgrade() {
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm text-gray-600">Unlimited iterations on results</span>
+                    <span className="text-sm text-gray-600">Limited iterations on results</span>
                   </li>
                   <li className="flex items-start">
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -282,7 +287,7 @@ export default function Upgrade() {
                   Unlimited projects and AI capabilities for ongoing product development.
                 </p>
                 <button
-                  onClick={handleUpgradeClick}
+                  onClick={() => handleUpgradeClick('Pro Plan')}
                   className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors relative overflow-hidden group mt-auto h-[50px] flex items-center justify-center"
                 >
                   <span className="relative z-10">Choose Plan</span>
@@ -327,7 +332,7 @@ export default function Upgrade() {
                   <h2 className="text-xl font-bold text-gray-900">Enterprise</h2>
                 </div>
                 <div className="mb-4">
-                  <span className="text-4xl font-bold text-gray-900">$299</span>
+                  <span className="text-4xl font-bold text-gray-900">$99</span>
                   <span className="text-gray-500 ml-1">/month</span>
                   <div className="text-xs text-gray-500 mt-1">starting at</div>
                 </div>
@@ -335,7 +340,7 @@ export default function Upgrade() {
                   Complete solution with expert guidance and consultancy services.
                 </p>
                 <button
-                  onClick={handleUpgradeClick}
+                  onClick={() => handleUpgradeClick('Enterprise')}
                   className="w-full py-3.5 px-4 bg-white border border-[#0F533A] text-[#0F533A] hover:bg-[#0F533A]/5 font-medium rounded-lg transition-colors mt-auto h-[50px] flex items-center justify-center"
                 >
                   Contact Us
@@ -354,13 +359,13 @@ export default function Upgrade() {
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm text-gray-600">Design thinking workshops</span>
+                    <span className="text-sm text-gray-600">Collaboration features</span>
                   </li>
                   <li className="flex items-start">
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm text-gray-600">Product launch strategy</span>
+                    <span className="text-sm text-gray-600">Product strategy sessions</span>
                   </li>
                   <li className="flex items-start">
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -496,8 +501,36 @@ export default function Upgrade() {
         </div>
       </div>
 
+      {/* Contact Form Modal */}
+      {showContactForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">{selectedPlan}</h2>
+                <button 
+                  onClick={() => setShowContactForm(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <ContactForm 
+                selectedPlan={selectedPlan}
+                onSuccess={() => {
+                  // Redirect to projects page on successful submission
+                  router.push('/projects');
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Feedback Modal */}
-      {showModal && (
+      {showModal && !showContactForm && (
         <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
           <div className="max-w-3xl mx-auto p-4 pt-8">
             <div className="flex justify-between items-center mb-6">

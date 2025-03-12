@@ -358,7 +358,7 @@ const Home = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-[#16a34a] to-[#0F533A] opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   </button>
                   <a 
-                    href="#benefits" 
+                    href="#ai-assistant" 
                     className="group relative overflow-hidden px-8 py-4 rounded-full text-lg font-medium transition-all border border-gray-200 hover:border-[#0F533A]/20"
                   >
                     <span className="relative z-10 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent group-hover:from-[#0F533A] group-hover:to-[#16a34a]">See Benefits</span>
@@ -615,7 +615,7 @@ const Home = () => {
         </section>
         
         {/* AI Capabilities Section */}
-        <section className="py-20 px-6 bg-white relative overflow-hidden">
+        <section id="ai-assistant" className="py-20 px-6 bg-white relative overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
           </div>
