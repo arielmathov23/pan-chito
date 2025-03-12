@@ -639,8 +639,9 @@ export default function Projects() {
                   
                   {/* Trello Integration */}
                   <div className="flex items-center space-x-2 text-[#6b7280] text-xs border-t border-[#e5e7eb] pt-2">
-                    <img src="/trello.png" alt="Trello" className="h-4 w-auto rounded opacity-60" />
-                    <span>Trello integration coming soon</span>
+                    <img src="/trello.png" alt="Trello" className="h-4 w-auto rounded opacity-90" />
+                    <span className="font-medium text-[#0F533A]">Trello integration available</span>
+                    <span className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-full font-medium">New</span>
                   </div>
                 </div>
               </div>

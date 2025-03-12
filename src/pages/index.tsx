@@ -316,7 +316,7 @@ const Home = () => {
                 
                 {/* Platform Logos */}
                 <div className="mt-8 flex items-center">
-                  <span className="text-gray-600 font-medium mr-4">Use outcome with:</span>
+                  <span className="text-gray-600 font-medium mr-4">Integrated with:</span>
                   <div className="flex flex-wrap gap-4 items-center">
                     <Image 
                       src="/cursor.jpg" 
