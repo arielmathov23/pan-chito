@@ -45,7 +45,7 @@ async function generateAppFlow(brief: Brief, prd: PRD): Promise<AppFlow> {
   const prompt = `
 You are a senior UX designer responsible for creating a user journey for a new product. Based on the following product brief and PRD, generate a user journey in JSON format.
 
-Your output should include ONLY the user journey outlining all the steps in the happy path. Do not generate screen details yet.
+Your output should include ONLY the user journey outlining up to 8 main steps in the happy path. Do not generate screen details yet.
 
 The context:
 Product: ${brief.productName}
@@ -66,7 +66,7 @@ Required Output Format:
 }
 
 Guidelines:
-1. Focus on the core user journey from start to finish
+1. Focus on the core user journey from start to finish, maximum 8 steps
 2. Include all necessary steps a user would take to complete the main tasks
 3. Ensure screen references are clear and descriptive
 4. Use consistent naming for screen references
@@ -257,7 +257,7 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
           let errorMessage = `API request failed with status ${response.status}`;
           
           // For 504 errors, throw immediately without retrying
-          if (response.status === 504) {
+            if (response.status === 504) {
             throw new Error(`API request failed with status 504: Gateway Timeout`);
           }
           

@@ -38,7 +38,7 @@ Required Output Format:
     {
       "name": "Screen name",
       "description": "Detailed description of screen purpose and functionality",
-      "featureId": "EXACT id of the feature from the PRD that this screen implements (e.g., 'user_profile', 'payment_processing')",
+      "featureId": "EXACT id of the feature from the PRD that this screen implements",
       "elements": [
         {
           "type": "image",
@@ -71,15 +71,14 @@ Required Output Format:
 }
 
 Guidelines:
-1. Focus on essential UI elements: images (descriptions only), inputs, text content, and navigation buttons
-2. Provide clear descriptions for all elements
-3. Ensure button actions specify the target screen or functionality
-4. Keep the interface clean and focused on core functionality
-5. Use consistent naming across screens that matches the screen references in the user journey
-6. Organize content logically within each screen
-7. Include all necessary navigation paths between screens
-8. IMPORTANT: Use the EXACT feature IDs from the PRD summary - do not make up feature IDs
-9. IMPORTANT: Create screens for ALL screen references mentioned in the user journey`;
+ Focus on essential UI elements: images (descriptions only), inputs, text content, and navigation buttons
+ Provide clear descriptions for all elements
+Ensure button actions specify the target screen or functionality
+Keep the interface clean and focused on core functionality
+Use consistent naming across screens that matches the screen references in the user journey
+Organize content logically within each screen
+Include all necessary navigation paths between screens
+IMPORTANT: Create screens for ALL screen references mentioned in the user journey`;
 
     // Set a longer timeout for the OpenAI request
     const controller = new AbortController();
@@ -106,7 +105,7 @@ Guidelines:
             }
           ],
           temperature: 0.7,
-          max_tokens: 4000
+          max_tokens: 2000
         }),
         signal: controller.signal
       });
