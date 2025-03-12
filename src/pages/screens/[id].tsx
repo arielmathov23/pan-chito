@@ -669,7 +669,7 @@ export default function ScreensPage() {
               <path d="M12 8V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M11.9945 16H12.0035" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <h2 className="text-2xl font-bold text-[#111827] mb-2">PRD Not Found</h2>
+            <h2 className="text-2xl font-bold text-[#111827] mb-2">Error while generating the screens</h2>
             <p className="text-[#4b5563] mb-6">
               {error || "We couldn't find the PRD you're looking for. It may have been deleted or the ID is incorrect."}
             </p>
