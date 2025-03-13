@@ -193,13 +193,16 @@ ${screenData}
 With all that info, you task is to create two files, and its critical that you are smart and sharp to follow the instructions below:
 
 1. Implementation Guide (.md file):
-   - A comprehensive overview of how to implement the project
-   - Must incorporate technical stack details and UI guidelines
-   - Must include high-level architectural decisions
-   - Detail how to manage contrast, accessibility, and responsive desing.
-   - Definition to place the code in a src/ directory, use App Router
-   - Avoid Nested Directory Issues
-   - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
+   - Provide a comprehensive overview of how to implement the project, including setup and execution details.
+   - Incorporate technical stack details and UI guidelines
+   - Include high-level architectural decisions (e.g., directory structure, routing approach, styling strategy).
+   - Detail how to manage contrast colors, accessibility, and responsive design.
+   - Specify that all code must reside in a src/ directory and in case it is a web app, use Next.js App Router(src/app/.
+   - Avoid nested directory issues by keeping route definitions flat and logical.
+   - In case using tailwind CSS Setup: Explicitly require a correct Tailwind configuration: create a tailwind.config.js file with content paths and theme extensions.
+   - Update package.json with correct dependencies: tailwindcss, postcss.
+   - In src/app/globals.css, use Tailwind directives and define base styles.
+   - If necessary, Next.js Configuration**: Require next.config.js
 
 2. Implementation Steps (.md file):
    - Structured step-by-step breakdown to develop all the pages and features. Breaking down complex features into executable steps (one step per feature).
