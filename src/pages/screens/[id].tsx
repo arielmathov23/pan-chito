@@ -312,9 +312,12 @@ export default function ScreensPage() {
       } catch (err) {
         console.error('Error in primary screen generation:', err);
         
-        // Check if it's a timeout error (504)
-        if (err.message && (err.message.includes('504') || err.message.includes('timeout') || err.message.includes('timed out'))) {
-          // For timeout errors, don't try fallback generation - just show error and stop
+        // Check if it's a timeout error (504) or if the API suggests using fallback screens
+        const isTimeoutError = err.message && (err.message.includes('504') || err.message.includes('timeout') || err.message.includes('timed out'));
+        const isFallbackSuggested = err.message && (err.message.includes('fallback screens') || err.message.includes('Gateway Timeout') || err.message.includes('Error parsing response') || err.message.includes('API request failed with status 502'));
+        
+        if (isTimeoutError && !isFallbackSuggested) {
+          // For timeout errors without fallback suggestion, just show error and stop
           setIsGenerating(false);
           setGenerationStatus('');
           setProgressPercentage(0);
@@ -322,16 +325,23 @@ export default function ScreensPage() {
           return;
         }
         
-        // For other errors, try fallback generation
+        // For fallback suggestion or other errors, try fallback generation
         try {
           setGenerationStatus('Creating basic screens instead...');
           setProgressPercentage(30);
           
-          // Generate basic screens directly
+          // Import the fallback generation functions directly from the screenGenerator
+          const { generateFallbackAppFlow, generateFallbackScreens } = require('../../utils/screenGenerator');
+          
+          // Generate basic screens directly using the fallback functions
           setProgressPercentage(50);
           setGenerationStatus('Generating basic screens...');
           
-          const { screens, appFlow } = await generateScreens(brief, prd);
+          // First generate a fallback app flow
+          const appFlow = generateFallbackAppFlow(brief, prd);
+          
+          // Then generate fallback screens based on that app flow
+          const screens = generateFallbackScreens(brief, prd, appFlow);
           
           setProgressPercentage(80);
           setGenerationStatus('Processing and validating basic screens...');
@@ -383,12 +393,17 @@ export default function ScreensPage() {
       setError('Network error. Please check your internet connection and try again.');
     } else if (err.message && (err.message.includes('API request failed with status 500') || 
                                err.message.includes('API request failed with status 400') ||
+                               err.message.includes('API request failed with status 502') ||
                                err.message.includes('OpenAI API error'))) {
-      setError('We encountered an issue generating your screens. Please try again in a few minutes.');
+      setError('We encountered an issue with our AI service. Basic screens have been created instead. You can try again later or continue with these screens.');
     } else if (err.message && err.message.includes('Invalid response format from OpenAI')) {
-      setError('We encountered an issue generating your screens. Please try again in a few minutes.');
+      setError('We encountered an issue with our AI service. Basic screens have been created instead. You can try again later or continue with these screens.');
+    } else if (err.message && (err.message.includes('fallback screens') || 
+                              err.message.includes('Gateway Timeout') ||
+                              err.message.includes('Error parsing response'))) {
+      setError('We encountered an issue generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
     } else {
-      setError('Unable to generate screens at this time. Please try again later.');
+      setError('Unable to generate detailed screens at this time. Basic screens have been created instead. You can try again later or continue with these screens.');
     }
   };
 
@@ -755,47 +770,47 @@ export default function ScreensPage() {
                   </svg>
                 </Link>
               </div>
-            </div>
-            <div className="flex items-center space-x-3 self-start">
-              {screenSet && screenSet.screens && screenSet.screens.length > 0 ? (
-                <>
-                  <Link
-                    href={`/docs/${prd.id}`}
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                  >
-                    Continue
-                  </Link>
-                  <button
-                    onClick={handleDeleteScreens}
-                    className="inline-flex items-center justify-center bg-white text-[#6b7280] hover:text-[#111827] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M18.85 9.14001L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79002C6.00002 22 5.91002 20.78 5.80002 19.21L5.15002 9.14001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Delete
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={handleGenerateScreens}
-                  disabled={isGenerating}
-                  className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {isGenerating ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <div className="flex items-center space-x-3 self-start">
+                {screenSet && screenSet.screens && screenSet.screens.length > 0 ? (
+                  <>
+                    <Link
+                      href={`/docs/${prd.id}`}
+                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
+                    >
+                      Continue
+                    </Link>
+                    <button
+                      onClick={handleDeleteScreens}
+                      className="inline-flex items-center justify-center bg-white text-[#6b7280] hover:text-[#111827] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M18.85 9.14001L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79002C6.00002 22 5.91002 20.78 5.80002 19.21L5.15002 9.14001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      Generating Screens...
-                    </>
-                  ) : (
-                    'Generate App Screens'
-                  )}
-                </button>
-              )}
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleGenerateScreens}
+                    disabled={isGenerating}
+                    className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating Screens...
+                      </>
+                    ) : (
+                      'Generate App Screens'
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

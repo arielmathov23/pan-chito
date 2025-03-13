@@ -179,8 +179,20 @@ Guidelines:
         error.message.includes('Network request failed')
       );
       
+      // Check if the error suggests using fallback screens
+      const isFallbackSuggested = error.message && (
+        error.message.includes('fallback screens') ||
+        error.message.includes('Gateway Timeout')
+      );
+      
+      // If fallback is suggested, don't retry, go straight to fallback
+      if (isFallbackSuggested) {
+        console.log("API suggested using fallback screens, skipping retries");
+        break;
+      }
+      
       if ((isTimeoutError || isNetworkError) && retryCount < MAX_RETRIES) {
-        console.log(`App flow request failed with error: ${error.message}. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+      console.log(`App flow request failed with error: ${error.message}. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
         retryCount++;
         
         // Add exponential backoff delay between retries
@@ -388,6 +400,18 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
           error.message.includes('Network request failed')
         );
         
+        // Check if the error suggests using fallback screens
+        const isFallbackSuggested = error.message && (
+          error.message.includes('fallback screens') ||
+          error.message.includes('Gateway Timeout')
+        );
+        
+        // If fallback is suggested, don't retry, go straight to fallback
+        if (isFallbackSuggested) {
+          console.log("API suggested using fallback screens, skipping retries");
+          break;
+        }
+        
         if ((isTimeoutError || isNetworkError) && retryCount < MAX_RETRIES) {
         console.log(`Screens request failed with error: ${error.message}. Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
           retryCount++;
@@ -405,27 +429,42 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
     
     // If we've exhausted all retries, use the fallback approach
     if (lastError) {
-    console.log("All screens API attempts failed, using fallback approach");
-    const screens = generateFallbackScreens(brief, prd, appFlow);
-    
-    // Link screens to app flow steps by name for fallback screens too
-    appFlow.steps.forEach(step => {
-      if (step.screenReference) {
-        const matchingScreen = screens.find(screen => screen.name === step.screenReference);
-        if (matchingScreen) {
-          step.screenId = matchingScreen.id;
-        }
+      console.log("All screens API attempts failed, using fallback approach");
+      
+      // Check if the error suggests using fallback screens
+      const isFallbackSuggested = lastError.message && (
+        lastError.message.includes('fallback screens') ||
+        lastError.message.includes('Gateway Timeout') ||
+        lastError.message.includes('502') ||
+        lastError.message.includes('504')
+      );
+      
+      if (isFallbackSuggested) {
+        console.log("Using fallback screens as suggested by API");
+      } else {
+        console.log("Using fallback screens due to API failure");
       }
-    });
-    
-    return screens;
-  }
+      
+      const screens = generateFallbackScreens(brief, prd, appFlow);
+      
+      // Link screens to app flow steps by name for fallback screens too
+      appFlow.steps.forEach(step => {
+        if (step.screenReference) {
+          const matchingScreen = screens.find(screen => screen.name === step.screenReference);
+          if (matchingScreen) {
+            step.screenId = matchingScreen.id;
+          }
+        }
+      });
+      
+      return screens;
+    }
   
-  throw new Error("Unexpected error in screens generation");
-}
+    throw new Error("Unexpected error in screens generation");
+  }
 
 // Generate a fallback app flow when the API fails
-function generateFallbackAppFlow(brief: Brief, prd: PRD): AppFlow {
+export function generateFallbackAppFlow(brief: Brief, prd: PRD): AppFlow {
   console.log("Generating fallback app flow");
   
   try {
@@ -492,7 +531,7 @@ function generateFallbackAppFlow(brief: Brief, prd: PRD): AppFlow {
 }
 
 // Generate fallback screens based on the app flow
-function generateFallbackScreens(brief: Brief, prd: PRD, appFlow: AppFlow): Screen[] {
+export function generateFallbackScreens(brief: Brief, prd: PRD, appFlow: AppFlow): Screen[] {
   console.log("Generating fallback screens");
   
   try {
@@ -727,7 +766,7 @@ function extractPRDSummary(prdContent: any): string {
 }
 
 // Helper function to create a basic screen with defensive feature ID handling
-function createBasicScreen(name: string, description: string, prdId: string, elements: ScreenElement[], featureId: string = ''): Screen {
+export function createBasicScreen(name: string, description: string, prdId: string, elements: ScreenElement[], featureId: string = ''): Screen {
   return {
     id: uuidv4(),
     prdId,
@@ -740,7 +779,7 @@ function createBasicScreen(name: string, description: string, prdId: string, ele
 }
 
 // Helper function to create a screen element
-function createElement(type: string, properties: any): ScreenElement {
+export function createElement(type: string, properties: any): ScreenElement {
   // Use a type assertion to bypass type checking for this line
   return {
     id: uuidv4(),
@@ -751,7 +790,7 @@ function createElement(type: string, properties: any): ScreenElement {
 }
 
 // Helper function to extract features from PRD content
-function extractFeaturesFromPRD(prdContent: any): Array<{id: string, name: string}> {
+export function extractFeaturesFromPRD(prdContent: any): Array<{id: string, name: string}> {
   try {
     // If prdContent is a string, try to parse it
     const content = typeof prdContent === 'string' ? JSON.parse(prdContent) : prdContent;

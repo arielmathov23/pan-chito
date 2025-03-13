@@ -117,10 +117,11 @@ Guidelines:
           console.error('Failed to parse OpenAI error response:', parseError);
         }
         
-        // Special handling for 504 errors - add fallback flag
-        if (response.status === 504) {
-          return res.status(504).json({ 
-            error: 'Request timed out',
+        // Special handling for 504 and 502 errors - add fallback flag
+        if (response.status === 504 || response.status === 502) {
+          console.log(`Received ${response.status} error, suggesting fallback screens`);
+          return res.status(response.status).json({ 
+            error: 'Request failed',
             fallback: true
           });
         }
@@ -147,6 +148,7 @@ Guidelines:
       const content = data.choices?.[0]?.message?.content;
       
       if (!content) {
+        console.log('Empty response from OpenAI, suggesting fallback screens');
         return res.status(500).json({ 
           error: 'Empty response from OpenAI',
           fallback: true
@@ -160,6 +162,7 @@ Guidelines:
       
       // Handle specific error types
       if (error.name === 'AbortError') {
+        console.log('Request timed out, suggesting fallback screens');
         return res.status(504).json({ 
           error: 'Request timed out',
           fallback: true
