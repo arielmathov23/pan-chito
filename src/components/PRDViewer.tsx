@@ -61,18 +61,49 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
   const handleEditClick = (section: string, content: any) => {
     setEditingSection(section);
     setEditContent(safeRender(content));
+    setIsEditing(true);
   };
 
   const handleSaveClick = (section: string) => {
-    if (!onUpdate) return;
+    if (typeof onUpdate !== 'function') return;
 
-    const updatedPRD = { ...prd, [section]: editContent };
-    onUpdate(updatedPRD);
+    try {
+      // Create a deep copy of the PRD to avoid mutation issues
+      const updatedPRD = JSON.parse(JSON.stringify(prd));
+      
+      // Find the section in the PRD content and update it
+      if (updatedPRD && updatedPRD.content && updatedPRD.content.sections) {
+        const sectionIndex = updatedPRD.content.sections.findIndex(
+          (s: any) => s.featureName === section
+        );
+        
+        if (sectionIndex !== -1) {
+          try {
+            // Try to parse the edited content if it's JSON
+            const parsedContent = JSON.parse(editContent);
+            updatedPRD.content.sections[sectionIndex] = parsedContent;
+          } catch (e) {
+            // If not valid JSON, update as string
+            updatedPRD.content.sections[sectionIndex].content = editContent;
+          }
+        }
+      }
+      
+      // Call the update function with the updated PRD
+      onUpdate(updatedPRD);
+    } catch (error) {
+      console.error('Error updating PRD:', error);
+      setError('Failed to update PRD. Please try again.');
+    }
+    
+    // Reset editing state
     setEditingSection(null);
+    setIsEditing(false);
   };
 
   const handleCancelClick = () => {
     setEditingSection(null);
+    setIsEditing(false);
   };
 
   const handleDeleteFeature = (featureName: string) => {
@@ -110,19 +141,15 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
         >
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <div className="flex items-center space-x-2">
-            {onUpdate && !isEditing && (
+            {typeof onUpdate === 'function' && !isEditing && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleEditClick(section, content);
+                  setIsEditing(true);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13.26 3.59997L5.04997 12.29C4.73997 12.62 4.43997 13.27 4.37997 13.72L4.00997 16.96C3.87997 18.13 4.71997 18.93 5.87997 18.73L9.09997 18.18C9.54997 18.1 10.18 17.77 10.49 17.43L18.7 8.73997C20.12 7.23997 20.76 5.52997 18.55 3.43997C16.35 1.36997 14.68 2.09997 13.26 3.59997Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M11.89 5.05005C12.32 7.81005 14.56 9.92005 17.34 10.2" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M3 22H21" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                Edit
               </button>
             )}
             <svg 
@@ -273,7 +300,7 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
                     {safeRender(selectedFeatureObj.featurePriority?.toUpperCase() || '')}
                   </span>
                 </div>
-                {onUpdate && (
+                {typeof onUpdate === 'function' && (
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => handleEditClick(activeSection, selectedFeatureObj)}
