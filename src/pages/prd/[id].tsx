@@ -498,7 +498,7 @@ export default function PRDPage() {
         <Navbar />
         <div className="container mx-auto px-6 py-10 max-w-5xl">
           <div className="mb-10">
-            <div className="flex items-center space-x-2 text-sm text-[#6b7280] mb-4">
+            <div className="flex flex-wrap items-center text-sm text-[#6b7280] mb-4">
               <Link href="/projects" className="hover:text-[#111827] transition-colors flex items-center">
                 <svg className="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -507,7 +507,7 @@ export default function PRDPage() {
               </Link>
                 {project && (
                   <>
-              <span>/</span>
+              <span className="mx-2">/</span>
               <Link href={`/project/${project.id}`} className="hover:text-[#111827] transition-colors">
                 {project.name}
               </Link>
@@ -515,29 +515,29 @@ export default function PRDPage() {
                 )}
                 {brief && (
                   <>
-              <span>/</span>
+              <span className="mx-2">/</span>
               <Link href={`/brief/${brief.id}`} className="hover:text-[#111827] transition-colors">
                 Brief
               </Link>
-              <span>/</span>
+              <span className="mx-2">/</span>
               <Link href={`/brief/${brief.id}/ideate`} className="hover:text-[#111827] transition-colors">
                 Features
               </Link>
                   </>
                 )}
-              <span>/</span>
+              <span className="mx-2">/</span>
               <span className="text-[#111827]">Requirements</span>
             </div>
             {usingMockData && <MockNotification stage="prd" />}
 
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Product Requirements</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] tracking-tight">Product Requirements</h1>
                   <p className="text-[#6b7280] mt-2">
                     {brief ? `Detailed specifications for ${brief.productName}` : `Detailed product specifications`}
                   </p>
               </div>
-              <div className="flex items-center space-x-3 self-start">
+              <div className="flex flex-wrap items-center gap-2 self-start">
                     <Link
                       href={`/screens/${prd.id}`}
                       className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
@@ -570,7 +570,7 @@ export default function PRDPage() {
           </div>
 
           <div className="grid gap-8 grid-cols-1">
-            <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-4 sm:p-6 md:p-8 overflow-hidden">
               {error && (
                 <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
                   <p className="font-medium">Error</p>
@@ -642,7 +642,7 @@ export default function PRDPage() {
       <Navbar />
       <div className="container mx-auto px-6 py-10 max-w-5xl">
         <div className="mb-10">
-          <div className="flex items-center space-x-2 text-sm text-[#6b7280] mb-4">
+          <div className="flex flex-wrap items-center text-sm text-[#6b7280] mb-4">
             <Link href="/projects" className="hover:text-[#111827] transition-colors flex items-center">
               <svg className="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -651,7 +651,7 @@ export default function PRDPage() {
             </Link>
             {project && (
               <>
-                <span>/</span>
+                <span className="mx-2">/</span>
                 <Link href={`/project/${project.id}`} className="hover:text-[#111827] transition-colors">
                   {project.name}
                 </Link>
@@ -659,31 +659,31 @@ export default function PRDPage() {
             )}
             {brief && (
               <>
-                <span>/</span>
+                <span className="mx-2">/</span>
                 <Link href={`/brief/${brief.id}`} className="hover:text-[#111827] transition-colors">
                   Brief
                 </Link>
-                <span>/</span>
+                <span className="mx-2">/</span>
                 <Link href={`/brief/${brief.id}/ideate`} className="hover:text-[#111827] transition-colors">
                   Features
                 </Link>
               </>
             )}
-            <span>/</span>
+            <span className="mx-2">/</span>
             <span className="text-[#111827]">Requirements</span>
           </div>
           {usingMockData && <MockNotification stage="prd" />}
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Product Requirements</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] tracking-tight">Product Requirements</h1>
               <p className="text-[#6b7280] mt-2">Create detailed specifications for {brief?.productName || 'your product'}</p>
             </div>
           </div>
         </div>
 
         <div className="grid gap-8 grid-cols-1">
-            <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-4 sm:p-6 md:p-8 overflow-hidden">
               <div className="space-y-8">
                 {/* Only show informational content when showInfoContent is true */}
                 {showInfoContent && (

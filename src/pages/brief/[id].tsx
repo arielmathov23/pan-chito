@@ -29,7 +29,7 @@ function RenderField({
   if (isEditing) {
     return (
       <textarea
-        className="w-full p-3 border border-[#e5e7eb] rounded-lg focus:ring-2 focus:ring-[#0F533A] focus:border-transparent"
+        className="w-full p-3 border border-[#e5e7eb] rounded-lg focus:ring-2 focus:ring-[#0F533A] focus:border-transparent text-sm sm:text-base"
         value={content}
         onChange={(e) => onChange(fieldName, e.target.value)}
         rows={content.split('\n').length + 1}
@@ -43,7 +43,7 @@ function RenderField({
     if (typeof parsed === 'object' && parsed !== null) {
       // Render as a formatted object
       return (
-        <div className="bg-[#f8f9fa] p-4 rounded-lg">
+        <div className="bg-[#f8f9fa] p-3 sm:p-4 rounded-lg text-sm sm:text-base overflow-x-auto">
           {Object.entries(parsed).map(([key, value]) => (
             <div key={key} className="mb-2">
               <span className="font-medium">{key}: </span>
@@ -58,7 +58,7 @@ function RenderField({
   }
   
   // Regular string content
-  return <p className="text-[#4b5563] whitespace-pre-wrap">{content}</p>;
+  return <p className="text-[#4b5563] whitespace-pre-wrap text-sm sm:text-base">{content}</p>;
 }
 
 export default function BriefDetail() {
@@ -319,8 +319,8 @@ export default function BriefDetail() {
     <div className="min-h-screen bg-[#f8f9fa]">
       <Navbar />
       <div className="container mx-auto px-6 py-10 max-w-5xl">
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center space-x-2 text-sm text-[#6b7280]">
               <Link href="/projects" className="hover:text-[#111827] transition-colors">Projects</Link>
               <span>/</span>
@@ -329,50 +329,6 @@ export default function BriefDetail() {
               </Link>
               <span>/</span>
               <span className="text-[#111827]">Brief</span>
-            </div>
-            
-            <div className="flex space-x-4">
-              {showEditButtons ? (
-                <>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#0F533A] rounded-lg hover:bg-[#0a3f2c] transition-colors"
-                  >
-                    Save Changes
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={handleDownloadBrief}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 15V3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Download
-                  </button>
-                  <button
-                    onClick={handleEditClick}
-                    className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <Link
-                    href={`/brief/${brief?.id}/ideate`}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#0F533A] rounded-lg hover:bg-[#0a3f2c] transition-colors"
-                  >
-                    Continue
-                  </Link>
-                </>
-              )}
             </div>
           </div>
 
@@ -384,31 +340,73 @@ export default function BriefDetail() {
 
           {usingMockData && <MockNotification stage="brief" />}
 
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Product Brief</h1>
-              <p className="text-[#6b7280] mt-2">{brief.product_name}</p>
+          <div className="flex flex-col gap-2 mb-4">
+            <div className="flex flex-row items-center justify-between flex-wrap gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] tracking-tight">Product Brief</h1>
+            </div>
+            <div className="flex flex-row items-center justify-between flex-wrap gap-2">
+              <p className="text-[#6b7280]">{brief.product_name}</p>
+              <div className="flex gap-2">
+                {!showEditButtons && (
+                  <Link
+                    href={`/brief/${brief?.id}/ideate`}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#0F533A] rounded-lg hover:bg-[#0a3f2c] transition-colors"
+                  >
+                    Continue
+                  </Link>
+                )}
+                <button
+                  onClick={handleDownloadBrief}
+                  className="inline-flex items-center px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors border border-gray-200 rounded-lg"
+                >
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15V3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="hidden sm:inline">Download</span>
+                </button>
+                {!showEditButtons && (
+                  <button
+                    onClick={handleEditClick}
+                    className="px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors border border-gray-200 rounded-lg"
+                  >
+                    Edit
+                  </button>
+                )}
+                {showEditButtons && (
+                  <>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-[#6b7280] hover:text-[#111827] transition-colors border border-gray-200 rounded-lg"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveEdit}
+                      className="px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-white bg-[#0F533A] rounded-lg hover:bg-[#0a3f2c] transition-colors"
+                    >
+                      Save
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-8 grid-cols-1">
-          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex items-center">
-                <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
-                <h2 className="text-xl font-semibold text-[#111827]">Product Brief</h2>
-              </div>
+        <div className="grid gap-6 grid-cols-1">
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-4 sm:p-8">
+            <div className="flex justify-end mb-4 sm:mb-6">
               <div className="bg-[#e6f0eb] text-[#0F533A] text-sm px-3 py-1 rounded-full font-medium">
                 Completed
               </div>
             </div>
             
-            <div className="space-y-8 mt-6">
+            <div className="space-y-6 sm:space-y-8 mt-4 sm:mt-6">
               {/* Executive Summary */}
-              <div className="border-b border-[#e5e7eb] pb-6">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-semibold text-[#111827]">Executive Summary</h3>
+              <div className="border-b border-[#e5e7eb] pb-4 sm:pb-6">
+                <div className="flex justify-between items-center mb-2 sm:mb-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#111827]">Executive Summary</h3>
                 </div>
                 <RenderField 
                   content={editedBriefData?.executiveSummary || brief.brief_data.executiveSummary} 
@@ -419,9 +417,9 @@ export default function BriefDetail() {
               </div>
               
               {/* Problem Statement */}
-              <div className="border-b border-[#e5e7eb] pb-6">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-semibold text-[#111827]">Problem Statement</h3>
+              <div className="border-b border-[#e5e7eb] pb-4 sm:pb-6">
+                <div className="flex justify-between items-center mb-2 sm:mb-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#111827]">Problem Statement</h3>
                 </div>
                 <RenderField 
                   content={editedBriefData?.problemStatement || brief.brief_data.problemStatement} 

@@ -276,7 +276,35 @@ export default function NewBrief() {
               <span>/</span>
               <span className="text-[#111827]">New Brief</span>
             </div>
-            <h1 className="text-3xl font-bold text-[#111827] tracking-tight">Generated Brief</h1>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] tracking-tight">
+                {isLoading ? 'Creating Brief...' : 'Product Brief'}
+              </h1>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleSaveForEditing}
+                  disabled={isSaving}
+                  className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-2 sm:py-1.5 rounded-lg hover:bg-[#f0f2f5] disabled:opacity-50 border border-gray-200"
+                >
+                  {isSaving ? 'Processing...' : 'Edit Brief'}
+                </button>
+                <button
+                  onClick={handleSaveBrief}
+                  disabled={isSaving}
+                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 sm:py-1.5 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : 'Continue to Ideation'}
+                </button>
+              </div>
+            </div>
           </div>
           
           <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-8">
@@ -292,28 +320,6 @@ export default function NewBrief() {
                     <path d="M2 17L2 18C2 19.6569 3.34315 21 5 21L19 21C20.6569 21 22 19.6569 22 18L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   Download
-                </button>
-                <button
-                  onClick={handleSaveForEditing}
-                  disabled={isSaving}
-                  className="text-sm text-[#6b7280] hover:text-[#111827] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#f0f2f5] disabled:opacity-50"
-                >
-                  {isSaving ? 'Processing...' : 'Edit Brief'}
-                </button>
-                <button
-                  onClick={handleSaveBrief}
-                  disabled={isSaving}
-                  className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm disabled:opacity-50"
-                >
-                  {isSaving ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </>
-                  ) : 'Continue to Ideation'}
                 </button>
               </div>
             </div>

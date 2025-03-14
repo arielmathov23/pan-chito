@@ -751,9 +751,9 @@ export default function ScreensPage() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold text-[#111827] tracking-tight">App Screens</h1>
-              <p className="text-[#6b7280] mt-2">Screen designs and app flow for {brief ? brief.productName : 'your product'}</p>
-              <div className="inline-flex items-center mt-3 px-3 py-1.5 bg-[#0F533A]/5 border border-[#0F533A]/10 rounded-full text-sm">
-                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <p className="text-[#6b7280] mt-2">Screen wireframes and app flow for {brief ? brief.productName : 'your product'}</p>
+              <div className="inline-flex flex-wrap items-center mt-3 mb-2 px-3 py-1.5 bg-[#0F533A]/5 border border-[#0F533A]/10 rounded-full text-sm">
+                <svg className="w-4 h-4 mr-1.5 text-[#0F533A] flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M8 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M16 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M3.5 9.08984H20.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
@@ -762,62 +762,62 @@ export default function ScreensPage() {
                 <span className="text-[#4b5563]">Up to 4 journey steps and App screens</span>
                 <Link 
                   href="/upgrade" 
-                  className="ml-2 font-medium text-[#0F533A] hover:text-[#0F533A]/90 flex items-center"
+                  className="ml-2 sm:ml-2 mt-0.5 sm:mt-0 font-medium text-[#0F533A] hover:text-[#0F533A]/90 flex items-center"
                 >
-                  Upgrade
+                  <span className="bg-[#0F533A]/10 px-2 py-0.5 rounded-full">Upgrade</span>
                   <svg className="w-3.5 h-3.5 ml-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M8.91003 19.9201L15.43 13.4001C16.2 12.6301 16.2 11.3701 15.43 10.6001L8.91003 4.08008" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </Link>
               </div>
-              <div className="flex items-center space-x-3 self-start">
-                {screenSet && screenSet.screens && screenSet.screens.length > 0 ? (
-                  <>
-                    <Link
-                      href={`/docs/${prd.id}`}
-                      className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
-                    >
-                      Continue
-                    </Link>
-                    <button
-                      onClick={handleDeleteScreens}
-                      className="inline-flex items-center justify-center bg-white text-[#6b7280] hover:text-[#111827] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
-                    >
-                      <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M18.85 9.14001L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79002C6.00002 22 5.91002 20.78 5.80002 19.21L5.15002 9.14001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Delete
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleGenerateScreens}
-                    disabled={isGenerating}
-                    className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+            </div>
+            <div className="flex items-center space-x-3 self-start mt-1 md:mt-0">
+              {screenSet && screenSet.screens && screenSet.screens.length > 0 ? (
+                <>
+                  <Link
+                    href={`/docs/${prd.id}`}
+                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm"
                   >
-                    {isGenerating ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating Screens...
-                      </>
-                    ) : (
-                      'Generate App Screens'
-                    )}
+                    Continue
+                  </Link>
+                  <button
+                    onClick={handleDeleteScreens}
+                    className="inline-flex items-center justify-center bg-white text-[#6b7280] hover:text-[#111827] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 5.97998C17.67 5.64998 14.32 5.47998 10.98 5.47998C9 5.47998 7.02 5.57998 5.04 5.77998L3 5.97998" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18.85 9.14001L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79002C6.00002 22 5.91002 20.78 5.80002 19.21L5.15002 9.14001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Delete
                   </button>
-                )}
-              </div>
+                </>
+              ) : (
+                <button
+                  onClick={handleGenerateScreens}
+                  disabled={isGenerating}
+                  className={`inline-flex items-center justify-center bg-[#0F533A] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0a3f2c] transition-colors shadow-sm ${isGenerating ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  {isGenerating ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating Screens...
+                    </>
+                  ) : (
+                    'Generate App Screens'
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Generation Status Message */}
         {generationStatus && (
-          <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-md text-sm">
+          <div className="mt-2 p-3 bg-blue-50 text-blue-700 rounded-md text-sm">
             <div className="flex items-center">
               <svg className="w-5 h-5 mr-2 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -829,7 +829,7 @@ export default function ScreensPage() {
           </div>
         )}
 
-        <div className="grid gap-8 grid-cols-1">
+        <div className="grid gap-4 grid-cols-1 mt-2">
           {!screenSet || (screenSet.screens && screenSet.screens.length === 0) ? (
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
               <div className="space-y-8">
