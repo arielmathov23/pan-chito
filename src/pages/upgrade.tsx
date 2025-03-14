@@ -232,7 +232,7 @@ export default function Upgrade() {
                 </p>
                 <div className="mt-auto">
                   <button
-                    onClick={() => handleUpgradeClick('One Project')}
+                    onClick={() => window.location.href = 'https://buy.polar.sh/polar_cl_HzI3ixU9xa3LqcK1lhTijAU4HdjJaKvjev9jX3QUIKa'}
                     className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors h-[50px] flex items-center justify-center"
                   >
                     Choose Plan
@@ -287,7 +287,7 @@ export default function Upgrade() {
                   Unlimited projects and full AI capabilities for builders, and agencies.
                 </p>
                 <button
-                  onClick={() => handleUpgradeClick('Pro Plan')}
+                  onClick={() => window.location.href = 'https://buy.polar.sh/polar_cl_p6cJvlbKPEDQPeJKSAbsXo7CtBZRDU9Ho4zVd1uVZFx'}
                   className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors relative overflow-hidden group mt-auto h-[50px] flex items-center justify-center"
                 >
                   <span className="relative z-10">Choose Plan</span>
