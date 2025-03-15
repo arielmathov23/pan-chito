@@ -20,12 +20,24 @@ export default function Upgrade() {
   const [showModal, setShowModal] = useState(false); // Changed to false to not show immediately
   const [showContactForm, setShowContactForm] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('');
+  const [isLoadingPlan, setIsLoadingPlan] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     }
   }, [user, authLoading, router]);
+
+  // Add new useEffect for page view tracking
+  useEffect(() => {
+    if (!authLoading && user) {
+      trackEvent('Upgrade Page Viewed', {
+        referrer: document.referrer,
+        path: router.asPath,
+        query: router.query
+      });
+    }
+  }, [user, authLoading, router.asPath]);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -65,6 +77,7 @@ export default function Upgrade() {
   };
 
   const handleSingleProjectClick = () => {
+    setIsLoadingPlan('single');
     trackEvent('Choose Plan Clicked', {
       'Plan Type': 'Single Project',
       'Billing Type': 'one-time'
@@ -74,6 +87,7 @@ export default function Upgrade() {
   };
 
   const handleProPlanClick = () => {
+    setIsLoadingPlan('pro');
     trackEvent('Choose Plan Clicked', {
       'Plan Type': 'Pro Plan',
       'Billing Type': 'monthly'
@@ -260,9 +274,14 @@ export default function Upgrade() {
                 <div className="mt-auto">
                   <button
                     onClick={handleSingleProjectClick}
+                    disabled={isLoadingPlan !== ''}
                     className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors h-[50px] flex items-center justify-center"
                   >
-                    Choose Plan
+                    {isLoadingPlan === 'single' ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      'Choose Plan'
+                    )}
                   </button>
                 </div>
               </div>
@@ -315,10 +334,17 @@ export default function Upgrade() {
                 </p>
                 <button
                   onClick={handleProPlanClick}
+                  disabled={isLoadingPlan !== ''}
                   className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors relative overflow-hidden group mt-auto h-[50px] flex items-center justify-center"
                 >
-                  <span className="relative z-10">Choose Plan</span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-[#16a34a] to-[#0F533A] opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  {isLoadingPlan === 'pro' ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <span className="relative z-10">Choose Plan</span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-[#16a34a] to-[#0F533A] opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    </>
+                  )}
                 </button>
               </div>
               <div className="bg-[#0F533A]/5 px-6 py-4">
