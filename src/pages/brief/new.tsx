@@ -9,6 +9,7 @@ import { generateBrief, GeneratedBrief } from '../../utils/briefGenerator';
 import MockNotification from '../../components/MockNotification';
 import { isMockData } from '../../utils/mockDetector';
 import { briefToMarkdown, downloadAsFile } from '../../utils/downloadUtils';
+import { trackEvent } from '../../lib/mixpanelClient';
 
 // Helper function to safely render potentially stringified JSON
 function RenderField({ content }: { content: string }) {
@@ -95,6 +96,12 @@ export default function NewBrief() {
       const briefContent = await generateBrief(formData);
       setGeneratedBrief(briefContent);
       
+      // Track brief generation event
+      trackEvent('Brief Generated', {
+        'Product Name': formData.productName,
+        'Project ID': project?.id,
+      });
+      
       // Save the brief immediately after generation
       if (project && briefContent) {
         try {
@@ -122,6 +129,12 @@ export default function NewBrief() {
     } catch (error) {
       console.error('Error generating Brief:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate Brief. Please check your OpenAI API key.');
+      
+      // Track error event
+      trackEvent('Brief Generation Error', {
+        'Error Message': error instanceof Error ? error.message : 'Unknown error',
+        'Project ID': project?.id
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -162,6 +175,7 @@ export default function NewBrief() {
     
     try {
       setIsSaving(true);
+  
       
       if (currentBriefId) {
         // Brief already exists, update it with editing mode enabled
@@ -199,6 +213,12 @@ export default function NewBrief() {
   // Add a function to handle downloading the brief
   const handleDownloadBrief = () => {
     if (!project || !parsedBrief || !currentFormData) return;
+    
+    // Track the download event
+    trackEvent('Brief Downloaded', {
+      'Project Name': project.name,
+      'Project ID': project.id,
+    });
     
     // Generate markdown content
     const markdownContent = briefToMarkdown(parsedBrief, currentFormData.productName);
@@ -435,6 +455,12 @@ export default function NewBrief() {
               <Link
                 href={`/project/${project.id}`}
                 className="self-start inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#6b7280] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#f0f2f5] transition-colors"
+                onClick={() => {
+                  trackEvent('Brief Creation Cancelled', {
+                    'Project Name': project.name,
+                    'Project ID': project.id
+                  });
+                }}
               >
                 <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

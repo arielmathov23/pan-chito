@@ -17,6 +17,7 @@ import TrelloExportStatus from '../../components/TrelloExportStatus';
 import { trelloService } from '../../services/trelloService';
 import screenService from '../../services/screenService';
 import { ScreenSet } from '../../utils/screenStore';
+import { trackEvent } from '../../lib/mixpanelClient';
 
 export default function ImplementationGuidePage() {
   const router = useRouter();
@@ -166,6 +167,14 @@ export default function ImplementationGuidePage() {
         false // not using mock
       );
       
+      // Track successful implementation guide generation
+      trackEvent('Implementation Guide Generated Successfully', {
+        'Project ID': project.id,
+        'Project Name': project.name,
+        'PRD ID': prd.id,
+
+      });
+      
     } catch (err) {
       console.error('Error generating guides:', err);
       setError(err instanceof Error ? err.message : 'An error occurred during guide generation');
@@ -189,6 +198,11 @@ export default function ImplementationGuidePage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    // Track the download event
+    trackEvent('Implementation Content Downloaded', {
+      'Project ID': projectId as string,
+    });
   };
   
   // Handle Trello integration status change
@@ -212,6 +226,13 @@ export default function ImplementationGuidePage() {
     if (!prd || !trelloStatus.token) {
       setExportStatus('error');
       setExportMessage('Failed to export: PRD or Trello token not found');
+      
+      // Track the export error
+      trackEvent('Trello Export Error', {
+        'Project ID': projectId as string,
+        'Error Type': !prd ? 'Missing PRD' : 'Missing Token',
+        'Board ID': boardId
+      });
       return;
     }
     
@@ -238,6 +259,12 @@ export default function ImplementationGuidePage() {
         };
         setSelectedBoard(updatedBoard);
         
+        // Track successful export
+        trackEvent('Trello Export Successful', {
+          'Project ID': projectId as string,
+
+        });
+        
         // Save export status to localStorage
         if (projectId && typeof projectId === 'string') {
           localStorage.setItem(`trello_export_${projectId}`, JSON.stringify({
@@ -251,6 +278,13 @@ export default function ImplementationGuidePage() {
       } else {
         setExportStatus('error');
         setExportMessage(result.message);
+        
+        // Track export failure
+        trackEvent('Trello Export Failed', {
+          'Project ID': projectId as string,
+          'Board ID': boardId,
+          'Error Message': result.message
+        });
       }
     } catch (err) {
       console.error('Error exporting to Trello:', err);

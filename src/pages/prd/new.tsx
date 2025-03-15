@@ -14,6 +14,7 @@ import MockNotification from '../../components/MockNotification';
 import isMockData from '../../utils/mockDetector';
 import { projectService } from '../../services/projectService';
 import { featureService } from '../../services/featureService';
+import { trackEvent } from '../../lib/mixpanelClient';
 
 // Helper function to convert from briefStore.Brief to briefService.Brief
 const convertBriefForPRDGenerator = (brief: BriefStore): BriefService => {
@@ -102,12 +103,25 @@ export default function NewPRD() {
     if (!brief) {
       console.log("No brief found");
       setError('No brief found for this project. Please create a brief first.');
+      
+      // Track the error
+      trackEvent('PRD Generation Error', {
+        'Error Type': 'Missing Brief',
+        'Project ID': projectId as string
+      });
       return;
     }
     
     if (!featureSet || featureSet.features.length === 0) {
       console.log("No features found", { featureSet });
       setError('No features available. Please create features first.');
+      
+      // Track the error
+      trackEvent('PRD Generation Error', {
+        'Error Type': 'Missing Features',
+        'Project ID': projectId as string,
+        'Brief ID': brief.id
+      });
       return;
     }
     
@@ -116,6 +130,13 @@ export default function NewPRD() {
       setIsGenerating(true);
       setGenerationStep('Initializing PRD generation...');
       setProgressPercentage(10);
+      
+      // Track the start of PRD generation
+      trackEvent('PRD Generation Started', {
+        'Project ID': projectId as string,
+        'Project Name': project?.name,
+        'Feature Count': featureSet.features.length,
+      });
       
       // Generate the PRD using the brief and feature set
       setGenerationStep('Analyzing features and requirements...');
@@ -167,11 +188,30 @@ export default function NewPRD() {
       setProgressPercentage(100);
       setGenerationStep('Completed! Redirecting...');
       
+      // Track successful PRD generation
+      trackEvent('PRD Generated Successfully', {
+        'Project ID': projectId as string,
+        'Project Name': project?.name,
+        'PRD ID': savedPRD.id,
+        'Feature Count': featureSet.features.length,
+        'Generation Time (ms)': Date.now() - (window.performance && window.performance.now ? window.performance.now() : 0),
+        'PRD Length': response.length
+      });
+      
       router.push(`/prd/${savedPRD.id}`);
       
     } catch (error) {
       console.error('Error in PRD generation process:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate PRD. Please check your OpenAI API key.');
+      
+      // Track error in PRD generation
+      trackEvent('PRD Generation Failed', {
+        'Project ID': projectId as string,
+        'Brief ID': brief?.id,
+        'Error Message': error instanceof Error ? error.message : 'Unknown error',
+        'Generation Step': generationStep,
+        'Progress Percentage': progressPercentage
+      });
     } finally {
       setIsGenerating(false);
       setGenerationStep('');

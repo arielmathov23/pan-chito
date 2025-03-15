@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import authDebug from '../utils/authDebug';
 import { supabase } from '../lib/supabaseClient';
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { initMixpanel, trackPageView } from '../lib/mixpanelClient';
 
 // List of public routes that don't require authentication
 const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
@@ -19,6 +20,26 @@ function MyApp({ Component, pageProps }: AppProps) {
   
   // Check if the current route is a public route
   const isPublicRoute = publicRoutes.includes(router.pathname);
+
+  // Initialize Mixpanel and track page views
+  useEffect(() => {
+    // Initialize Mixpanel
+    initMixpanel();
+
+    // Track initial page view
+    trackPageView(router.pathname);
+
+    // Track page views on route change
+    const handleRouteChangeComplete = (url: string) => {
+      trackPageView(url);
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+    };
+  }, [router.events, router.pathname]);
 
   // Handle OAuth callback and errors
   useEffect(() => {

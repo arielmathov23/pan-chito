@@ -185,7 +185,6 @@ Technical Documentation:
 Tech Stack: ${techDoc.techStack || 'Not specified'}
 Frontend: ${techDoc.frontend || 'Not specified'}
 Backend: ${techDoc.backend || 'Not specified'}
-Content: ${JSON.stringify(techDoc.content || {}, null, 2)}
 
 App Screens and Flow:
 ${screenData}
@@ -206,10 +205,9 @@ With all that info, you task is to create two files, and its critical that you a
 
 2. Implementation Steps (.md file):
    - Structured step-by-step breakdown to develop all the pages and features. Breaking down complex features into executable steps (one step per feature).
-   - Ensure consistent alignment with project guides, do not create any new features or pages that are not defined in the PRD, Screens definitions and App Flow.
-   - Ensure all the details coming from the PRD, Screens definitions and App Flow are inlcuded.
-   - If screen data is available, use the relationship between screens and features (via featureId) to organize implementation steps. For screens without a featureId, group them logically based on their purpose.
-   - Do not add any code here just prompt and descriptions.
+   - Do not include any code or set up, this will be done with the guide above automatically by the AI coder assistant, your foucs is 100% on product creation.
+   - Do not create any new features or pages that are not defined in the PRD, Screens definitions and App Flow.
+   - MUST: include all the details coming from the PRD, Screens definitions and App Flow.
    - Backend is not mocked, it will be running in the same port as the frontend.
    - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
 

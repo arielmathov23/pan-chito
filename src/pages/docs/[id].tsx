@@ -15,6 +15,7 @@ import { prdService } from '../../services/prdService';
 import { briefService } from '../../services/briefService';
 import { projectService } from '../../services/projectService';
 import { techDocService, TechDoc } from '../../services/techDocService';
+import { trackEvent } from '../../lib/mixpanelClient';
 
 // Create a simple logger function since the actual logger module might not exist
 const logger = {
@@ -315,9 +316,22 @@ export default function TechDocPage() {
       
       const savedTechDoc = await techDocService.saveTechDoc(techDocData);
       setTechDoc(savedTechDoc);
+      
+      // Track successful tech doc generation
+      trackEvent('Tech Doc Generated Successfully', {
+        'PRD ID': prd.id,
+        'Project ID': brief.projectId,
+      });
     } catch (err) {
       console.error('Error generating tech documentation:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      
+      // Track error in tech doc generation
+      trackEvent('Tech Doc Generation Failed', {
+        'PRD ID': prd.id,
+        'Project ID': brief.projectId,
+        'Error Message': err instanceof Error ? err.message : 'Unknown error'
+      });
     } finally {
       setIsGenerating(false);
     }

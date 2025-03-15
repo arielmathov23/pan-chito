@@ -11,6 +11,7 @@ import { prdService } from '../../../services/prdService';
 import { generateFeatures } from '../../../utils/featureGenerator';
 import Modal from '../../../components/Modal';
 import { Brief as BriefStore } from '../../../utils/briefStore';
+import { trackEvent } from '../../../lib/mixpanelClient';
 
 interface EditingFeature {
   id: string;
@@ -120,6 +121,11 @@ export default function IdeateFeatures() {
       // Generate features using OpenAI
       const generatedFeatures = await generateFeatures(briefForGenerator);
       
+      // Track the successful feature generation
+      trackEvent('Features Generated', {
+        'Project ID': brief.project_id,
+      });
+      
       // Save features to Supabase
       const newFeatureSet = await featureService.saveFeatureSet(
         brief.id,
@@ -136,6 +142,13 @@ export default function IdeateFeatures() {
     } catch (err) {
       console.error('Error generating features:', err);
       setError('Failed to generate features. Please try again.');
+      
+      // Track the error
+      trackEvent('Feature Generation Error', {
+        'Brief ID': brief.id,
+        'Project ID': brief.project_id,
+        'Error Message': err instanceof Error ? err.message : 'Unknown error'
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -276,6 +289,12 @@ export default function IdeateFeatures() {
     
     setEditingFeature(newFeature as Feature);
     setIsEditModalOpen(true);
+    
+    // Track the manual feature addition
+    trackEvent('Feature Added Manually', {
+      'Brief ID': brief.id,
+      'Project ID': brief.project_id,
+      });
   };
 
   const handleSaveNewFeature = async () => {
@@ -512,7 +531,7 @@ export default function IdeateFeatures() {
                 <div className="mt-4 bg-blue-50 rounded-lg p-4">
                   <h4 className="font-medium text-blue-800 mb-3">Pro Tips</h4>
                   <ul className="space-y-3 text-sm">
-                    <li className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100 shadow-sm">
+                    <li className="bg-blue-100 border-l-4 border-blue-500 p-3 rounded-r-md shadow-sm">
                       <div className="flex items-start">
                         <div className="bg-blue-500 text-white rounded-full p-1 mr-3 flex-shrink-0 mt-0.5">
                           <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -520,7 +539,7 @@ export default function IdeateFeatures() {
                           </svg>
                         </div>
                         <div>
-                          <p className="font-medium text-blue-900 mb-1">First Version Development</p>
+                          <p className="font-semibold text-blue-900 mb-1">First Version Development</p>
                           <p className="text-blue-700">
                             <span className="font-medium">Must Have</span> and <span className="font-medium">Should Have</span> features will be included in the first version. Ensure "Must Have" features are truly essential to your core product.
                           </p>

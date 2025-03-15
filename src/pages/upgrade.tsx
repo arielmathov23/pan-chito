@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { projectLimitService } from '../services/projectLimitService';
 import ContactForm from '../components/ContactForm';
+import { trackEvent } from '../lib/mixpanelClient';
 
 export default function Upgrade() {
   const router = useRouter();
@@ -61,6 +62,32 @@ export default function Upgrade() {
       setError('An error occurred while submitting your request. Please try again.');
       setIsSubmitting(false);
     }
+  };
+
+  const handleSingleProjectClick = () => {
+    trackEvent('Choose Plan Clicked', {
+      'Plan Type': 'Single Project',
+      'Billing Type': 'one-time'
+    });
+    
+    window.location.href = 'https://buy.polar.sh/polar_cl_HzI3ixU9xa3LqcK1lhTijAU4HdjJaKvjev9jX3QUIKa';
+  };
+
+  const handleProPlanClick = () => {
+    trackEvent('Choose Plan Clicked', {
+      'Plan Type': 'Pro Plan',
+      'Billing Type': 'monthly'
+    });
+    
+    window.location.href = 'https://buy.polar.sh/polar_cl_p6cJvlbKPEDQPeJKSAbsXo7CtBZRDU9Ho4zVd1uVZFx';
+  };
+
+  const handleEnterpriseClick = (planName) => {
+    trackEvent('Enterprise Contact Requested', {
+      'Plan Type': planName
+    });
+    
+    handleUpgradeClick(planName);
   };
 
   if (authLoading) {
@@ -232,7 +259,7 @@ export default function Upgrade() {
                 </p>
                 <div className="mt-auto">
                   <button
-                    onClick={() => window.location.href = 'https://buy.polar.sh/polar_cl_HzI3ixU9xa3LqcK1lhTijAU4HdjJaKvjev9jX3QUIKa'}
+                    onClick={handleSingleProjectClick}
                     className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors h-[50px] flex items-center justify-center"
                   >
                     Choose Plan
@@ -287,7 +314,7 @@ export default function Upgrade() {
                   Unlimited projects and full AI capabilities for builders, and agencies.
                 </p>
                 <button
-                  onClick={() => window.location.href = 'https://buy.polar.sh/polar_cl_p6cJvlbKPEDQPeJKSAbsXo7CtBZRDU9Ho4zVd1uVZFx'}
+                  onClick={handleProPlanClick}
                   className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors relative overflow-hidden group mt-auto h-[50px] flex items-center justify-center"
                 >
                   <span className="relative z-10">Choose Plan</span>
@@ -340,7 +367,7 @@ export default function Upgrade() {
                   Pro plan plus collaboration tools, expert guidance and consultancy services.
                 </p>
                 <button
-                  onClick={() => handleUpgradeClick('Enterprise')}
+                  onClick={() => handleEnterpriseClick('Enterprise')}
                   className="w-full py-3.5 px-4 bg-white border border-[#0F533A] text-[#0F533A] hover:bg-[#0F533A]/5 font-medium rounded-lg transition-colors mt-auto h-[50px] flex items-center justify-center"
                 >
                   Contact Us

@@ -1,3 +1,4 @@
+import { trackEvent } from '../../lib/mixpanelClient';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
@@ -6,47 +7,68 @@ export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
-    // Process the OAuth callback
+    // Handle the OAuth callback
     const handleAuthCallback = async () => {
-      try {
-        // Get the session from the URL
-        const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error getting session:', error);
         
-        if (error) {
-          console.error('Error processing auth callback:', error.message);
-          router.push('/login');
-          return;
-        }
+        // Track OAuth callback error
+        trackEvent('OAuth Callback Error', {
+          'Error Message': error.message
+        });
         
-        // Log the session for debugging
-        console.log('Auth callback session:', data.session ? 'Session exists' : 'No session');
+        router.push('/login?error=auth');
+        return;
+      }
+      
+      if (data?.session?.user) {
+        // Check if this is a new user (signup) or existing user (login)
+        const { data: userData } = await supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('id', data.session.user.id)
+          .single();
         
-        // If we have a session, redirect to projects
-        if (data.session) {
-          // Force a hard redirect to the projects page to avoid any client-side routing issues
-          window.location.href = '/projects';
+        const isNewUser = userData?.created_at 
+          ? (new Date().getTime() - new Date(userData.created_at).getTime()) < 60000 // Less than 1 minute old
+          : false;
+        
+        if (isNewUser) {
+          // Track successful OAuth signup
+          trackEvent('Signup Successful', {
+            'User ID': data.session.user.id,
+            'Email Domain': data.session.user.email?.split('@')[1] || 'unknown',
+            'Method': `OAuth - ${data.session.user.app_metadata.provider || 'unknown'}`
+          });
         } else {
-          // If no session, redirect to login
-          router.push('/login');
+          // Track successful OAuth login
+          trackEvent('Login Successful', {
+            'User ID': data.session.user.id,
+            'Email Domain': data.session.user.email?.split('@')[1] || 'unknown',
+            'Method': `OAuth - ${data.session.user.app_metadata.provider || 'unknown'}`
+          });
         }
-      } catch (err) {
-        console.error('Unexpected error in auth callback:', err);
+        
+        // Redirect to projects page
+        router.push('/projects');
+      } else {
+        // No session, redirect to login
         router.push('/login');
       }
     };
-
-    // Only run if we're on the client side
-    if (typeof window !== 'undefined') {
-      // Add a small delay to ensure Supabase has time to process the auth state
-      setTimeout(handleAuthCallback, 500);
-    }
+    
+    handleAuthCallback();
   }, [router]);
 
   // Show a loading state while processing
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-12 h-12 border-4 border-t-[#0F533A] border-gray-200 rounded-full animate-spin"></div>
-      <p className="ml-4 text-gray-600">Processing authentication...</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F533A] mx-auto"></div>
+        <p className="mt-4 text-[#6b7280]">Completing authentication...</p>
+      </div>
     </div>
   );
 } 

@@ -333,124 +333,54 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
   }
 }
 
-export function parsePRD(prdContent: string): GeneratedPRD {
+export function parsePRD(rawContent: string): GeneratedPRD {
   try {
-    // Try to parse the content as JSON
+    // First attempt: direct JSON parse
     let parsedData;
     try {
-      // First, try to parse the content directly
-      parsedData = JSON.parse(prdContent);
-    } catch (parseError) {
-      console.error('Error parsing PRD JSON:', parseError);
+      parsedData = JSON.parse(rawContent);
+    } catch (e) {
+      console.log('Initial JSON parse failed, attempting cleanup...');
       
-      // If direct parsing fails, try to extract JSON from the response
-      // Sometimes the API returns text with JSON embedded in it
-      const jsonMatch = prdContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          parsedData = JSON.parse(jsonMatch[0]);
-        } catch (extractError) {
-          console.error('Error parsing extracted JSON:', extractError);
-          // Fall back to basic structure with raw content
-          return createDefaultPRDStructure(prdContent);
+      // Second attempt: Clean up common JSON issues
+      let cleanedContent = rawContent
+        .replace(/}\s*{/g, '},{')
+        .replace(/]\s*\[/g, '],[')
+        .replace(/,(\s*[}\]])/g, '$1')
+        .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
+
+      try {
+        parsedData = JSON.parse(cleanedContent);
+      } catch (e2) {
+        console.log('Cleaned JSON parse failed, attempting extraction...');
+        
+        // Third attempt: Extract JSON using regex
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            parsedData = JSON.parse(jsonMatch[0]);
+          } catch (e3) {
+            console.log('JSON extraction failed:', e3);
+            return createDefaultPRDStructure(rawContent);
+          }
+        } else {
+          return createDefaultPRDStructure(rawContent);
         }
-      } else {
-        // If no JSON found, return a basic structure with the raw content
-        return createDefaultPRDStructure(prdContent);
       }
     }
 
     // Check if the parsed data is already in GeneratedPRD format
     if (parsedData.sections && Array.isArray(parsedData.sections)) {
-      // Validate each section to ensure it has the required structure
-      const validatedSections = parsedData.sections.map(section => {
-        return validateAndFixSection(section);
-      });
-      
       return {
-        sections: validatedSections
-      };
-    }
-
-    // Check if the parsed data is in PRD format with overview, userStories, etc.
-    if (typeof parsedData.overview === 'string' || parsedData.overview) {
-      // Convert to GeneratedPRD format
-      return {
-        sections: [{
-          featureName: parsedData.title || "Main Product",
-          featurePriority: "must",
-          overview: {
-            purpose: parsedData.overview || "No overview provided",
-            successMetrics: Array.isArray(parsedData.successMetrics) 
-              ? parsedData.successMetrics 
-              : ["Adoption rate", "User satisfaction"]
-          },
-          userStories: Array.isArray(parsedData.userStories) 
-            ? parsedData.userStories 
-            : (typeof parsedData.userStories === 'string' 
-                ? parsedData.userStories.split("\n").filter(Boolean) 
-                : ["As a user, I want to use the product to solve my problems"]),
-          acceptanceCriteria: {
-            guidelines: "The feature should meet all requirements",
-            criteria: Array.isArray(parsedData.requirements) 
-              ? parsedData.requirements 
-              : (typeof parsedData.requirements === 'string' 
-                  ? parsedData.requirements.split("\n").filter(Boolean) 
-                  : ["Product should be functional", "Product should be user-friendly"])
-          },
-          useCases: [{
-            id: "UC-1",
-            title: "Main Use Case",
-            description: parsedData.overview || "No description provided",
-            actors: ["User", "System"],
-            preconditions: ["User is authenticated"],
-            postconditions: ["Action is completed"],
-            mainScenario: Array.isArray(parsedData.implementation) 
-              ? parsedData.implementation 
-              : (typeof parsedData.implementation === 'string' 
-                  ? parsedData.implementation.split("\n").filter(Boolean) 
-                  : ["User opens the product", "User performs actions", "System responds"]),
-            alternateFlows: [{
-              name: "Error Handling",
-              steps: ["System detects error", "User is notified"]
-            }],
-            exceptions: [{
-              name: "System Unavailable",
-              steps: ["System logs error", "User sees friendly message"]
-            }]
-          }],
-          nonFunctionalRequirements: {
-            performance: ["Load time < 2s", "Response time < 1s"],
-            security: ["Data encryption at rest", "Secure authentication"],
-            scalability: ["Support 1000 concurrent users", "Horizontal scaling"],
-            usability: ["Mobile responsive", "Accessible design"],
-            reliability: ["99.9% uptime", "Automatic failover"],
-            other: ["Multi-language support", "Dark mode support"]
-          },
-          dependencies: {
-            dependencies: ["Authentication system", "Database"],
-            assumptions: ["Modern browser support", "Stable internet connection"]
-          },
-          openQuestions: {
-            questions: ["Integration timeline?", "Performance impact?"],
-            risks: ["Technical debt", "User adoption"],
-            mitigations: ["Regular reviews", "User feedback loops"]
-          },
-          wireframeGuidelines: [
-            "Mobile-first design",
-            "Clear navigation",
-            "Consistent styling"
-          ]
-        }]
+        sections: parsedData.sections.map(validateAndFixSection)
       };
     }
 
     // If we can't determine the format, create a default structure
     console.warn('Unknown PRD format, creating default structure');
-    return createDefaultPRDStructure(prdContent);
+    return createDefaultPRDStructure(rawContent);
   } catch (error) {
     console.error('Error in parsePRD:', error);
-    // Return a minimal valid structure in case of any error
     return createErrorPRDStructure();
   }
 }

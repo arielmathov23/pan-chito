@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import FeedbackModal from './FeedbackModal';
 import Logo from './Logo';
+import { trackEvent } from '../lib/mixpanelClient';
+import { supabase } from '../lib/supabaseClient';
 
 const Navbar = () => {
   const router = useRouter();
@@ -33,9 +35,35 @@ const Navbar = () => {
     };
   }, []);
 
-  const handleLogout = () => {
-    setDropdownOpen(false);
-    logout();
+  const handleLogout = async () => {
+    try {
+      // Your existing logout logic
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error signing out:', error);
+        
+        // Track logout failure
+        trackEvent('Logout Failed', {
+          'Error Message': error.message
+        });
+        
+        return;
+      }
+      
+      // Track successful logout
+      trackEvent('Logout Successful');
+      
+      // Redirect to login page
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      
+      // Track unexpected logout error
+      trackEvent('Logout Error', {
+        'Error Message': error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   };
 
   const toggleMobileMenu = () => {

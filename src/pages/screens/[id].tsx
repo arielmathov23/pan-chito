@@ -17,6 +17,7 @@ import screenService from '../../services/screenService';
 import { prdService } from '../../services/prdService';
 import { projectService } from '../../services/projectService';
 import CheckIcon from '../../components/CheckIcon';
+import { trackEvent } from '../../lib/mixpanelClient';
 
 export default function ScreensPage() {
   const router = useRouter();
@@ -255,6 +256,12 @@ export default function ScreensPage() {
       setIsGenerating(true);
       setError(null);
       
+      // Track the start of screen generation
+      trackEvent('Screen Generation Started', {
+        'PRD ID': prd.id,
+        'Project ID': brief.projectId,
+      });
+      
       // Initialize progress
       setProgressPercentage(10);
       setGenerationStatus('Initializing screen generation...');
@@ -294,6 +301,15 @@ export default function ScreensPage() {
         setProgressPercentage(100);
         setGenerationStatus('Completed! Loading screens...');
         
+        // Track successful screen generation
+        trackEvent('Screens Generated Successfully', {
+          'PRD ID': prd.id,
+          'Project ID': brief.projectId,
+          'Screen Count': screens.length,
+          'App Flow Steps': appFlow.steps.length,
+          'Generation Time (ms)': Date.now() - (window.performance && window.performance.now ? window.performance.now() : 0)
+        });
+        
         // Check if these are fallback screens
         const isFallbackScreens = screens.length <= 2 && 
                                  screens.some(s => s.name === "Login Screen") && 
@@ -301,6 +317,13 @@ export default function ScreensPage() {
         
         if (isFallbackScreens) {
           setError('We encountered an issue generating detailed screens. Basic screens have been created instead. You can try again later or continue with these screens.');
+          
+          // Track fallback screens generation
+          trackEvent('Fallback Screens Generated', {
+            'PRD ID': prd.id,
+            'Project ID': brief.projectId,
+            'Screen Count': screens.length
+          });
         }
         
         setTimeout(() => {
@@ -316,6 +339,14 @@ export default function ScreensPage() {
         const isTimeoutError = err.message && (err.message.includes('504') || err.message.includes('timeout') || err.message.includes('timed out'));
         const isFallbackSuggested = err.message && (err.message.includes('fallback screens') || err.message.includes('Gateway Timeout') || err.message.includes('Error parsing response') || err.message.includes('API request failed with status 502'));
         
+        // Track the error
+        trackEvent('Screen Generation Error', {
+          'PRD ID': prd.id,
+          'Project ID': brief.projectId,
+          'Error Type': isTimeoutError ? 'Timeout' : 'API Error',
+          'Error Message': err.message,
+        });
+        
         if (isTimeoutError && !isFallbackSuggested) {
           // For timeout errors without fallback suggestion, just show error and stop
           setIsGenerating(false);
@@ -329,6 +360,13 @@ export default function ScreensPage() {
         try {
           setGenerationStatus('Creating basic screens instead...');
           setProgressPercentage(30);
+          
+          // Track fallback generation attempt
+          trackEvent('Fallback Screen Generation Attempted', {
+            'PRD ID': prd.id,
+            'Project ID': brief.projectId,
+            'Original Error': err.message
+          });
           
           // Import the fallback generation functions directly from the screenGenerator
           const { generateFallbackAppFlow, generateFallbackScreens } = require('../../utils/screenGenerator');
@@ -360,6 +398,14 @@ export default function ScreensPage() {
           setProgressPercentage(100);
           setGenerationStatus('Completed! Loading basic screens...');
           
+          // Track successful fallback screen generation
+          trackEvent('Fallback Screens Generated Successfully', {
+            'PRD ID': prd.id,
+            'Project ID': brief.projectId,
+            'Screen Count': screens.length,
+            'App Flow Steps': appFlow.steps.length
+          });
+          
           setTimeout(() => {
             setIsGenerating(false);
             setGenerationStatus('');
@@ -370,11 +416,28 @@ export default function ScreensPage() {
           
         } catch (fallbackErr) {
           console.error('Error in fallback screen generation:', fallbackErr);
+          
+          // Track fallback generation error
+          trackEvent('Fallback Screen Generation Failed', {
+            'PRD ID': prd.id,
+            'Project ID': brief.projectId,
+            'Original Error': err.message,
+            'Fallback Error': fallbackErr.message
+          });
+          
           handleGenerationError(fallbackErr);
         }
       }
     } catch (err) {
       console.error('Error in overall screen generation process:', err);
+      
+      // Track overall process error
+      trackEvent('Screen Generation Process Failed', {
+        'PRD ID': prd.id,
+        'Project ID': brief?.projectId,
+        'Error Message': err.message
+      });
+      
       handleGenerationError(err);
     }
   };
@@ -421,6 +484,14 @@ export default function ScreensPage() {
       
       // Also delete from local storage for backward compatibility
       screenStore.deleteScreenSet(screenSet.appFlow.id);
+      
+      // Track successful deletion
+      trackEvent('Screens Deleted Successfully', {
+        'PRD ID': prd.id,
+        'Brief ID': brief?.id,
+        'Project ID': brief?.projectId,
+        'Screen Count': screenSet.screens.length
+      });
       
       setScreenSet(null);
       setIsDeleteScreensModalOpen(false);
@@ -487,6 +558,13 @@ export default function ScreensPage() {
             ? { ...step, description: stepData.description, screenId: stepData.screenId }
             : step
         );
+        
+        // Track step edit
+        trackEvent('App Flow Step Edited', {
+          'PRD ID': prd?.id,
+          'Step ID': editingStep.id,
+          'Has Screen Link': !!stepData.screenId
+        });
       } else {
         // Add new step
         const newStep = {

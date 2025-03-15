@@ -5,6 +5,7 @@ import Navbar from '../../components/Navbar';
 import { projectService } from '../../services/projectService';
 import { useAuth } from '../../context/AuthContext';
 import { projectLimitService } from '../../services/projectLimitService';
+import { trackEvent } from '../../lib/mixpanelClient';
 
 export default function NewProject() {
   const router = useRouter();
@@ -68,6 +69,11 @@ export default function NewProject() {
       });
       
       if (project) {
+        // Track the project creation event
+        trackEvent('Project Created', {
+          'Project Name': name,
+        });
+        
         router.push(`/project/${project.id}`);
       } else {
         setError('Failed to create project. Please try again.');
@@ -81,6 +87,10 @@ export default function NewProject() {
   };
 
   const handleUpgradeClick = () => {
+    trackEvent('Upgrade Clicked', {
+      'Source': 'Project Limit Reached',
+    });
+    
     router.push('/upgrade');
   };
 
