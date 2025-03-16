@@ -87,7 +87,7 @@ export async function generateBrief(formData: BriefFormData): Promise<string> {
 
   const prompt = `You are the world's best strategist and product manager with an IQ of 180, and you're going to design an excellently defined product with all the necessary information for your product team to develop and design. Your task #1 is to create a structured brief for this product's MVP. Include market analysis, trends, and potential competitors. Include analysis of technical, commercial, and general risks, to be refined.
 
-Create a detailed Product Brief based on the following information:
+Create a detailed Product Brief based on the following information, without deleting any information:
 
 Product Name: ${formData.productName}
 
@@ -120,17 +120,17 @@ Business Risks:
 
 Please provide your response as a JSON object with the following structure:
 {
-  "executiveSummary": "A brief and concise summary of the product",
-  "problemStatement": "Detailed problem statement with data if possible",
-  "targetUsers": "Clear segmentation and user profiles as a string, not an object",
+  "executiveSummary": "A brief and concise summary of the product, adding a compelling hook and vision statement for inspiration.",
+  "problemStatement": "Detailed problem statement with data if possible, adding context to highlight urgency and potential impact.",
+  "targetUsers": "Clear segmentation and user profiles as a string, not an object. Expand with psychographics and user persona for better audience insight.",
   "existingSolutions": "Analysis of current alternatives and their limitations",
-  "proposedSolution": "Detailed explanation of how the product solves the problem. IMPORTANT: Include a clear recommendation on the optimal platform type (mobile app, web app, responsive web app, desktop app, etc.) with justification based on the target users and use cases, prioritizing best in terms of effort and impact",
-  "productObjectives": "Specific, measurable, achievable, relevant, and time-bound objectives for the short term",
-  "keyFeatures": "Recommended features and functionality based on the ideas provided",
-  "marketAnalysis": "Size, competitors, trends, opportunities",
+  "proposedSolution": "Detailed explanation of how the product solves the problem. IMPORTANT: Include a clear recommendation on the optimal platform type (mobile app, web app, desktop app, etc.) with justification and prioritizing best in terms of effort and impact",
+  "productObjectives": "Specific, measurable, achievable, relevant, and time-bound objectives for the short term.",
+  "keyFeatures": "Recommended features and functionality based on the ideas provided. Explain job to be done for each and value for engagement.",
+  "marketAnalysis": "Analysis on upsides and downsides on the project. Define size, competitors, trends, opportunities. Deepen on growth trends and user acquisition insights for credibility.",
   "technicalRisks": "Identification and possible mitigations of technical risks",
-  "businessRisks": "Identification and possible mitigations of business risks",
-  "implementationStrategy": "What the product should be focused on in the short term, and medium term. Which part of the busines will demand more resources",
+  "businessRisks": "Outline a revenue strategy in the short term. Identification and possible mitigations of business risks",
+  "implementationStrategy": "What the product should be focused on in the short term, and medium term. Which part of the busines will demand more resources.",
   "successMetrics": "Clear KPIs to measure product success when launching"
 }
 
