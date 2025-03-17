@@ -115,6 +115,213 @@ This is a modern task management application designed to help users organize the
   };
 }
 
+// For PRD Content
+const formatPRDContent = (prd) => {
+  let formattedPRD = "# Product Requirements\n\n";
+  
+  // Add project overview
+  if (prd.projectOverview) {
+    formattedPRD += "## Project Overview\n";
+    formattedPRD += `${prd.projectOverview}\n\n`;
+  }
+  
+  // Add features with priorities
+  if (prd.sections && Array.isArray(prd.sections)) {
+    formattedPRD += "## Features\n\n";
+    
+    prd.sections.forEach(section => {
+      if (section.featureName) {
+        formattedPRD += `### ${section.featureName}`;
+        
+        if (section.featurePriority) {
+          formattedPRD += ` (${section.featurePriority})\n\n`;
+        } else {
+          formattedPRD += "\n\n";
+        }
+        
+        // Add feature purpose/overview
+        if (section.overview && section.overview.purpose) {
+          formattedPRD += `**Purpose:** ${section.overview.purpose}\n\n`;
+        }
+        
+        // Add user stories
+        if (section.userStories && Array.isArray(section.userStories) && section.userStories.length > 0) {
+          formattedPRD += "**User Stories:**\n";
+          section.userStories.forEach((story, index) => {
+            formattedPRD += `- ${story}\n`;
+          });
+          formattedPRD += "\n";
+        }
+        
+        // Add acceptance criteria
+        if (section.acceptanceCriteria && 
+            section.acceptanceCriteria.criteria && 
+            Array.isArray(section.acceptanceCriteria.criteria) && 
+            section.acceptanceCriteria.criteria.length > 0) {
+          formattedPRD += "**Acceptance Criteria:**\n";
+          section.acceptanceCriteria.criteria.forEach((criterion, index) => {
+            formattedPRD += `- ${criterion}\n`;
+          });
+          formattedPRD += "\n";
+        }
+      }
+    });
+  }
+  
+  return formattedPRD;
+};
+
+// For Technical Documentation
+const formatTechDoc = (techDoc) => {
+  let formattedTechDoc = "# Technical Documentation\n\n";
+  
+  // Add architecture overview
+  if (techDoc.architecture) {
+    formattedTechDoc += "## Architecture\n";
+    formattedTechDoc += `${techDoc.architecture}\n\n`;
+  }
+  
+  // Add tech stack
+  if (techDoc.techStack) {
+    formattedTechDoc += "## Technology Stack\n\n";
+    
+    if (typeof techDoc.techStack === 'string') {
+      formattedTechDoc += techDoc.techStack + "\n\n";
+    } else if (Array.isArray(techDoc.techStack)) {
+      techDoc.techStack.forEach(tech => {
+        formattedTechDoc += `- ${tech}\n`;
+      });
+      formattedTechDoc += "\n";
+    } else if (typeof techDoc.techStack === 'object') {
+      Object.entries(techDoc.techStack).forEach(([category, technologies]) => {
+        formattedTechDoc += `### ${category}\n`;
+        if (Array.isArray(technologies)) {
+          technologies.forEach(tech => {
+            formattedTechDoc += `- ${tech}\n`;
+          });
+        } else {
+          formattedTechDoc += `${technologies}\n`;
+        }
+        formattedTechDoc += "\n";
+      });
+    }
+  }
+  
+  // Add API endpoints if available
+  if (techDoc.apis && Array.isArray(techDoc.apis)) {
+    formattedTechDoc += "## API Endpoints\n\n";
+    
+    techDoc.apis.forEach(api => {
+      formattedTechDoc += `### ${api.name || 'Endpoint'}\n`;
+      formattedTechDoc += `- Method: ${api.method || 'N/A'}\n`;
+      formattedTechDoc += `- Path: ${api.path || 'N/A'}\n`;
+      if (api.description) formattedTechDoc += `- Description: ${api.description}\n`;
+      formattedTechDoc += "\n";
+    });
+  }
+  
+  // Add database schema if available
+  if (techDoc.database && techDoc.database.schema) {
+    formattedTechDoc += "## Database Schema\n\n";
+    
+    if (Array.isArray(techDoc.database.schema)) {
+      techDoc.database.schema.forEach(table => {
+        formattedTechDoc += `### ${table.name || 'Table'}\n`;
+        
+        if (table.fields && Array.isArray(table.fields)) {
+          formattedTechDoc += "| Field | Type | Description |\n";
+          formattedTechDoc += "|-------|------|-------------|\n";
+          
+          table.fields.forEach(field => {
+            formattedTechDoc += `| ${field.name || 'N/A'} | ${field.type || 'N/A'} | ${field.description || ''} |\n`;
+          });
+        }
+        
+        formattedTechDoc += "\n";
+      });
+    } else {
+      formattedTechDoc += techDoc.database.schema + "\n\n";
+    }
+  }
+  
+  return formattedTechDoc;
+};
+
+// For App Screens
+const formatScreens = (screens) => {
+  if (!screens || !Array.isArray(screens)) return "";
+  
+  let formattedScreens = "# Application Screens\n\n";
+  
+  screens.forEach((screen, index) => {
+    formattedScreens += `## Screen ${index + 1}: ${screen.name || 'Unnamed Screen'}\n\n`;
+    
+    if (screen.description) {
+      formattedScreens += `**Description:** ${screen.description}\n\n`;
+    }
+    
+    if (screen.components && Array.isArray(screen.components)) {
+      formattedScreens += "**Components:**\n";
+      screen.components.forEach(component => {
+        formattedScreens += `- ${component.name || 'Component'}: ${component.description || ''}\n`;
+      });
+      formattedScreens += "\n";
+    }
+    
+    if (screen.interactions && Array.isArray(screen.interactions)) {
+      formattedScreens += "**Interactions:**\n";
+      screen.interactions.forEach(interaction => {
+        formattedScreens += `- ${interaction}\n`;
+      });
+      formattedScreens += "\n";
+    }
+  });
+  
+  return formattedScreens;
+};
+
+// For App Flow
+const formatAppFlow = (appFlow) => {
+  if (!appFlow) return "";
+  
+  let formattedFlow = "# Application Flow\n\n";
+  
+  if (Array.isArray(appFlow)) {
+    appFlow.forEach((flow, index) => {
+      formattedFlow += `## Flow ${index + 1}: ${flow.name || 'Unnamed Flow'}\n\n`;
+      
+      if (flow.description) {
+        formattedFlow += `${flow.description}\n\n`;
+      }
+      
+      if (flow.steps && Array.isArray(flow.steps)) {
+        formattedFlow += "**Steps:**\n";
+        flow.steps.forEach((step, stepIndex) => {
+          formattedFlow += `${stepIndex + 1}. ${step}\n`;
+        });
+        formattedFlow += "\n";
+      }
+    });
+  } else if (typeof appFlow === 'string') {
+    formattedFlow += appFlow + "\n\n";
+  } else if (typeof appFlow === 'object') {
+    Object.entries(appFlow).forEach(([flowName, flowDetails]) => {
+      formattedFlow += `## ${flowName}\n\n`;
+      
+      if (typeof flowDetails === 'string') {
+        formattedFlow += `${flowDetails}\n\n`;
+      } else if (Array.isArray(flowDetails)) {
+        flowDetails.forEach((step, index) => {
+          formattedFlow += `${index + 1}. ${step}\n`;
+        });
+        formattedFlow += "\n";
+      }
+    });
+  }
+  
+  return formattedFlow;
+};
+
 export async function generateImplementationGuides(
   project: Project,
   brief: Brief,
@@ -179,12 +386,10 @@ export async function generateImplementationGuides(
 
 Product Name: ${brief?.product_name || ''}
 PRD Content:
-${JSON.stringify(prd.content, null, 2)}
+${formatPRDContent(prd.content)}
 
 Technical Documentation:
-Tech Stack: ${techDoc.techStack || 'Not specified'}
-Frontend: ${techDoc.frontend || 'Not specified'}
-Backend: ${techDoc.backend || 'Not specified'}
+${formatTechDoc(techDoc)}
 
 App Screens and Flow:
 ${screenData}
@@ -192,24 +397,27 @@ ${screenData}
 With all that info, you task is to create two files, and its critical that you are smart and sharp to follow the instructions below:
 
 1. Implementation Guide (.md file):
-   - Provide a comprehensive overview of how to implement the project, including setup and execution details.
-   - Incorporate technical stack details and UI guidelines
-   - Include high-level architectural decisions (e.g., directory structure, routing approach, styling strategy).
+   - Provide a comprehensive overview of how to implement the project, including setup, installation required, and execution details.
+   - Include architectural decisions (e.g., directory structure, routing approach, styling strategy).
+   - Incorporate technical stack details and UI guidelines. This solution must be modern, techie, and cool.
    - Detail how to manage contrast colors, accessibility, and responsive design.
-   - Specify that all code must reside in a src/ directory and in case it is a web app, use Next.js App Router(src/app/.
+   - Specify that all code must reside in a src/ directory and in case it is a web app, use Next.js App Router(src/app/ directory).
    - Avoid nested directory issues by keeping route definitions flat and logical.
-   - In case using tailwind CSS Setup: Explicitly require a correct Tailwind configuration: create a tailwind.config.js file with content paths and theme extensions.
+   - In case using tailwind CSS Setup: Explicitly require a correct Tailwind set up and configuration: create a tailwind.config.js file with content paths and theme extensions.
    - Update package.json with correct dependencies: tailwindcss, postcss.
    - In src/app/globals.css, use Tailwind directives and define base styles.
    - If necessary, Next.js Configuration**: Require next.config.js
 
 2. Implementation Steps (.md file):
-   - Structured step-by-step breakdown to develop all the pages and features. Breaking down complex features into executable steps (one step per feature).
-   - Do not include any code or set up, this will be done with the guide above automatically by the AI coder assistant, your foucs is 100% on product creation.
-   - Do not create any new features or pages that are not defined in the PRD, Screens definitions and App Flow.
-   - MUST: include all the details coming from the PRD, Screens definitions and App Flow.
-   - Backend is not mocked, it will be running in the same port as the frontend.
-   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
+   - Explain the structure of the solution, what are the main features, what is the main flow.
+   - Structured step-by-step breakdown to develop all the screens and features. Breaking down complex features into executable steps.
+   - Each step must be completed with all the details coming from PRD and App Screens, including in each step all the UX information. Do not summarize anything.
+   - Do not include any code or set up indications, this will be done with the guide above automatically by the AI coder assistant, your foucs is 100% on product creation.
+   - Do not create any new features unless in necessary to make this solution a robust one with a MVP mindest.
+   - Backend is not mocked, it will be running in the same port as the frontend. 
+   - Ensure all the information submitted by the user will be saved and used.
+   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations (if they are included on the input, if not do not mentiont this, i.e. openai) and add login/sign up if needed; 3) integrate database for saving info and auth
+   - Do not add any Conclusion, just the development steps.
 
 Please provide your response as two separate text blocks, clearly labeled as "IMPLEMENTATION_GUIDE" and "IMPLEMENTATION_STEPS". Each should be formatted in markdown and be comprehensive enough to guide an AI agent through the entire implementation process.`;
 
@@ -341,25 +549,22 @@ export async function generateImplementation(prd: PRD, techDoc: TechDoc, screenS
       const prompt = `You are an expert engineering manager with 180 IQ tasked with creating implementation guides for the development of a project with an AI coder software. Your goal is to create two distinct files that will help an AI generate code for this project:
 
 PRD Content:
-${JSON.stringify(inputData.prdContent, null, 2)}
+${formatPRDContent(inputData.prdContent)}
 
 Technical Documentation:
-${JSON.stringify(inputData.techDoc, null, 2)}
+${formatTechDoc(inputData.techDoc)}
 
-${inputData.screens ? `
-App Screens:
-${JSON.stringify(inputData.screens.screens, null, 2)}
+${inputData.screens ? formatScreens(inputData.screens.screens) : ''}
 
-App Flow:
-${JSON.stringify(inputData.screens.appFlow, null, 2)}
-` : 'No screen data available.'}
+${inputData.screens ? formatAppFlow(inputData.screens.appFlow) : ''}
 
-You task is to create two files:
+You task is to create two files that include all the information needed to implement the project, without erasing any information from the PRD, Screens definitions and App Flow:
 
 1. Implementation Guide (.md file):
    - A comprehensive overview of how to implement the project
    - Must incorporate technical stack details and UI guidelines
    - Must include high-level architectural decisions
+   - Do not add code here, just prompt and descriptions.
    - Detail how to manage contrast, accessibility, and responsive desing.
    - Code placement: All code in src/ (e.g., src/app/ for App Router, src/components/ for UI, src/lib/ for utilities like Supabase client).
    - Avoid Nested Directory Issues
@@ -367,9 +572,9 @@ You task is to create two files:
 
 2. Implementation Steps (.md file):
    - Structured step-by-step breakdown to develop all the pages and features. Breaking down complex features into executable steps (one step per feature).
-   - Ensure consistent alignment with project guides, do not create any new features or pages that are not defined in the PRD, Screens definitions and App Flow.
-   - Ensure all the details coming from the PRD, Screens definitions and App Flow are inlcuded.
-   - If screen data is available, use the relationship between screens and features (via featureId) to organize implementation steps. For screens without a featureId, group them logically based on their purpose.
+   - Ensure each steps includes the details coming from the PRD, Screens definitions and App Flow. Do not mention any document, just use here all the information for each feature. 
+   - Do not create any new features or pages that are not defined.
+   - This file can be LONG, it is a must to include all the details.
    - Do not add any code here just prompt and descriptions.
    - Backend is not mocked, it will be running in the same port as the frontend.
    - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
@@ -384,7 +589,7 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000
+        max_tokens: 8000
       });
 
       const content = response.choices[0]?.message?.content;

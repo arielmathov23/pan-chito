@@ -183,8 +183,31 @@ export default function ImplementationGuidePage() {
     }
   };
   
-  const handleCopyToClipboard = (text: string) => {
+  const handleCopyToClipboard = (text: string, buttonId: string) => {
     navigator.clipboard.writeText(text);
+    
+    const button = document.getElementById(buttonId);
+    if (button) {
+      // Save original content and classes
+      const originalContent = button.innerHTML;
+      const originalClasses = button.className;
+      
+      // Change button text and style
+      button.innerHTML = `
+        <svg class="w-4 h-4 mr-1.5 text-green-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Copied!
+      `;
+      button.className = "inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium bg-green-50 text-green-600 border border-green-200 transition-colors focus:outline-none";
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        button.innerHTML = originalContent;
+        button.className = originalClasses;
+      }, 2000);
+    }
   };
   
   // Function to download content as markdown file
@@ -911,8 +934,10 @@ export default function ImplementationGuidePage() {
                       <p className="text-[#6b7280] text-sm">Copy this prompt to use with your AI coding assistant</p>
                     </div>
                     <button
-                      onClick={() => handleCopyToClipboard("To get started with this new project follow these instructions carefully: 1) Start by thoroughly reading the implementationguide.md file to understand the project's scope and high-level definitions. 2) Next, read the implementationsteps.md file to familiarize yourself with all the steps required to develop the solution. 3) Create a new file named executionsteps.md to log your progress. 4) Implement Sequentially: Begin implementing the steps one by one, starting from step 1, as outlined in implementationsteps.md. 5) Handle Stages (if present): If the steps in implementationsteps.md are organized under stage headings: a) Complete all steps under a stage heading before moving to the next stage. b) After finishing the last step of a stage, ask the user: 'Stage [X] completed. Are you ready to proceed to Stage [Y]?' before starting the first step of the next stage. c) In executionsteps.md, include the stage headings and list the completed steps under their respective stages, marking each as 'Done'. d) Handle Steps Without Stages: If the steps are not organized into stages, complete each step in order and log them in executionsteps.md with 'Done' after each one. 6) Log Progress: For each completed step, add an entry to executionsteps.md with: The step number, A brief description of the task, The word 'Done', The stage it belongs to (if applicable).")}
-                      className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium bg-[#f0f2f5] text-[#4b5563] hover:bg-[#e5e7eb] transition-colors"
+                      id="copy-prompt-button"
+                      onClick={() => handleCopyToClipboard("To get started with this new project follow these instructions carefully: 1) Start by thoroughly reading the implementationguide.md file to understand the project's scope and high-level definitions. 2) Next, read the implementationsteps.md file to familiarize yourself with all the steps required to develop the solution. 3) Create a new file named executionsteps.md to log your progress. 4) Implement Sequentially: Begin implementing the steps one by one, starting from step 1, as outlined in implementationsteps.md. 5) Handle Stages (if present): If the steps in implementationsteps.md are organized under stage headings: a) Complete all steps under a stage heading before moving to the next stage. b) After finishing the last step of a stage, ask the user: 'Stage [X] completed. Are you ready to proceed to Stage [Y]?' before starting the first step of the next stage. c) In executionsteps.md, include the stage headings and list the completed steps under their respective stages, marking each as 'Done'. d) Handle Steps Without Stages: If the steps are not organized into stages, complete each step in order and log them in executionsteps.md with 'Done' after each one. 6) Log Progress: For each completed step, add an entry to executionsteps.md with: The step number, A brief description of the task, The word 'Done', The stage it belongs to (if applicable).", "copy-prompt-button")}
+                      aria-label="Copy AI assistant prompt to clipboard"
+                      className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium bg-[#f0f2f5] text-[#4b5563] hover:bg-[#e5e7eb] transition-colors focus:outline-none"
                     >
                       <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M16 12.9V17.1C16 20.6 14.6 22 11.1 22H6.9C3.4 22 2 20.6 2 17.1V12.9C2 9.4 3.4 8 6.9 8H11.1C14.6 8 16 9.4 16 12.9Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -932,12 +957,14 @@ export default function ImplementationGuidePage() {
                     <h3 className="text-lg font-medium text-[#111827]">Implementation Guide</h3>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleCopyToClipboard(implementationGuide)}
-                        className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors"
+                        id="copy-guide-button"
+                        onClick={() => handleCopyToClipboard(implementationGuide, "copy-guide-button")}
+                        aria-label="Copy implementation guide to clipboard"
+                        className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors focus:outline-none"
                       >
                         <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 17 17V9C17 8.44772 16.5523 8 16 8Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 17V9C17 8.44772 16.5523 8 16 8Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                         Copy
                       </button>
@@ -965,8 +992,10 @@ export default function ImplementationGuidePage() {
                     <h3 className="text-lg font-medium text-[#111827]">Implementation Steps</h3>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleCopyToClipboard(implementationSteps)}
-                        className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors"
+                        id="copy-steps-button"
+                        onClick={() => handleCopyToClipboard(implementationSteps, "copy-steps-button")}
+                        aria-label="Copy implementation steps to clipboard"
+                        className="inline-flex items-center justify-center px-3 py-1.5 rounded text-sm bg-[#f0f2f5] hover:bg-[#e5e7eb] text-[#4b5563] transition-colors focus:outline-none"
                       >
                         <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

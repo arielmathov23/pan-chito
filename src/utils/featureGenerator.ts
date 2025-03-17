@@ -95,7 +95,7 @@ export async function generateFeatures(brief: Brief): Promise<Feature[]> {
     }
   }
 
-  const prompt = `Based on the following product brief, generate a list of features using the MoSCoW prioritization framework (Must have, Should have, Could have, Won't have). For each feature, also assess its difficulty level (easy, medium, hard) based on implementation complexity.
+  const prompt = `Based on the following product brief, generate a list of features using the MoSCoW prioritization framework (Must have, Should have, Could have, Won't have). For each feature, also assess its difficulty level (easy, medium, hard) based on implementation complexity from a UX design and software development point of view.
 
 Product Brief:
 ${brief.productName}
@@ -104,6 +104,8 @@ ${brief.problemStatement}
 Target Users: ${brief.targetUsers}
 Problem Statement: ${brief.problemStatement}
 Product Objectives: ${brief.productObjectives}
+
+Always add profile features as could priority (login/signup, profile, settings).
 
 Format your response as a valid JSON array of features. Each feature should be a JSON object with:
 - name: short feature name
