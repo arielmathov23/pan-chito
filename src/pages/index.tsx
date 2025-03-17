@@ -108,7 +108,7 @@ const Home = () => {
       benefitsRef.current.style.transform = `translateY(${(scrollY - 300) * 0.03}px)`;
     }
     if (integrationsRef.current) {
-      integrationsRef.current.style.transform = `translateY(${(scrollY - 700) * 0.04}px)`;
+      integrationsRef.current.style.transform = `translateY(${(scrollY - 700) * 0.02}px)`;
     }
   }, [scrollY]);
 
@@ -664,7 +664,7 @@ const Home = () => {
 
 
             {/* 80/20 Rule Banner */}
-            <div className="mt-16 w-screen relative overflow-hidden" style={{ marginLeft: 'calc(-50vw + 50%)', width: '100vw' }}>
+            <div className="w-screen relative overflow-hidden mb-0 md:mb-0" style={{ marginLeft: 'calc(-50vw + 50%)', width: '100vw' }}>
               <div className="absolute inset-0 bg-[#1e2937] bg-opacity-95"></div>
               <div className="absolute inset-0">
                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
@@ -775,22 +775,22 @@ const Home = () => {
         </section>
         
         {/* Integrations Section */}
-        <section ref={integrationsRef} className="pt-0 pb-16 px-6 bg-white relative overflow-hidden mb-12">
+        <section ref={integrationsRef} className="pt-0 pb-20 md:pb-24 px-6 bg-white relative overflow-hidden -mt-8 md:mt-0">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
           </div>
           
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <h2 className="text-4xl font-bold text-gray-900 mb-3">Seamless integrations</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Connect with your favorite tools for a smooth workflow
               </p>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-16 mb-12">
+            <div className="grid md:grid-cols-2 gap-8 md:gap-16 mb-20">
               {/* Project Management Tools */}
-              <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+              <div className="bg-white rounded-xl p-6 md:p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">
                   Project Management
                 </h3>
@@ -822,7 +822,7 @@ const Home = () => {
               </div>
               
               {/* Code Editors */}
-              <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+              <div className="bg-white rounded-xl p-6 md:p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">
                   AI Development
                 </h3>
@@ -855,7 +855,7 @@ const Home = () => {
         
         
         {/* Target Audience Section */}
-        <section className="py-16 px-6 bg-gradient-to-br from-[#0F533A]/5 via-white to-white relative overflow-hidden mt-12">
+        <section className="py-16 px-6 bg-gradient-to-br from-[#0F533A]/5 via-white to-white relative overflow-hidden mt-24 md:mt-16">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
           </div>
