@@ -1079,14 +1079,14 @@ export default function Projects() {
         />
       )}
       
-      {/* Alpha version footer - positioned at the bottom */}
+      {/* Beta version footer - positioned at the bottom */}
       <footer className="w-full py-3 border-t border-gray-100 bg-white/50 backdrop-blur-sm mt-auto">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
             <div className="flex items-center mb-2 md:mb-0">
               <span>021 is in </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mx-1">
-                ALPHA
+                BETA
               </span>
               <span>version</span>
             </div>

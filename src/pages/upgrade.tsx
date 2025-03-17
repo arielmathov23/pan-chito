@@ -148,7 +148,7 @@ export default function Upgrade() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-[#111827]">Alpha Testing in Progress</h2>
+                <h2 className="text-xl font-bold text-[#111827]">Beta Testing in Progress</h2>
                 <p className="text-[#6b7280] mt-2 max-w-md mx-auto">
                   We've recorded your interest in upgrading and will contact you when this feature becomes available.
                 </p>
@@ -587,7 +587,7 @@ export default function Upgrade() {
         <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
           <div className="max-w-3xl mx-auto p-4 pt-8">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold text-[#111827]">021 Alpha Testing Phase</h1>
+              <h1 className="text-3xl font-bold text-[#111827]">021 BETA Testing Phase</h1>
               <button 
                 onClick={handleCloseModal}
                 className="text-[#6b7280] hover:text-[#111827]"
@@ -600,7 +600,7 @@ export default function Upgrade() {
             
             <div className="text-center mb-6">
               <p className="text-[#6b7280] text-base max-w-2xl mx-auto">
-                We're currently in alpha testing. Your feedback is extremely valuable to us as we develop our product. 
+                We're currently in beta testing. Your feedback is extremely valuable to us as we develop our product. 
                 Please share your thoughts with us to help shape the future of our platform.
               </p>
             </div>

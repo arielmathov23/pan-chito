@@ -183,7 +183,7 @@ export default function FeedbackModal({ isOpen, onClose, projectId }: FeedbackMo
                 <div className="mb-4">
                   <div className="flex items-center mb-1">
                     <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
-                    <h2 className="text-lg font-semibold text-gray-900" id="modal-title">Alpha Testing Feedback</h2>
+                    <h2 className="text-lg font-semibold text-gray-900" id="modal-title">BETA Testing Feedback</h2>
                   </div>
                   <p className="text-gray-600 text-sm mt-1">
                     Your feedback is valuable as we develop our product. Please share your thoughts to help shape the future of our platform.

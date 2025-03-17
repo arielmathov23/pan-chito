@@ -227,7 +227,7 @@ export default function Integrations() {
             <div className="flex items-center mb-2 md:mb-0">
               <span>021 is in </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mx-1">
-                ALPHA
+                BETA
               </span>
               <span>version</span>
             </div>
