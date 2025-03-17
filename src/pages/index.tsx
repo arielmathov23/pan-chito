@@ -128,31 +128,37 @@ const Home = () => {
       name: "Brief",
       icon: "📝",
       desc: "Define vision & goals",
-      details: "Create a structured brief that outlines your product vision, target audience, and business objectives."
+      details: "Outline product vision, audience, and business objectives."
     },
     {
       name: "Ideation",
       icon: "💡",
       desc: "Prioritize features",
-      details: "Use our MoSCoW method (Must, Should, Could, Won't) to prioritize features and create a roadmap."
+      details: "Use MoSCoW method to prioritize features and create a roadmap."
     },
     {
       name: "PRD",
       icon: "📊",
       desc: "Document requirements",
-      details: "Generate comprehensive Product Requirement Documents automatically with our AI assistant."
+      details: "Generate Product Requirement Documents with our AI assistant."
     },
     {
       name: "Screens",
       icon: "🖼️",
       desc: "Design the interface",
-      details: "Visualize your product with wireframes and mockups that align all stakeholders."
+      details: "Create wireframes and mockups to align all stakeholders."
     },
     {
       name: "Tech Docs",
       icon: "⚙️",
       desc: "Specify implementation",
-      details: "Create detailed technical specifications for seamless handoff to development teams."
+      details: "Create technical specifications for seamless development handoff."
+    },
+    {
+      name: "Implementation",
+      icon: "🚀",
+      desc: "Export & execute",
+      details: "Export to Trello or AI tools like Lovable/Cursor for development."
     }
   ];
 
@@ -311,7 +317,7 @@ const Home = () => {
                   </span>
                 </h1>
                 <p className="mt-8 text-xl text-gray-600 leading-relaxed max-w-lg">
-                  Your shortcut to defining products right the first time, in minutes. No coding yet, no endless tweaks later. Just clear, actionable specs from day one.
+                  Define your products right the first time in minutes. No coding yet, no endless tweaks later. Just clear, actionable specs from day one.
                 </p>
                 
                 {/* Platform Logos */}
@@ -388,9 +394,9 @@ const Home = () => {
         <section className="py-16 bg-gradient-to-b from-white to-gray-50 relative">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-8 max-w-2xl mx-auto">
-              <h2 className="text-3xl font-bold text-gray-900">Why 021 is a game-changer in product creation</h2>
+              <h2 className="text-3xl font-bold text-gray-900">Stop the guesswork and iterations</h2>
               <p className="mt-3 text-xl text-gray-500">
-                Stop the guesswork and iterations, align your team effortlessly
+              Why 021 is a game-changer in product creation 
               </p>
             </div>
 
@@ -425,187 +431,61 @@ const Home = () => {
               ))}
             </div>
             
-            {/* 80/20 Rule Banner */}
-            <div className="mt-16 w-screen relative overflow-hidden" style={{ marginLeft: 'calc(-50vw + 50%)', width: '100vw' }}>
-              <div className="absolute inset-0 bg-[#1e2937] bg-opacity-95"></div>
-              <div className="absolute inset-0">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
-                {/* Animated lines */}
-                <div className="absolute inset-0 overflow-hidden">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute h-px bg-gradient-to-r from-[#0F533A]/0 via-[#0F533A] to-[#0F533A]/0"
-                      style={{
-                        top: `${30 * (i + 1)}%`,
-                        left: '-100%',
-                        right: '-100%',
-                        animation: `slide ${15 + i * 5}s linear infinite`,
-                        opacity: 0.2
-                      }}
-                    />
-                  ))}
-                </div>
-                
-                {/* Geometric pattern on the right */}
-                <div className="absolute right-0 top-0 bottom-0 w-1/3 overflow-hidden hidden md:block">
-                  <div className="absolute inset-0 opacity-20">
-                    {geometricElements.slice(0, 5).map((rect) => (
-                      <div 
-                        key={rect.key}
-                        className="absolute bg-[#0F533A]"
-                        style={{
-                          width: `${rect.width}px`,
-                          height: `${rect.height}px`,
-                          top: `${rect.top}%`,
-                          right: `${rect.right}%`,
-                          transform: `rotate(${(rect as Rectangle).rotation}deg)`,
-                          opacity: rect.opacity
-                        }}
-                      />
-                    ))}
-                    {geometricElements.slice(5).map((circle) => (
-                      <div 
-                        key={circle.key}
-                        className="absolute rounded-full border border-[#0F533A]/30"
-                        style={{
-                          width: `${circle.width}px`,
-                          height: `${circle.height}px`,
-                          top: `${circle.top}%`,
-                          right: `${circle.right}%`,
-                          opacity: circle.opacity
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="max-w-7xl mx-auto px-6 py-24 relative z-10">
-                <div className="flex flex-col md:flex-row items-center md:items-start md:justify-start gap-12">
-                  <div className="flex items-center space-x-6 mb-8 md:mb-0">
-                    <div className="w-28 h-28 bg-[#0F533A] rounded-lg flex flex-col items-center justify-center font-mono text-white border border-[#0F533A]/20">
-                      <span className="font-light text-3xl">80<span className="text-sm opacity-60">%</span></span>
-                      <span className="text-xs mt-1 opacity-70 tracking-wider">PLANNING</span>
-                    </div>
-                    <div className="w-28 h-28 bg-[#2a3441] backdrop-blur-sm rounded-lg flex flex-col items-center justify-center font-mono text-white border border-white/10">
-                      <span className="font-light text-3xl">20<span className="text-sm opacity-60">%</span></span>
-                      <span className="text-xs mt-1 opacity-70 tracking-wider">EXECUTION</span>
-                    </div>
-                  </div>
-                  <div className="md:ml-8 text-left max-w-md">
-                  
-                    <h3 className="text-4xl font-light text-white mb-3 flex items-center">
-                      The 80/20 Rule of Product Success
-                      <span className="ml-4 hidden md:inline-flex items-center">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <span 
-                            key={i} 
-                            className="h-px bg-gradient-to-r from-[#0F533A] to-white/20"
-                            style={{ 
-                              width: `${30 + i * 15}px`, 
-                              marginLeft: '4px',
-                              opacity: 0.6 - (i * 0.15)
-                            }}
-                          ></span>
-                        ))}
-                      </span>
-                    </h3>
-                    <p className="text-white/70 font-light text-lg leading-relaxed mb-4">
-                      AI-powered planning transforms your product development economics. Invest 80% in precise planning with our AI tools, and watch development costs drop as execution becomes streamlined and focused.
-                    </p>
-                    <a href="#" onClick={handleGetStarted} className="inline-flex items-center text-white hover:text-[#16a34a] transition-colors text-sm font-medium">
-                      <span>Start planning smarter</span>
-                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <style jsx>{`
-                @keyframes slide {
-                  0% {
-                    transform: translateX(-100%);
-                  }
-                  100% {
-                    transform: translateX(100%);
-                  }
-                }
-              `}</style>
-            </div>
-          </div>
-        </section>
-        
-        {/* Integrations Section */}
-        <section ref={integrationsRef} className="py-16 px-6 bg-white relative overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
-          </div>
-          
+{/* Work Process Section */}
+<section id="workflow" className="pt-12 pb-32 px-6 relative bg-white">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl font-bold text-gray-900 mb-3">Seamless integrations</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Connect with your favorite tools for a smooth workflow
+            <div className="text-center mx-auto max-w-2xl mb-8">
+              <h2 className="text-3xl font-bold text-gray-900">Get your product documentation ready in minutes</h2>
+              <p className="mt-2 text-lg text-gray-500">
+                Our streamlined process takes you from idea to implementation
               </p>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-16">
-              {/* Project Management Tools */}
-              <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">
-                  Project Management
-                </h3>
-                <p className="text-gray-600 mb-8">
-                  Export features to project management tools for team collaboration.
-                </p>
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { name: "Trello", logo: "/trello.png" },
-                    { name: "ClickUp", logo: "/clickup.png" },
-                    { name: "JIRA", logo: "/jira.png" }
-                  ].map((tool, i) => (
-                    <div key={i} className="bg-gray-50 rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-100 transition-all transform hover:-translate-y-1">
-                      {typeof tool.logo === 'string' && tool.logo.startsWith('/') ? (
-                        <Image
-                          src={tool.logo}
-                          alt={tool.name}
-                          width={40}
-                          height={40}
-                          className="mb-2"
-                        />
-                      ) : (
-                        <div className="text-2xl mb-2">{tool.logo}</div>
-                      )}
-                      <div className="font-medium text-gray-800">{tool.name}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Code Editors */}
-              <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">
-                  AI Development
-                </h3>
-                <p className="text-gray-600 mb-8">
-                  Export AI prompts to instantly create a working prototype of your product in your favorite code editor, saving weeks of development time.
-                </p>
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { name: "Cursor", logo: "/cursor.jpg" },
-                    { name: "Replit", logo: "/replit.png" },
-                    { name: "Lovable", logo: "/lovable.jpeg" }
-                  ].map((editor, i) => (
-                    <div key={i} className="bg-gray-50 rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-100 transition-all transform hover:-translate-y-1">
-                      <Image
-                        src={editor.logo}
-                        alt={editor.name}
-                        width={48}
-                        height={48}
-                        className="rounded-lg mb-3"
-                      />
-                      <div className="font-medium text-gray-800">{editor.name}</div>
+            <div ref={workflowRef} className="transition-transform duration-200 ease-out">
+              {/* Workflow Steps with connecting paths */}
+              <div className="relative">
+                {/* Workflow path line */}
+                <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 transform -translate-y-1/2 hidden md:block"></div>
+                
+                <div className="grid md:grid-cols-6 gap-6 gap-y-16 relative">
+                  {workflowSteps.map((step, i) => (
+                    <div 
+                      key={i} 
+                      className="group relative"
+                      onMouseEnter={() => i !== 5 && setActiveWorkflowStep(i)}
+                      onMouseLeave={() => i !== 5 && setActiveWorkflowStep(0)}
+                    >
+                      {/* Step number with active indicator */}
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+                        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-bold transition-all
+                          ${i === 5 ? 'bg-purple-700 text-white border-purple-700' : 
+                            (activeWorkflowStep === i ? 'bg-[#0F533A] text-white border-[#0F533A]' : 'bg-white text-gray-500 border-gray-300')}`}>
+                          {i + 1}
+                        </div>
+                      </div>
+                      
+                      {/* Content card */}
+                      <div className={`relative z-10 bg-white border rounded-xl p-6 transition-all ${
+                        i === 5 ? 'border-purple-700 shadow-md' : 
+                          (activeWorkflowStep === i ? 'border-[#0F533A] shadow-md' : 'border-gray-200 shadow-sm')
+                      }`}>
+                        <div className="mb-4 flex justify-center">
+                          <div className={`w-16 h-16 flex items-center justify-center text-2xl rounded-full transition-transform ${
+                            i === 5 ? 'bg-purple-100 scale-110' : 
+                              (activeWorkflowStep === i ? 'bg-[#0F533A]/10 scale-110' : 'bg-gray-100')
+                          }`}>
+                            {step.icon}
+                          </div>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 text-center mb-2">{step.name}</h3>
+                        <p className="text-sm text-gray-500 text-center mb-4">{step.desc}</p>
+                        <p className={`text-sm transition-all text-center ${
+                          i === 5 ? 'text-gray-700' : 
+                            (activeWorkflowStep === i ? 'text-gray-700' : 'text-gray-400')
+                        }`}>
+                          {step.details}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -613,8 +493,9 @@ const Home = () => {
             </div>
           </div>
         </section>
-        
-        {/* AI Capabilities Section */}
+
+
+            {/* AI Capabilities Section */}
         <section id="ai-assistant" className="py-20 px-6 bg-white relative overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
@@ -781,51 +662,188 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Work Process Section */}
-        <section id="workflow" className="pt-12 pb-32 px-6 relative bg-white">
+
+            {/* 80/20 Rule Banner */}
+            <div className="mt-16 w-screen relative overflow-hidden" style={{ marginLeft: 'calc(-50vw + 50%)', width: '100vw' }}>
+              <div className="absolute inset-0 bg-[#1e2937] bg-opacity-95"></div>
+              <div className="absolute inset-0">
+                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
+                {/* Animated lines */}
+                <div className="absolute inset-0 overflow-hidden">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute h-px bg-gradient-to-r from-[#0F533A]/0 via-[#0F533A] to-[#0F533A]/0"
+                      style={{
+                        top: `${30 * (i + 1)}%`,
+                        left: '-100%',
+                        right: '-100%',
+                        animation: `slide ${15 + i * 5}s linear infinite`,
+                        opacity: 0.2
+                      }}
+                    />
+                  ))}
+                </div>
+                
+                {/* Geometric pattern on the right */}
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 overflow-hidden hidden md:block">
+                  <div className="absolute inset-0 opacity-20">
+                    {geometricElements.slice(0, 5).map((rect) => (
+                      <div 
+                        key={rect.key}
+                        className="absolute bg-[#0F533A]"
+                        style={{
+                          width: `${rect.width}px`,
+                          height: `${rect.height}px`,
+                          top: `${rect.top}%`,
+                          right: `${rect.right}%`,
+                          transform: `rotate(${(rect as Rectangle).rotation}deg)`,
+                          opacity: rect.opacity
+                        }}
+                      />
+                    ))}
+                    {geometricElements.slice(5).map((circle) => (
+                      <div 
+                        key={circle.key}
+                        className="absolute rounded-full border border-[#0F533A]/30"
+                        style={{
+                          width: `${circle.width}px`,
+                          height: `${circle.height}px`,
+                          top: `${circle.top}%`,
+                          right: `${circle.right}%`,
+                          opacity: circle.opacity
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="max-w-7xl mx-auto px-6 py-24 relative z-10">
+                <div className="flex flex-col md:flex-row items-center md:items-start md:justify-start gap-12">
+                  <div className="flex items-center space-x-6 mb-8 md:mb-0">
+                    <div className="w-28 h-28 bg-[#0F533A] rounded-lg flex flex-col items-center justify-center font-mono text-white border border-[#0F533A]/20">
+                      <span className="font-light text-3xl">80<span className="text-sm opacity-60">%</span></span>
+                      <span className="text-xs mt-1 opacity-70 tracking-wider">PLANNING</span>
+                    </div>
+                    <div className="w-28 h-28 bg-[#2a3441] backdrop-blur-sm rounded-lg flex flex-col items-center justify-center font-mono text-white border border-white/10">
+                      <span className="font-light text-3xl">20<span className="text-sm opacity-60">%</span></span>
+                      <span className="text-xs mt-1 opacity-70 tracking-wider">EXECUTION</span>
+                    </div>
+                  </div>
+                  <div className="md:ml-8 text-left max-w-md">
+                  
+                    <h3 className="text-4xl font-light text-white mb-3 flex items-center">
+                      The 80/20 Rule of Product Success
+                      <span className="ml-4 hidden md:inline-flex items-center">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <span 
+                            key={i} 
+                            className="h-px bg-gradient-to-r from-[#0F533A] to-white/20"
+                            style={{ 
+                              width: `${30 + i * 15}px`, 
+                              marginLeft: '4px',
+                              opacity: 0.6 - (i * 0.15)
+                            }}
+                          ></span>
+                        ))}
+                      </span>
+                    </h3>
+                    <p className="text-white/70 font-light text-lg leading-relaxed mb-4">
+                      AI-powered planning transforms your product development economics. Invest 80% in precise planning with our AI tools, and watch development costs drop as execution becomes streamlined and focused.
+                    </p>
+                    <a href="#" onClick={handleGetStarted} className="inline-flex items-center text-white hover:text-[#16a34a] transition-colors text-sm font-medium">
+                      <span>Start planning smarter</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <style jsx>{`
+                @keyframes slide {
+                  0% {
+                    transform: translateX(-100%);
+                  }
+                  100% {
+                    transform: translateX(100%);
+                  }
+                }
+              `}</style>
+            </div>
+          </div>
+        </section>
+        
+        {/* Integrations Section */}
+        <section ref={integrationsRef} className="pt-0 pb-16 px-6 bg-white relative overflow-hidden mb-12">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
+          </div>
+          
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mx-auto max-w-2xl mb-8">
-              <h2 className="text-3xl font-bold text-gray-900">Product definition workflow</h2>
-              <p className="mt-2 text-lg text-gray-500">
-                Our streamlined process takes you from idea to implementation
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold text-gray-900 mb-3">Seamless integrations</h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Connect with your favorite tools for a smooth workflow
               </p>
             </div>
             
-            <div ref={workflowRef} className="transition-transform duration-200 ease-out">
-              {/* Workflow Steps with connecting paths */}
-              <div className="relative">
-                {/* Workflow path line */}
-                <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 transform -translate-y-1/2 hidden md:block"></div>
-                
-                <div className="grid md:grid-cols-5 gap-6 gap-y-16 relative">
-                  {workflowSteps.map((step, i) => (
-                    <div 
-                      key={i} 
-                      className="group relative"
-                      onMouseEnter={() => setActiveWorkflowStep(i)}
-                      onMouseLeave={() => setActiveWorkflowStep(0)}
-                    >
-                      {/* Step number with active indicator */}
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-bold transition-all
-                          ${activeWorkflowStep === i ? 'bg-[#0F533A] text-white border-[#0F533A]' : 'bg-white text-gray-500 border-gray-300'}`}>
-                          {i + 1}
-                        </div>
-                      </div>
-                      
-                      {/* Content card */}
-                      <div className={`relative z-10 bg-white border rounded-xl p-6 transition-all ${activeWorkflowStep === i ? 'border-[#0F533A] shadow-md' : 'border-gray-200 shadow-sm'}`}>
-                        <div className="mb-4 flex justify-center">
-                          <div className={`w-16 h-16 flex items-center justify-center text-2xl rounded-full transition-transform ${activeWorkflowStep === i ? 'bg-[#0F533A]/10 scale-110' : 'bg-gray-100'}`}>
-                            {step.icon}
-                          </div>
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 text-center mb-2">{step.name}</h3>
-                        <p className="text-sm text-gray-500 text-center mb-4">{step.desc}</p>
-                        <p className={`text-sm transition-all ${activeWorkflowStep === i ? 'text-gray-700' : 'text-gray-400'}`}>
-                          {step.details}
-                        </p>
-                      </div>
+            <div className="grid md:grid-cols-2 gap-16 mb-12">
+              {/* Project Management Tools */}
+              <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">
+                  Project Management
+                </h3>
+                <p className="text-gray-600 mb-8">
+                  Export features to project management tools for team collaboration.
+                </p>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { name: "Trello", logo: "/trello.png" },
+                    { name: "ClickUp", logo: "/clickup.png" },
+                    { name: "JIRA", logo: "/jira.png" }
+                  ].map((tool, i) => (
+                    <div key={i} className="bg-gray-50 rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-100 transition-all transform hover:-translate-y-1">
+                      {typeof tool.logo === 'string' && tool.logo.startsWith('/') ? (
+                        <Image
+                          src={tool.logo}
+                          alt={tool.name}
+                          width={40}
+                          height={40}
+                          className="mb-2"
+                        />
+                      ) : (
+                        <div className="text-2xl mb-2">{tool.logo}</div>
+                      )}
+                      <div className="font-medium text-gray-800">{tool.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Code Editors */}
+              <div className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">
+                  AI Development
+                </h3>
+                <p className="text-gray-600 mb-8">
+                  Export AI prompts to instantly create a working prototype of your product in your favorite code editor, saving weeks of development time.
+                </p>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { name: "Cursor", logo: "/cursor.jpg" },
+                    { name: "Replit", logo: "/replit.png" },
+                    { name: "Lovable", logo: "/lovable.jpeg" }
+                  ].map((editor, i) => (
+                    <div key={i} className="bg-gray-50 rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-100 transition-all transform hover:-translate-y-1">
+                      <Image
+                        src={editor.logo}
+                        alt={editor.name}
+                        width={48}
+                        height={48}
+                        className="rounded-lg mb-3"
+                      />
+                      <div className="font-medium text-gray-800">{editor.name}</div>
                     </div>
                   ))}
                 </div>
@@ -833,16 +851,18 @@ const Home = () => {
             </div>
           </div>
         </section>
-
+        
+        
+        
         {/* Target Audience Section */}
-        <section className="py-16 px-6 bg-gradient-to-br from-[#0F533A]/5 via-white to-white relative overflow-hidden">
+        <section className="py-16 px-6 bg-gradient-to-br from-[#0F533A]/5 via-white to-white relative overflow-hidden mt-12">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
           </div>
           
           <div className="max-w-6xl mx-auto relative z-10">
             <div className="text-center mb-10">
-              <h2 className="text-4xl font-bold text-gray-900 mb-3">Tailored for every team</h2>
+              <h2 className="text-4xl font-bold text-gray-900 mb-3">Tailored for your team</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Supporting diverse teams with specialized tools for their unique product development needs
               </p>
