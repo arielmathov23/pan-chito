@@ -394,7 +394,6 @@ const Home = () => {
                     autoPlay
                     muted
                     playsInline
-                    loop
                     controls
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '0.75rem', objectFit: 'cover' }}
                   ></video>
@@ -473,7 +472,7 @@ const Home = () => {
 
 
         {/* Why Choose 021 */}
-        <section className="py-4 pt-4 md:py-4 md:pt-2 md:-mt-8 bg-gradient-to-b from-white to-gray-50 relative">
+        <section id="benefits" className="py-4 pt-4 md:py-4 md:pt-2 md:-mt-8 bg-gradient-to-b from-white to-gray-50 relative">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-8 max-w-2xl mx-auto">
               <h2 className="text-3xl font-bold text-gray-900">Stop the guesswork and iterations</h2>
@@ -805,7 +804,7 @@ const Home = () => {
         </section>
         
         {/* Integrations Section */}
-        <section ref={integrationsRef} className="pt-0 pb-20 md:pb-24 px-6 bg-white relative overflow-hidden -mt-8 md:mt-0">
+        <section id="integrations" ref={integrationsRef} className="pt-0 pb-20 md:pb-24 px-6 bg-white relative overflow-hidden -mt-8 md:mt-0">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
           </div>
@@ -1009,7 +1008,7 @@ const Home = () => {
                   <span className="text-2xl font-medium">021</span>
                 </div>
                 <p className="text-white/80 mb-6 max-w-sm">
-                  021 is built by <a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a> product lab, where innovation meets rapid execution. We launch MVPs for clients in just 1 month and craft our own AI-powered products.
+                  from021 is built by 021 Product LAB, where innovation meets rapid execution. We launch MVPs for clients using AI in less than 1 month, and craft our own AI-powered products.
                 </p>
                 
               </div>
@@ -1024,18 +1023,13 @@ const Home = () => {
               <div>
                 <h4 className="font-medium text-white mb-4">Company</h4>
                 <ul className="space-y-3">
-                  <li><a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">About</a></li>
-                  <li><a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Blog</a></li>
-                  <li><a href="mailto:hello@panchito.xyz" className="text-white/70 hover:text-white transition-colors">Contact</a></li>
+                  <li><a href="mailto:hello@from021.io" className="text-white/70 hover:text-white transition-colors">Contact us at hello@from021.io</a></li>
                 </ul>
               </div>
             </div>
             <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center">
-              <p className="text-white/70 mb-4 md:mb-0">© {currentYear} From Zero to One. Built by <a href="https://x.com/arielmathov/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline decoration-dotted">panchito.xyz</a></p>
-              <div className="flex space-x-6">
-                <a href="#" className="text-white/70 hover:text-white transition-colors">Privacy</a>
-                <a href="#" className="text-white/70 hover:text-white transition-colors">Terms</a>
-              </div>
+              <p className="text-white/70 mb-4 md:mb-0">© {currentYear} From Zero to One</p>
+          
             </div>
           </div>
         </footer>
