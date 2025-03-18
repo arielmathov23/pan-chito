@@ -389,14 +389,15 @@ const Home = () => {
               {/* Hero Image/Video */}
               <div className="relative w-full max-w-2xl mx-auto mt-12 rounded-xl overflow-hidden shadow-2xl">
                 <div style={{ position: 'relative', paddingBottom: '62.5%', height: 0 }}>
-                  <iframe
-                    src="https://www.loom.com/embed/3a2b40bf53a34eb3baf325e72ec7e763?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true&autoplay=true"
-                    frameBorder="0"
-                    allowFullScreen
-                    loading="eager"
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '0.75rem' }}
-                  ></iframe>
+                  <video
+                    src="/021videointro.mp4"
+                    autoPlay
+                    muted
+                    playsInline
+                    loop
+                    controls
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '0.75rem', objectFit: 'cover' }}
+                  ></video>
                 </div>
                 <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/10 pointer-events-none"></div>
               </div>
