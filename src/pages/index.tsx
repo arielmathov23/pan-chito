@@ -404,52 +404,14 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Why Choose 021 */}
-        <section className="py-16 bg-gradient-to-b from-white to-gray-50 relative">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-8 max-w-2xl mx-auto">
-              <h2 className="text-3xl font-bold text-gray-900">Stop the guesswork and iterations</h2>
-              <p className="mt-3 text-xl text-gray-500">
-              Why 021 is a game-changer in product creation 
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {[
-                {
-                  title: "Better Decisions, Faster",
-                  description: "Make critical product decisions with confidence and speed. Better decisions = better products.",
-                  icon: "🚀"
-                },
-                {
-                  title: "Save Development Time",
-                  description: "Crystal-clear specs mean faster builds, no rework. Launches that hit deadlines.",
-                  icon: "⏱️"
-                },
-                {
-                  title: "Eliminate Ambiguity",
-                  description: "Create precise requirements that leave no room for misinterpretation.",
-                  icon: "🎯"
-                },
-                {
-                  title: "Improve Team Alignment",
-                  description: "Keep everyone on the same page with shared documentation.",
-                  icon: "🤝"
-                }
-              ].map((benefit, i) => (
-                <div key={i} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-[#0F533A]/20 transition-all">
-                  <div className="text-2xl mb-3">{benefit.icon}</div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{benefit.title}</h3>
-                  <p className="text-gray-600 text-sm">{benefit.description}</p>
-                </div>
-              ))}
-            </div>
-            
-{/* Work Process Section */}
+        {/* Work Process Section */}
 <section id="workflow" className="pt-12 pb-32 px-6 relative bg-white">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mx-auto max-w-2xl mb-8">
-              <h2 className="text-3xl font-bold text-gray-900">Get your product documentation ready in minutes</h2>
+            <div className="text-center mx-auto max-w-3xl mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 leading-tight">
+                Get your product documentation ready <span className="hidden md:inline">in minutes</span>
+                <span className="md:hidden">in minutes</span>
+              </h2>
               <p className="mt-2 text-lg text-gray-500">
                 Our streamlined process takes you from idea to implementation
               </p>
@@ -509,6 +471,49 @@ const Home = () => {
         </section>
 
 
+        {/* Why Choose 021 */}
+        <section className="py-4 pt-4 md:py-4 md:pt-2 md:-mt-8 bg-gradient-to-b from-white to-gray-50 relative">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-8 max-w-2xl mx-auto">
+              <h2 className="text-3xl font-bold text-gray-900">Stop the guesswork and iterations</h2>
+              <p className="mt-3 text-xl text-gray-500">
+                Why 021 is a game-changer in product creation 
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[
+                {
+                  title: "Better Decisions, Faster",
+                  description: "Make critical product decisions with confidence and speed. Better decisions = better products.",
+                  icon: "🚀"
+                },
+                {
+                  title: "Save Development Time",
+                  description: "Crystal-clear specs mean faster builds, no rework. Launches that hit deadlines.",
+                  icon: "⏱️"
+                },
+                {
+                  title: "Eliminate Ambiguity",
+                  description: "Create precise requirements that leave no room for misinterpretation.",
+                  icon: "🎯"
+                },
+                {
+                  title: "Improve Team Alignment",
+                  description: "Keep everyone on the same page with shared documentation.",
+                  icon: "🤝"
+                }
+              ].map((benefit, i) => (
+                <div key={i} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-[#0F533A]/20 transition-all">
+                  <div className="text-2xl mb-3">{benefit.icon}</div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{benefit.title}</h3>
+                  <p className="text-gray-600 text-sm">{benefit.description}</p>
+                </div>
+              ))}
+            </div>
+            
+
+
             {/* AI Capabilities Section */}
         <section id="ai-assistant" className="py-20 px-6 bg-white relative overflow-hidden">
           <div className="absolute inset-0">
@@ -532,7 +537,7 @@ const Home = () => {
                 <div className="flex flex-col md:flex-row items-center">
                   <div className="w-full md:w-5/12 p-6 order-2 md:order-1">
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">Ideation & Research</h3>
-                    <p className="text-gray-600 mb-4">Tell us your idea. AI digs into user needs, trends, and possibilities. Transform rough concepts into comprehensive briefs with market analysis and risk assessment in minutes, not weeks.</p>
+                    <p className="text-gray-600 mb-4">Transform rough concepts into comprehensive briefs with market analysis and risk assessment in minutes, not weeks.</p>
                   </div>
                   <div className="w-full md:w-2/12 flex justify-center items-center py-6 order-1 md:order-2">
                     <div className="w-16 h-16 rounded-full bg-[#0F533A]/10 flex items-center justify-center border-4 border-white shadow-lg relative z-10">
@@ -641,7 +646,7 @@ const Home = () => {
                 <div className="flex flex-col md:flex-row items-center">
                   <div className="w-full md:w-5/12 p-6 order-2 md:order-1">
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">Technical Specifications</h3>
-                    <p className="text-gray-600 mb-4">Convert product requirements into detailed technical specifications. Our AI suggests architecture, data models, and API endpoints based on your needs.</p>
+                    <p className="text-gray-600 mb-4">Convert product requirements into detailed technical specifications. Our AI suggests app flow, architecture, data models, and API endpoints based on your needs.</p>
                   </div>
                   <div className="w-full md:w-2/12 flex justify-center items-center py-6 order-1 md:order-2">
                     <div className="w-16 h-16 rounded-full bg-[#0F533A]/10 flex items-center justify-center border-4 border-white shadow-lg relative z-10">
@@ -904,7 +909,7 @@ const Home = () => {
                   <h3 className="text-xl font-bold text-gray-900">Software Agencies</h3>
                 </div>
                 <p className="text-gray-600 mb-4">
-                  Transform client requirements into precise specifications that streamline development, improve client communication, and reduce project ambiguity by 60%.
+                  Transform client requirements into precise specifications that streamline development, improve client communication, and reduce project ambiguity.
                 </p>
                 <div className="text-sm text-[#0F533A] font-medium">
                   Perfect for: Agencies, Consultancies, Development Studios
@@ -940,7 +945,7 @@ const Home = () => {
                   <h3 className="text-xl font-bold text-gray-900">Founders & Startups</h3>
                 </div>
                 <p className="text-gray-600 mb-4">
-                  Reduce time-to-market by 60% with structured product planning that turns your vision into actionable roadmaps and solid products.
+                  Reduce time-to-market with structured product planning that turns your vision into actionable roadmaps and solid products.
                 </p>
                 <div className="text-sm text-[#0c4a6e] font-medium">
                   Perfect for: Solo Founders, Early-stage Startups, Bootstrapped Ventures
