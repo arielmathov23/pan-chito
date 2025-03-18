@@ -35,7 +35,30 @@ const Home = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
+  // Reference to the dropdown menu
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileMenuOpen && 
+          mobileMenuRef.current && 
+          mobileMenuButtonRef.current &&
+          !mobileMenuRef.current.contains(event.target as Node) &&
+          !mobileMenuButtonRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
+
   // Refs for parallax elements
   const heroRef = useRef<HTMLDivElement>(null);
   const circleOneRef = useRef<HTMLDivElement>(null);
@@ -44,6 +67,7 @@ const Home = () => {
   const aiSectionRef = useRef<HTMLDivElement>(null);
   const benefitsRef = useRef<HTMLDivElement>(null);
   const integrationsRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
 
   // Add state for year
   const [currentYear, setCurrentYear] = useState<string>('');
@@ -126,6 +150,17 @@ const Home = () => {
        // Store redirect path for after login
        sessionStorage.setItem('redirectAfterLogin', '/projects');
     }
+  };
+
+  // Handle scroll to footer for Contact Us
+  const handleContactUsClick = () => {
+    // Track the click event
+    trackEvent('Contact Us Clicked', {
+      'location': 'navbar',
+    });
+    
+    // Smooth scroll to footer
+    footerRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   // Workflow steps with detailed info
@@ -231,6 +266,77 @@ const Home = () => {
     );
   };
 
+  // Mobile menu portal component - ensures no transparency issues
+  const MobileMenu = () => {
+    if (!isMobileMenuOpen) return null;
+    
+    return (
+      <div className="fixed top-16 right-4 z-50 md:hidden">
+        <div ref={mobileMenuRef} className="w-56 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100/30 backdrop-blur-sm">
+          <div className="flex flex-col divide-y divide-gray-100/50">
+            <button 
+              onClick={() => {
+                document.getElementById('ai-assistant')?.scrollIntoView({ behavior: 'smooth' });
+                setIsMobileMenuOpen(false);
+              }}
+              className="px-6 py-4 text-gray-800 hover:bg-gray-50 text-left flex items-center transition-colors"
+            >
+              
+              Features
+            </button>
+            <button 
+              onClick={() => {
+                handleContactUsClick();
+                setIsMobileMenuOpen(false);
+              }}
+              className="px-6 py-4 text-gray-800 hover:bg-gray-50 text-left flex items-center transition-colors"
+            >
+            
+              Contact Us
+            </button>
+            {!isAuthenticated ? (
+              <>
+                <Link 
+                  href="/login" 
+                  className="px-6 py-4 text-gray-800 hover:bg-gray-50 text-left flex items-center transition-colors"
+                  onClick={() => {
+                    sessionStorage.setItem('redirectAfterLogin', '/projects');
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+               
+                  Login
+                </Link>
+                <Link 
+                  href="/signup" 
+                  className="px-6 py-4 bg-gradient-to-r from-[#0F533A] to-[#16a34a] text-white text-left flex items-center transition-colors"
+                  onClick={() => {
+                    sessionStorage.setItem('redirectAfterLogin', '/projects');
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                
+                  Get Started
+                </Link>
+              </>
+            ) : (
+              <Link 
+                href="/projects" 
+                className="px-6 py-4 bg-gradient-to-r from-[#0F533A] to-[#16a34a] text-white text-left flex items-center transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+                Go to app
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <Head>
@@ -263,11 +369,51 @@ const Home = () => {
               </span>
             </Link>
             
-            <div className="flex items-center space-x-6">
+            {/* Mobile Menu Button */}
+            <button 
+              ref={mobileMenuButtonRef}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 z-50 focus:outline-none"
+              aria-label="Toggle menu"
+              style={{ position: 'relative', zIndex: 50 }}
+            >
+              <span className="sr-only">Open menu</span>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-800" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} 
+                />
+              </svg>
+            </button>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
               {!isLoading && (
                 <>
                   {!isAuthenticated ? (
                     <>
+                      <button 
+                        onClick={() => document.getElementById('ai-assistant')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="text-gray-800 hover:text-[#0F533A] transition-colors font-medium relative group"
+                      >
+                        Features
+                        <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0F533A] transition-all group-hover:w-full"></div>
+                      </button>
+                      <button 
+                        onClick={handleContactUsClick}
+                        className="text-gray-800 hover:text-[#0F533A] transition-colors font-medium relative group"
+                      >
+                        Contact Us
+                        <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0F533A] transition-all group-hover:w-full"></div>
+                      </button>
                       <Link 
                         href="/login" 
                         className="text-gray-800 hover:text-[#0F533A] transition-colors font-medium relative group"
@@ -286,13 +432,29 @@ const Home = () => {
                       </Link>
                     </>
                   ) : (
-                    <Link 
-                      href="/projects" 
-                      className="relative group overflow-hidden bg-[#0F533A] px-6 py-2 rounded-full"
-                    >
-                      <span className="relative z-10 text-white font-medium">Go to app</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#16a34a] to-[#0F533A] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </Link>
+                    <>
+                      <button 
+                        onClick={() => document.getElementById('ai-assistant')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="text-gray-800 hover:text-[#0F533A] transition-colors font-medium relative group"
+                      >
+                        Features
+                        <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0F533A] transition-all group-hover:w-full"></div>
+                      </button>
+                      <button 
+                        onClick={handleContactUsClick}
+                        className="text-gray-800 hover:text-[#0F533A] transition-colors font-medium relative group"
+                      >
+                        Contact Us
+                        <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0F533A] transition-all group-hover:w-full"></div>
+                      </button>
+                      <Link 
+                        href="/projects" 
+                        className="relative group overflow-hidden bg-[#0F533A] px-6 py-2 rounded-full"
+                      >
+                        <span className="relative z-10 text-white font-medium">Go to app</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#16a34a] to-[#0F533A] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      </Link>
+                    </>
                   )}
                 </>
               )}
@@ -993,7 +1155,7 @@ const Home = () => {
         </section>
 
         {/* Footer */}
-        <footer className="py-16 px-6 bg-[#0F533A] text-white/90">
+        <footer ref={footerRef} className="bg-[#0F533A] text-white/90 py-16 px-6">
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
               <div className="col-span-2">
@@ -1035,6 +1197,7 @@ const Home = () => {
         </footer>
       </div>
       <Analytics />
+      <MobileMenu />
     </>
   );
 };
