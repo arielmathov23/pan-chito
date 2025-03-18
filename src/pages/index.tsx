@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Head from 'next/head';
 import Image from 'next/image';
 import { Analytics } from "@vercel/analytics/react";
+import { trackEvent } from '../lib/mixpanelClient';
 
 // Define types for geometric elements
 interface Rectangle {
@@ -113,6 +114,11 @@ const Home = () => {
   }, [scrollY]);
 
   const handleGetStarted = () => {
+    // Track the click event
+    trackEvent('Get Started Clicked', {
+      'location': 'hero_section',
+    });
+    
     if (isAuthenticated) {
       router.push('/projects');
     } else {
@@ -317,7 +323,7 @@ const Home = () => {
                   </span>
                 </h1>
                 <p className="mt-8 text-xl text-gray-600 leading-relaxed max-w-lg">
-                  Define your products right the first time in minutes. No coding yet, no endless tweaks later. Just clear, actionable specs from day one.
+                  <span className="font-semibold bg-gradient-to-r from-[#0F533A] to-[#16a34a] bg-clip-text text-transparent">Define your products right the first time, in minutes.</span> No coding yet, no endless tweaks later. Just clear, actionable specs from day one.
                 </p>
                 
                 {/* Platform Logos */}
@@ -355,21 +361,29 @@ const Home = () => {
                   </div>
                 </div>
                 
-                <div className="mt-10 flex flex-col sm:flex-row gap-4">
+                <div className="mt-10 flex flex-col sm:flex-row gap-4 items-center sm:items-start">
                   <button
-                    onClick={handleGetStarted}
-                    className="group relative overflow-hidden bg-[#0F533A] text-white px-8 py-4 rounded-full text-lg font-medium transition-all"
+                    onClick={() => {
+                      trackEvent('Get Started Clicked', {
+                        'location': 'cta_section',
+                      });
+                      handleGetStarted();
+                    }}
+                    className="group relative overflow-hidden bg-[#0F533A] text-white px-8 py-4 rounded-full text-lg font-medium transition-all w-full sm:w-auto"
                   >
                     <span className="relative z-10">Get Started</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-[#16a34a] to-[#0F533A] opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   </button>
                   <a 
                     href="#ai-assistant" 
-                    className="group relative overflow-hidden px-8 py-4 rounded-full text-lg font-medium transition-all border border-gray-200 hover:border-[#0F533A]/20"
+                    className="group relative overflow-hidden px-8 py-4 rounded-full text-lg font-medium transition-all border border-gray-200 hover:border-[#0F533A]/20 w-full sm:w-auto text-center"
                   >
                     <span className="relative z-10 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent group-hover:from-[#0F533A] group-hover:to-[#16a34a]">See Benefits</span>
                   </a>
                 </div>
+                <p className="mt-3 text-center sm:text-left sm:pl-4 text-gray-500 text-sm">
+                  Free trial — No credit card needed
+                </p>
               </div>
               
               {/* Hero Image/Video */}
@@ -751,7 +765,17 @@ const Home = () => {
                     <p className="text-white/70 font-light text-lg leading-relaxed mb-4">
                       AI-powered planning transforms your product development economics. Invest 80% in precise planning with our AI tools, and watch development costs drop as execution becomes streamlined and focused.
                     </p>
-                    <a href="#" onClick={handleGetStarted} className="inline-flex items-center text-white hover:text-[#16a34a] transition-colors text-sm font-medium">
+                    <a 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        trackEvent('Get Started Clicked', {
+                          'location': '80_20_section',
+                        });
+                        handleGetStarted();
+                      }} 
+                      className="inline-flex items-center text-white hover:text-[#16a34a] transition-colors text-sm font-medium"
+                    >
                       <span>Start planning smarter</span>
                       <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
@@ -877,7 +901,7 @@ const Home = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Software Factories</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Software Agencies</h3>
                 </div>
                 <p className="text-gray-600 mb-4">
                   Transform client requirements into precise specifications that streamline development, improve client communication, and reduce project ambiguity by 60%.
@@ -942,7 +966,12 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <button
-                onClick={handleGetStarted}
+                onClick={() => {
+                  trackEvent('Get Started Clicked', {
+                    'location': 'cta_section',
+                  });
+                  handleGetStarted();
+                }}
                 className="bg-[#0F533A] text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-[#0F533A]/90 transition-all transform hover:-translate-y-1 hover:shadow-xl group"
               >
                 Get Started Now
