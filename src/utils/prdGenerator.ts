@@ -257,7 +257,8 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
       Features to document (${featuresForPRD.length} of ${priorityFeatures.length} total priority features):
       ${featuresForPRD.map((f, i) => `${i+1}. ${f.name}: ${f.description} (${f.priority.toUpperCase()})`).join('\n')}
       
-      Follow this exact template for each feature:
+      If a feature should have more than 1 user story, separate the feature in different sections, one for each user story. 
+      Follow this exact template for each feature separated by user stories.
       
       {
         "sections": [
@@ -268,7 +269,7 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
               "purpose": "Concise purpose statement",
               "successMetrics": ["Metric 1", "Metric 2"]
             },
-            "userStories": ["User story 1", "User story 2"],
+            "userStories": ["User story description with details for a top User experience"],
             "acceptanceCriteria": {
               "guidelines": "Brief guidelines",
               "criteria": ["Criterion 1", "Criterion 2"]

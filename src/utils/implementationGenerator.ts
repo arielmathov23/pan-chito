@@ -412,11 +412,11 @@ With all that info, you task is to create two files, and its critical that you a
    - Explain the structure of the solution, what are the main features, what is the main flow.
    - Structured step-by-step breakdown to develop all the screens and features. Breaking down complex features into executable steps.
    - Each step must be completed with all the details coming from PRD and App Screens, including in each step all the UX information. Do not summarize anything.
-   - Do not include any code or set up indications, this will be done with the guide above automatically by the AI coder assistant, your foucs is 100% on product creation.
-   - Do not create any new features unless in necessary to make this solution a robust one with a MVP mindest.
+   - Do not include any code or set up indications, this will be done with the guide above automatically by the AI coder assistant.
    - Backend is not mocked, it will be running in the same port as the frontend. 
    - Ensure all the information submitted by the user will be saved and used.
-   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations (if they are included on the input, if not do not mentiont this, i.e. openai) and add login/sign up if needed; 3) integrate database for saving info and auth
+   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations (if they are included on the input, if not do not mentiont this, i.e. openai) and add login/sign up if needed; 3) integrate database for saving info and auth.
+   - Login/sign up must be implemented in Phase 2, but info must be saved at least in local storage from stage 1.
    - Do not add any Conclusion, just the development steps.
 
 Please provide your response as two separate text blocks, clearly labeled as "IMPLEMENTATION_GUIDE" and "IMPLEMENTATION_STEPS". Each should be formatted in markdown and be comprehensive enough to guide an AI agent through the entire implementation process.`;
@@ -562,22 +562,23 @@ You task is to create two files that include all the information needed to imple
 
 1. Implementation Guide (.md file):
    - A comprehensive overview of how to implement the project
-   - Must incorporate technical stack details and UI guidelines
-   - Must include high-level architectural decisions
-   - Do not add code here, just prompt and descriptions.
+   - Must incorporate technical stack details and UI guidelines, shadcn/ui is preferred.
+   - Must include high-level architectural decisions, but do not define any code.
+   - Just prompts and descriptions for set up.
    - Detail how to manage contrast, accessibility, and responsive desing.
-   - Code placement: All code in src/ (e.g., src/app/ for App Router, src/components/ for UI, src/lib/ for utilities like Supabase client).
+   - Define code placement: All code in src/ (e.g., src/app/ for App Router, src/components/ for UI, src/lib/ for utilities like Supabase client).
    - Avoid Nested Directory Issues
-   - Use Turbopack for 'next dev', do not customize the import alias ('@/*' by default).
+   - Prompt to do not customize the import alias ('@/*' by default).
 
 2. Implementation Steps (.md file):
-   - Structured step-by-step breakdown to develop all the pages and features. Breaking down complex features into executable steps (one step per feature).
-   - Ensure each steps includes the details coming from the PRD, Screens definitions and App Flow. Do not mention any document, just use here all the information for each feature. 
-   - Do not create any new features or pages that are not defined.
-   - This file can be LONG, it is a must to include all the details.
-   - Do not add any code here just prompt and descriptions.
-   - Backend is not mocked, it will be running in the same port as the frontend.
-   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations if needed (i.e. openai) and login/sign up if needed; 3) integrate database for saving info and auth
+   - Explain the structure: what are the main features, what is the main flow.
+   - Structured step-by-step breakdown to develop all the screens and features. Breaking down complex features into executable steps.
+   - Each step must be completed with all the details coming from PRD and App Screens, including in each step all the UX information. Do not summarize anything.
+   - Do not include any code or architecture indications, this will be done with the guide above automatically by the AI coder assistant.
+   - Backend is not mocked, it will be running in the same port as the frontend. 
+   - Organize the steps in Phases: 1) development of all the features running in local, you can split this in phases if needed. if there is an external service use a mock integration (like openai) ; 2) add integrations (if they are included on the input, if not do not mentiont this, i.e. openai) and add login/sign up if needed; 3) integrate database for saving info and auth.
+   - Login/sign up must be implemented in Phase 2, but info must be saved at least in local storage from stage 1.
+   - Do not add any Conclusion, just the development steps.
 
 Please provide your response as two separate text blocks, clearly labeled as "IMPLEMENTATION_GUIDE" and "IMPLEMENTATION_STEPS". Each should be formatted in markdown and be comprehensive enough to guide an AI agent through the entire implementation process.`;
 
@@ -588,7 +589,7 @@ Please provide your response as two separate text blocks, clearly labeled as "IM
           { role: 'system', content: 'You are an expert software architect with deep knowledge of modern web development.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
+        temperature: 0.9,
         max_tokens: 8000
       });
 

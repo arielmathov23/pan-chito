@@ -16,6 +16,7 @@ import { useFeedbackModal } from '../../hooks/useFeedbackModal';
 import FeedbackModal from '../../components/FeedbackModal';
 import { implementationGuideService } from '../../services/implementationGuideService';
 import screenService from '../../services/screenService';
+import { trackEvent } from '../../lib/mixpanelClient';
 
 // Define stages and their display info
 const PROJECT_STAGES = [
@@ -611,10 +612,11 @@ export default function ProjectDetail() {
             <div className="flex items-center space-x-3 self-start">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex items-center justify-center text-[#6b7280] hover:text-red-600 transition-colors text-sm"
+                className="text-red-500 hover:text-red-700 font-medium flex items-center space-x-1"
               >
                 <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 5.98C17.67 5.65 14.32 5.48 10.98 5.48C9 5.48 7.02 5.58 5.04 5.78L3 5.98" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8.5 4.97L8.72 3.66C8.88 2.71 9 2 10.69 2H13.31C15 2 15.13 2.75 15.28 3.67L15.5 4.97" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M18.85 9.14L18.2 19.21C18.09 20.78 18 22 15.21 22H8.79C6 22 5.91 20.78 5.8 19.21L5.15 9.14M10.33 16.5H13.66M9.5 12.5H14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Delete
@@ -1271,6 +1273,12 @@ export default function ProjectDetail() {
               </button>
               <button
                 onClick={() => {
+                  // Track the delete project event
+                  trackEvent('Project Deleted', {
+                    'project_id': project.id,
+                    'project_name': project.name
+                  });
+                  
                   handleDeleteProject();
                   setShowDeleteConfirm(false);
                 }}

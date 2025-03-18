@@ -515,7 +515,7 @@ export default function IdeateFeatures() {
                     <h4 className="font-medium text-[#111827]">Must Have (MVP)</h4>
                     <p className="text-sm text-[#6b7280]">Core features essential for the product to work. Without these, the solution would fail.</p>
                     
-                    <h4 className="font-medium text-[#111827] mt-4">Should Have</h4>
+                    <h4 className="font-medium text-[#111827] mt-4">Should Have (MVP)</h4>
                     <p className="text-sm text-[#6b7280]">Important features that are not vital but add significant value.</p>
                   </div>
                   

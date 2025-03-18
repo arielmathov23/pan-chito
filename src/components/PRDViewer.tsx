@@ -342,7 +342,7 @@ export default function PRDViewer({ prd, onUpdate }: PRDViewerProps) {
 
                 {/* User Stories */}
                 <div className="bg-white rounded-xl p-6 border border-[#e5e7eb] shadow-sm">
-                  <h3 className="text-lg font-semibold text-[#111827] mb-4">User Stories</h3>
+                  <h3 className="text-lg font-semibold text-[#111827] mb-4">User Story</h3>
                   {selectedFeatureObj.userStories && selectedFeatureObj.userStories.length > 0 ? (
                     <ul className="list-disc pl-5 space-y-2 text-[#111827]">
                       {selectedFeatureObj.userStories.map((story, index) => (

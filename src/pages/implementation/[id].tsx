@@ -902,24 +902,39 @@ export default function ImplementationGuidePage() {
                           How to use with AI coding assistants
                         </h3>
                         <div className="flex items-center ml-4 space-x-2">
-                          <div className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200">
+                          <a 
+                            href="https://www.cursor.com/" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                          >
                             <img src="/cursor.jpg" alt="Cursor" className="w-full h-full object-cover" />
-                          </div>
-                          <div className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200">
+                          </a>
+                          <a 
+                            href="https://replit.com/" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                          >
                             <img src="/replit.png" alt="Replit" className="w-full h-full object-cover" />
-                          </div>
-                          <div className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200">
+                          </a>
+                          <a 
+                            href="https://lovable.dev/" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="w-8 h-8 rounded-md overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                          >
                             <img src="/lovable.jpeg" alt="Lovable" className="w-full h-full object-cover" />
-                          </div>
+                          </a>
                         </div>
                       </div>
                       <div className="mt-2 text-sm text-blue-700">
                         <p>These implementation guides are designed specifically for AI coding assistants like Cursor, Lovable, Replit, or other coding tools that can follow structured instructions.</p>
                         <ol className="list-decimal pl-5 mt-2 space-y-1">
-                          <li>Generate the Implementation Guide based on your Brief, PRD, Screens, and Tech Doc</li>
-                          <li>Copy the generated guides: Implementation Guide and Implementation Steps</li>
-                          <li>For Cursor: Download both guides as .md files and place them in your project's source directory</li>
-                          <li>Open the AI Assistant in Cursor and paste the 'AI Assistant Prompt'</li>
+                          <li>Copy or download the generated guides: Implementation Guide and Implementation Steps</li>
+                          <li>Place both guides in your project's source directory as a new .md files</li>
+                          <li>Copy the 'AI Assistant prompt' and paste it in the Agent/Chat</li>
+                          <li>In case of using Cursor, create first a new repo in GitHub and clone it</li>
                         </ol>
                       </div>
                     </div>
