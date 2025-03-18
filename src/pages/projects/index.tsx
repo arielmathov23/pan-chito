@@ -1091,17 +1091,12 @@ export default function Projects() {
               <span>version</span>
             </div>
             <div className="flex items-center">
-              <span className="mr-2">Built by Panchito studio</span>
+              <span className="mr-2">Built by 021 Product LAB</span>
               <a 
-                href="https://x.com/arielmathov" 
-                target="_blank" 
-                rel="noopener noreferrer"
+                href="mailto:hello@from021.io" 
                 className="text-[#0F533A] hover:text-[#0a3f2c] transition-colors flex items-center"
               >
                 <span className="mr-1">Get in touch</span>
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
               </a>
             </div>
           </div>
