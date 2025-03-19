@@ -4,6 +4,7 @@ export interface ProjectLimit {
   id: string;
   userId: string;
   maxProjects: number;
+  maxPrioritizedFeatures: number;
   planId?: number | null;
   createdAt: string;
   updatedAt: string;
@@ -14,6 +15,7 @@ export interface Plan {
   name: string;
   description: string | null;
   defaultProjectLimit: number;
+  defaultPrioritizedFeaturesLimit: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +71,7 @@ export const projectLimitService = {
             id: 'default',
             userId: userId,
             maxProjects: 1, // Default limit
+            maxPrioritizedFeatures: 0,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -90,6 +93,7 @@ export const projectLimitService = {
                 id: 'default',
                 userId: userId,
                 maxProjects: 1, // Default limit
+                maxPrioritizedFeatures: 0,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               };
@@ -101,6 +105,7 @@ export const projectLimitService = {
                 id: 'default',
                 userId: userId,
                 maxProjects: 1, // Default limit
+                maxPrioritizedFeatures: 0,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               };
@@ -129,6 +134,7 @@ export const projectLimitService = {
                   id: 'default',
                   userId: userId,
                   maxProjects: 1, // Default limit
+                  maxPrioritizedFeatures: 0,
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString()
                 };
@@ -139,6 +145,7 @@ export const projectLimitService = {
                 id: 'default',
                 userId: userId,
                 maxProjects: 1, // Default limit
+                maxPrioritizedFeatures: 0,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               };
@@ -150,6 +157,7 @@ export const projectLimitService = {
               id: newLimitResult.data.id,
               userId: newLimitResult.data.user_id,
               maxProjects: newLimitResult.data.max_projects,
+              maxPrioritizedFeatures: newLimitResult.data.max_prioritized_features,
               planId: newLimitResult.data.plan_id,
               createdAt: newLimitResult.data.created_at,
               updatedAt: newLimitResult.data.updated_at
@@ -160,6 +168,7 @@ export const projectLimitService = {
               id: 'default',
               userId: userId,
               maxProjects: 1, // Default limit
+              maxPrioritizedFeatures: 0,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
@@ -172,6 +181,7 @@ export const projectLimitService = {
           id: 'default',
           userId: userId,
           maxProjects: 1, // Default limit
+          maxPrioritizedFeatures: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -181,6 +191,7 @@ export const projectLimitService = {
         id: data.id,
         userId: data.user_id,
         maxProjects: data.max_projects,
+        maxPrioritizedFeatures: data.max_prioritized_features,
         planId: data.plan_id,
         createdAt: data.created_at,
         updatedAt: data.updated_at
@@ -195,6 +206,7 @@ export const projectLimitService = {
         id: 'default',
         userId: userId,
         maxProjects: 1, // Default limit
+        maxPrioritizedFeatures: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -256,7 +268,8 @@ export const projectLimitService = {
               .insert({
                 user_id: userId,
                 max_projects: maxProjects,
-                plan_id: freePlan.id
+                plan_id: freePlan.id,
+                max_prioritized_features: freePlan.default_prioritized_features_limit || 2
               });
               
             if (insertError) {
@@ -365,7 +378,8 @@ export const projectLimitService = {
               .insert({
                 user_id: userId,
                 max_projects: freePlan.default_project_limit,
-                plan_id: freePlan.id
+                plan_id: freePlan.id,
+                max_prioritized_features: freePlan.default_prioritized_features_limit || 2
               })
               .select(`*, plans:plan_id(*)`)
               .single();
@@ -382,6 +396,7 @@ export const projectLimitService = {
                 id: newLimit.id,
                 userId: newLimit.user_id,
                 maxProjects: newLimit.max_projects,
+                maxPrioritizedFeatures: newLimit.max_prioritized_features,
                 planId: newLimit.plan_id,
                 createdAt: newLimit.created_at,
                 updatedAt: newLimit.updated_at
@@ -391,6 +406,7 @@ export const projectLimitService = {
                 name: newLimit.plans.name,
                 description: newLimit.plans.description,
                 defaultProjectLimit: newLimit.plans.default_project_limit,
+                defaultPrioritizedFeaturesLimit: newLimit.plans.default_prioritized_features_limit,
                 createdAt: newLimit.plans.created_at,
                 updatedAt: newLimit.plans.updated_at
               } : null
@@ -412,6 +428,7 @@ export const projectLimitService = {
           id: data.id,
           userId: data.user_id,
           maxProjects: data.max_projects,
+          maxPrioritizedFeatures: data.max_prioritized_features,
           planId: data.plan_id,
           createdAt: data.created_at,
           updatedAt: data.updated_at
@@ -421,6 +438,7 @@ export const projectLimitService = {
           name: data.plans.name,
           description: data.plans.description,
           defaultProjectLimit: data.plans.default_project_limit,
+          defaultPrioritizedFeaturesLimit: data.plans.default_prioritized_features_limit,
           createdAt: data.plans.created_at,
           updatedAt: data.plans.updated_at
         } : null
@@ -451,6 +469,7 @@ export const projectLimitService = {
         name: plan.name,
         description: plan.description,
         defaultProjectLimit: plan.default_project_limit,
+        defaultPrioritizedFeaturesLimit: plan.default_prioritized_features_limit,
         createdAt: plan.created_at,
         updatedAt: plan.updated_at
       }));
@@ -498,6 +517,7 @@ export const projectLimitService = {
           .update({
             plan_id: planId,
             max_projects: plan.default_project_limit,
+            max_prioritized_features: plan.default_prioritized_features_limit || (plan.name === 'Free' ? 2 : -1),
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId);
@@ -515,7 +535,8 @@ export const projectLimitService = {
           .insert({
             user_id: userId,
             plan_id: planId,
-            max_projects: plan.default_project_limit
+            max_projects: plan.default_project_limit,
+            max_prioritized_features: plan.default_prioritized_features_limit || (plan.name === 'Free' ? 2 : -1)
           });
           
         if (insertError) {
@@ -675,7 +696,8 @@ export const projectLimitService = {
           .insert({
             user_id: userId,
             max_projects: maxProjects,
-            plan_id: freePlan.id
+            plan_id: freePlan.id,
+            max_prioritized_features: freePlan.default_prioritized_features_limit || 2
           });
         
         if (insertError) {
