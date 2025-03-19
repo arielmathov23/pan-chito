@@ -466,7 +466,7 @@ export default function Upgrade() {
                 </button>
               </div>
               <div className="bg-gray-50 px-6 py-4">
-                <p className="text-sm font-medium text-gray-900 mb-3">What's included:</p>
+                <p className="text-sm font-medium text-gray-900 mb-3">What can be included:</p>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -484,13 +484,13 @@ export default function Upgrade() {
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm text-gray-600">Product strategy sessions</span>
+                    <span className="text-sm text-gray-600">Product strategy advising</span>
                   </li>
                   <li className="flex items-start">
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm text-gray-600">Dedicated consultant</span>
+                    <span className="text-sm text-gray-600">Design & Development</span>
                   </li>
                 </ul>
               </div>
