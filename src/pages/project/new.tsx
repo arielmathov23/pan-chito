@@ -19,6 +19,7 @@ export default function NewProject() {
     canCreateProject: boolean;
     currentProjects: number;
     maxProjects: number;
+    planName?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -128,7 +129,10 @@ export default function NewProject() {
                 <span className="text-[#111827]">New Project</span>
               </div>
               <h1 className="text-3xl font-bold text-[#111827]">Project Limit Reached</h1>
-              <p className="text-[#6b7280] mt-2">You have reached your limit of {limitStatus.maxProjects} project(s)</p>
+              <p className="text-[#6b7280] mt-2">
+                You have reached your limit of {limitStatus.maxProjects} project(s)
+                {limitStatus.planName && ` on the ${limitStatus.planName} plan`}
+              </p>
             </div>
 
             <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6 mb-8">

@@ -202,6 +202,7 @@ export default function Projects() {
     canCreateProject: boolean;
     currentProjects: number;
     maxProjects: number;
+    planName?: string;
   } | null>(null);
   const [projectsWithGuides, setProjectsWithGuides] = useState<string[]>([]);
 
@@ -495,6 +496,11 @@ export default function Projects() {
                 {limitStatus && (
                   <div className="text-sm text-[#6b7280] bg-white rounded-lg border border-[#e5e7eb] py-2 px-3">
                     <span>{limitStatus.currentProjects} of {limitStatus.maxProjects} projects used</span>
+                    {limitStatus.planName && (
+                      <span className="ml-1 text-xs">
+                        • {limitStatus.planName} plan
+                      </span>
+                    )}
                     {!limitStatus.canCreateProject && (
                       <Link 
                         href="/upgrade" 
@@ -508,7 +514,7 @@ export default function Projects() {
                 
                 <Link 
                   href="/project/new" 
-                  className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium ${
+                  className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium ${
                     limitStatus && !limitStatus.canCreateProject
                       ? 'bg-[#0F533A]/60 text-white cursor-not-allowed'
                       : 'bg-[#0F533A] text-white hover:bg-[#0F533A]/90 transition-colors'
@@ -520,8 +526,8 @@ export default function Projects() {
                     }
                   }}
                 >
-                  <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 12H18M12 6V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   New Project
                 </Link>
@@ -534,8 +540,15 @@ export default function Projects() {
             {/* Upgrade Info - Only show if there are projects */}
             {limitStatus && projects.length > 0 && (
               <div className="flex items-center justify-between bg-white rounded-lg border border-[#e5e7eb] p-3">
-                <div className="text-sm text-[#6b7280]">
-                  {limitStatus.currentProjects} of {limitStatus.maxProjects} projects used
+                <div className="flex flex-col">
+                  <div className="text-sm text-[#6b7280]">
+                    {limitStatus.currentProjects} of {limitStatus.maxProjects} projects used
+                  </div>
+                  {limitStatus.planName && (
+                    <div className="text-xs text-[#6b7280]">
+                      {limitStatus.planName} plan
+                    </div>
+                  )}
                 </div>
                 {!limitStatus.canCreateProject && (
                   <Link 
@@ -564,8 +577,8 @@ export default function Projects() {
                   }
                 }}
               >
-                <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 12H18M12 6V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 New Project
               </Link>

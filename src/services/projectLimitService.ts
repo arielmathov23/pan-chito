@@ -4,6 +4,16 @@ export interface ProjectLimit {
   id: string;
   userId: string;
   maxProjects: number;
+  planId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Plan {
+  id: number;
+  name: string;
+  description: string | null;
+  defaultProjectLimit: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +34,7 @@ export interface LimitStatus {
   canCreateProject: boolean;
   currentProjects: number;
   maxProjects: number;
+  planName?: string;
 }
 
 export const projectLimitService = {
@@ -43,7 +54,10 @@ export const projectLimitService = {
       // Check if user has a specific limit set
       const { data, error } = await supabase
         .from('project_limits')
-        .select('*')
+        .select(`
+          *,
+          plans:plan_id (*)
+        `)
         .eq('user_id', userId)
         .single();
       
@@ -61,21 +75,48 @@ export const projectLimitService = {
         }
         
         if (error.code === 'PGRST116') {
-          // No record found, try to create one with default limit
+          // No record found, try to create one with default Free plan
           try {
-            const defaultLimitResult = await supabase
-              .from('admin_settings')
-              .select('value')
-              .eq('key', 'default_project_limit')
+            // Find the Free plan - use correct case
+            const { data: freePlan, error: planError } = await supabase
+              .from('plans')
+              .select('*')
+              .eq('name', 'Free')
               .single();
             
-            const defaultMaxProjects = defaultLimitResult.data?.value?.max_projects || 1;
+            if (planError) {
+              console.error('Error finding Free plan:', planError);
+              return {
+                id: 'default',
+                userId: userId,
+                maxProjects: 1, // Default limit
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+            }
+            
+            if (!freePlan) {
+              console.error('Free plan not found');
+              return {
+                id: 'default',
+                userId: userId,
+                maxProjects: 1, // Default limit
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+            }
+            
+            const defaultMaxProjects = freePlan.default_project_limit || 1;
+            const planId = freePlan.id;
+            
+            console.log(`Creating project limit for user ${userId} with Free plan (${planId})`);
             
             const newLimitResult = await supabase
               .from('project_limits')
               .insert({
                 user_id: userId,
-                max_projects: defaultMaxProjects
+                max_projects: defaultMaxProjects,
+                plan_id: planId
               })
               .select()
               .single();
@@ -103,10 +144,13 @@ export const projectLimitService = {
               };
             }
             
+            console.log(`Successfully created project limit for user ${userId}`);
+            
             return {
               id: newLimitResult.data.id,
               userId: newLimitResult.data.user_id,
               maxProjects: newLimitResult.data.max_projects,
+              planId: newLimitResult.data.plan_id,
               createdAt: newLimitResult.data.created_at,
               updatedAt: newLimitResult.data.updated_at
             };
@@ -137,6 +181,7 @@ export const projectLimitService = {
         id: data.id,
         userId: data.user_id,
         maxProjects: data.max_projects,
+        planId: data.plan_id,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -173,9 +218,68 @@ export const projectLimitService = {
         };
       }
 
-      // Get user's project limit
-      const limit = await this.getUserProjectLimit();
-      const maxProjects = limit?.maxProjects || 1; // Default to 1 if no limit is found
+      // Get user's project limit with plan information
+      const { data: limitData, error: limitError } = await supabase
+        .from('project_limits')
+        .select(`
+          *,
+          plans:plan_id (*)
+        `)
+        .eq('user_id', userId)
+        .single();
+
+      let maxProjects = 1; // Default to 1 if no limit is found
+      let planName: string | undefined = undefined;
+
+      // Handle case where user doesn't have a project_limits entry
+      if (limitError && limitError.code === 'PGRST116') { // PGRST116 is "Not Found" error
+        console.log('No project limit found for user. Creating one with Free plan...');
+        
+        try {
+          // Get the Free plan - make sure to use the case-sensitive name "Free"
+          const { data: freePlan, error: planError } = await supabase
+            .from('plans')
+            .select('*')
+            .eq('name', 'Free')
+            .single();
+            
+          if (planError) {
+            console.error('Error getting Free plan:', planError);
+            // Continue with default values
+          } else if (freePlan) {
+            maxProjects = freePlan.default_project_limit;
+            planName = freePlan.name;
+            
+            // Create a project_limits entry for this user with the Free plan
+            const { error: insertError } = await supabase
+              .from('project_limits')
+              .insert({
+                user_id: userId,
+                max_projects: maxProjects,
+                plan_id: freePlan.id
+              });
+              
+            if (insertError) {
+              console.error('Error creating project limit for new user:', insertError);
+            } else {
+              console.log('Successfully created project limit for user:', userId);
+            }
+          } else {
+            console.error('Free plan not found');
+          }
+        } catch (error) {
+          console.error('Error creating project limit for user:', error);
+        }
+      } else if (limitError) {
+        // Handle other types of errors
+        console.error('Error fetching project limit:', limitError);
+      } else if (limitData) {
+        // User has a project_limits entry, use those values
+        maxProjects = limitData.max_projects;
+        if (limitData.plans) {
+          planName = limitData.plans.name;
+        }
+      }
 
       // Count user's active projects
       const { count, error } = await supabase
@@ -192,14 +296,16 @@ export const projectLimitService = {
           return { 
             canCreateProject: true,
             currentProjects: 0,
-            maxProjects
+            maxProjects,
+            planName
           };
         }
         
         return { 
           canCreateProject: true, // Default to allowing project creation
           currentProjects: 0,
-          maxProjects
+          maxProjects,
+          planName
         };
       }
 
@@ -208,7 +314,8 @@ export const projectLimitService = {
       return {
         canCreateProject: currentProjects < maxProjects,
         currentProjects,
-        maxProjects
+        maxProjects,
+        planName
       };
     } catch (error) {
       console.error('Error in checkCanCreateProject:', error);
@@ -217,6 +324,212 @@ export const projectLimitService = {
         currentProjects: 0,
         maxProjects: 1 
       };
+    }
+  },
+  
+  /**
+   * Get user's project limit and plan
+   */
+  async getUserProjectLimitAndPlan(userId: string): Promise<{ limit: ProjectLimit | null, plan: Plan | null }> {
+    try {
+      // Get user's project limit with plan information
+      const { data, error } = await supabase
+        .from('project_limits')
+        .select(`
+          *,
+          plans:plan_id (*)
+        `)
+        .eq('user_id', userId)
+        .single();
+        
+      if (error) {
+        if (error.code === 'PGRST116') { // Not found error
+          console.log(`No project limit found for user ${userId}. Creating one with Free plan...`);
+          
+          try {
+            // Find the Free plan
+            const { data: freePlan, error: planError } = await supabase
+              .from('plans')
+              .select('*')
+              .eq('name', 'Free')
+              .single();
+              
+            if (planError || !freePlan) {
+              console.error('Free plan not found:', planError);
+              return { limit: null, plan: null };
+            }
+            
+            // Create a new project_limits entry
+            const { data: newLimit, error: insertError } = await supabase
+              .from('project_limits')
+              .insert({
+                user_id: userId,
+                max_projects: freePlan.default_project_limit,
+                plan_id: freePlan.id
+              })
+              .select(`*, plans:plan_id(*)`)
+              .single();
+              
+            if (insertError || !newLimit) {
+              console.error('Error creating project limit:', insertError);
+              return { limit: null, plan: null };
+            }
+            
+            console.log(`Successfully created project limit for user ${userId}`);
+            
+            return {
+              limit: {
+                id: newLimit.id,
+                userId: newLimit.user_id,
+                maxProjects: newLimit.max_projects,
+                planId: newLimit.plan_id,
+                createdAt: newLimit.created_at,
+                updatedAt: newLimit.updated_at
+              },
+              plan: newLimit.plans ? {
+                id: newLimit.plans.id,
+                name: newLimit.plans.name,
+                description: newLimit.plans.description,
+                defaultProjectLimit: newLimit.plans.default_project_limit,
+                createdAt: newLimit.plans.created_at,
+                updatedAt: newLimit.plans.updated_at
+              } : null
+            };
+          } catch (createError) {
+            console.error('Error creating project limit:', createError);
+            return { limit: null, plan: null };
+          }
+        } else {
+          console.error('Error getting user project limit and plan:', error);
+          return { limit: null, plan: null };
+        }
+      }
+      
+      if (!data) return { limit: null, plan: null };
+      
+      return {
+        limit: {
+          id: data.id,
+          userId: data.user_id,
+          maxProjects: data.max_projects,
+          planId: data.plan_id,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        },
+        plan: data.plans ? {
+          id: data.plans.id,
+          name: data.plans.name,
+          description: data.plans.description,
+          defaultProjectLimit: data.plans.default_project_limit,
+          createdAt: data.plans.created_at,
+          updatedAt: data.plans.updated_at
+        } : null
+      };
+    } catch (error) {
+      console.error('Error getting user project limit and plan:', error);
+      return { limit: null, plan: null };
+    }
+  },
+  
+  /**
+   * Get all available plans
+   */
+  async getPlans(): Promise<Plan[]> {
+    try {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('*')
+        .order('id');
+        
+      if (error) {
+        console.error('Error getting plans:', error);
+        return [];
+      }
+      
+      return data.map(plan => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        defaultProjectLimit: plan.default_project_limit,
+        createdAt: plan.created_at,
+        updatedAt: plan.updated_at
+      }));
+    } catch (error) {
+      console.error('Error getting plans:', error);
+      return [];
+    }
+  },
+  
+  /**
+   * Update user's plan
+   */
+  async updateUserPlan(userId: string, planId: number): Promise<boolean> {
+    try {
+      // Get plan details first to know the default project limit
+      const { data: plan, error: planError } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('id', planId)
+        .single();
+        
+      if (planError || !plan) {
+        console.error('Plan not found:', planError);
+        return false;
+      }
+      
+      console.log(`Updating user ${userId} to plan: ${plan.name} (ID: ${planId})`);
+      
+      // Check if user has a project limit entry
+      const { data: existingLimit, error: limitError } = await supabase
+        .from('project_limits')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (limitError && limitError.code !== 'PGRST116') {
+        console.error('Error checking for existing limit:', limitError);
+        return false;
+      }
+      
+      if (existingLimit) {
+        // Update existing entry with new plan and limit
+        const { error: updateError } = await supabase
+          .from('project_limits')
+          .update({
+            plan_id: planId,
+            max_projects: plan.default_project_limit,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+          
+        if (updateError) {
+          console.error('Error updating project limit:', updateError);
+          return false;
+        }
+        
+        console.log(`Successfully updated project limit for user ${userId} to plan ${plan.name}`);
+      } else {
+        // Create new entry
+        const { error: insertError } = await supabase
+          .from('project_limits')
+          .insert({
+            user_id: userId,
+            plan_id: planId,
+            max_projects: plan.default_project_limit
+          });
+          
+        if (insertError) {
+          console.error('Error creating project limit:', insertError);
+          return false;
+        }
+        
+        console.log(`Successfully created project limit for user ${userId} with plan ${plan.name}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating user plan:', error);
+      return false;
     }
   },
   
@@ -314,20 +627,65 @@ export const projectLimitService = {
    */
   async updateUserProjectLimit(userId: string, maxProjects: number): Promise<boolean> {
     try {
-      const { error } = await supabase
+      // Check if the user has an existing project limit entry
+      const { data: existingLimit, error: limitError } = await supabase
         .from('project_limits')
-        .upsert({
-          user_id: userId,
-          max_projects: maxProjects,
-          updated_at: new Date().toISOString()
-        });
+        .select('*, plans:plan_id(*)')
+        .eq('user_id', userId)
+        .single();
       
-      if (error) {
-        console.error('Error updating project limit:', error);
+      if (limitError && limitError.code !== 'PGRST116') {
+        console.error('Error checking existing project limit:', limitError);
         return false;
       }
 
+      if (existingLimit) {
+        // Update the existing limit while preserving the plan_id
+        const { error: updateError } = await supabase
+          .from('project_limits')
+          .update({
+            max_projects: maxProjects,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+        
+        if (updateError) {
+          console.error('Error updating project limit:', updateError);
+          return false;
+        }
+        
+        console.log(`Successfully updated project limit for user ${userId} to ${maxProjects}`);
+        return true;
+      } else {
+        // No existing limit found, try to get the Free plan
+        const { data: freePlan, error: planError } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('name', 'Free')
+          .single();
+        
+        if (planError || !freePlan) {
+          console.error('Error getting Free plan:', planError);
+          return false;
+        }
+        
+        // Create a new project_limits entry with the Free plan
+        const { error: insertError } = await supabase
+          .from('project_limits')
+          .insert({
+            user_id: userId,
+            max_projects: maxProjects,
+            plan_id: freePlan.id
+          });
+        
+        if (insertError) {
+          console.error('Error creating project limit:', insertError);
+          return false;
+        }
+        
+        console.log(`Successfully created project limit for user ${userId} with max projects ${maxProjects}`);
       return true;
+      }
     } catch (error) {
       console.error('Error in updateUserProjectLimit:', error);
       return false;

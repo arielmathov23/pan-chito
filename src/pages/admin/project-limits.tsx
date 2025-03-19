@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
-import { projectLimitService, ProjectLimit, UpgradeRequest } from '../../services/projectLimitService';
+import { projectLimitService, UpgradeRequest } from '../../services/projectLimitService';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function AdminProjectLimits() {
@@ -11,11 +11,8 @@ export default function AdminProjectLimits() {
   const { user, isLoading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [upgradeRequests, setUpgradeRequests] = useState<UpgradeRequest[]>([]);
-  const [projectLimits, setProjectLimits] = useState<ProjectLimit[]>([]);
-  const [defaultLimit, setDefaultLimit] = useState(1);
-  const [newDefaultLimit, setNewDefaultLimit] = useState(1);
-  const [userIdToEdit, setUserIdToEdit] = useState('');
   const [userLimit, setUserLimit] = useState(1);
   const [userId, setUserId] = useState('');
   const [error, setError] = useState('');
@@ -56,34 +53,6 @@ export default function AdminProjectLimits() {
         // Load upgrade requests
         const requests = await projectLimitService.getUpgradeRequests();
         setUpgradeRequests(requests);
-        
-        // Load all project limits - this is a custom admin query
-        const { data: limits } = await supabase
-          .from('project_limits')
-          .select('*')
-          .order('updated_at', { ascending: false });
-          
-        if (limits) {
-          setProjectLimits(limits.map(limit => ({
-            id: limit.id,
-            userId: limit.user_id,
-            maxProjects: limit.max_projects,
-            createdAt: limit.created_at,
-            updatedAt: limit.updated_at
-          })));
-        }
-        
-        // Load default limit
-        const { data: settings } = await supabase
-          .from('admin_settings')
-          .select('value')
-          .eq('key', 'default_project_limit')
-          .single();
-          
-        if (settings) {
-          setDefaultLimit(settings.value.max_projects);
-          setNewDefaultLimit(settings.value.max_projects);
-        }
       } catch (error) {
         console.error('Error loading admin data:', error);
         setError('Failed to load data. Please try again.');
@@ -96,110 +65,71 @@ export default function AdminProjectLimits() {
       loadData();
     }
   }, [isAdmin]);
-
-  const handleUpdateDefaultLimit = async () => {
-    setError('');
-    setSuccess('');
-    
-    try {
-      const success = await projectLimitService.updateDefaultProjectLimit(newDefaultLimit);
-      
-      if (success) {
-        setDefaultLimit(newDefaultLimit);
-        setSuccess('Default project limit updated successfully!');
-      } else {
-        setError('Failed to update default limit.');
-      }
-    } catch (error) {
-      console.error('Error updating default limit:', error);
-      setError('An error occurred while updating the default limit.');
-    }
-  };
   
   const handleUpdateUserLimit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setIsSubmitting(true);
     
     if (!userId.trim()) {
       setError('Please enter a user ID.');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Validate user ID format (basic UUID validation)
+    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (!uuidRegex.test(userId)) {
+      setError('Please enter a valid user ID (UUID format).');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Validate max projects
+    if (userLimit < 1) {
+      setError('Max projects must be at least 1.');
+      setIsSubmitting(false);
       return;
     }
     
     try {
+      // Better debugging
+      console.log(`Checking for user with ID: ${userId}`);
+      
+      // First try direct query by primary key
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('id', userId);
+      
+      console.log('Query result:', userData, userError);
+      
+      // Check if any data was returned (note: removed .single())
+      if (!userData || userData.length === 0) {
+        setError(`User with ID ${userId} not found in profiles table.`);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Use the first matching profile
+      const userProfile = userData[0];
+      
+      // Continue with the update
       const success = await projectLimitService.updateUserProjectLimit(userId, userLimit);
       
       if (success) {
-        // Refresh the list
-        const { data: limits } = await supabase
-          .from('project_limits')
-          .select('*')
-          .order('updated_at', { ascending: false });
-          
-        if (limits) {
-          setProjectLimits(limits.map(limit => ({
-            id: limit.id,
-            userId: limit.user_id,
-            maxProjects: limit.max_projects,
-            createdAt: limit.created_at,
-            updatedAt: limit.updated_at
-          })));
-        }
-        
-        setSuccess(`Project limit for user ${userId} updated successfully!`);
+        setSuccess(`Project limit for user ${userProfile.email || userId} updated successfully to ${userLimit} projects!`);
         setUserId('');
         setUserLimit(1);
       } else {
-        setError('Failed to update user limit.');
+        setError('Failed to update user limit. Please try again.');
       }
     } catch (error) {
-      console.error('Error updating user limit:', error);
-      setError('An error occurred while updating the user limit.');
+      console.error('Error in user limit update:', error);
+      setError(`Error updating limit: ${error.message || 'Unknown error'}`);
+      setIsSubmitting(false);
     }
-  };
-  
-  const startEditUserLimit = (limit: ProjectLimit) => {
-    setUserIdToEdit(limit.userId);
-    setUserLimit(limit.maxProjects);
-  };
-  
-  const saveUserLimitEdit = async (userId: string) => {
-    setError('');
-    setSuccess('');
-    
-    try {
-      const success = await projectLimitService.updateUserProjectLimit(userId, userLimit);
-      
-      if (success) {
-        // Refresh the list
-        const { data: limits } = await supabase
-          .from('project_limits')
-          .select('*')
-          .order('updated_at', { ascending: false });
-          
-        if (limits) {
-          setProjectLimits(limits.map(limit => ({
-            id: limit.id,
-            userId: limit.user_id,
-            maxProjects: limit.max_projects,
-            createdAt: limit.created_at,
-            updatedAt: limit.updated_at
-          })));
-        }
-        
-        setSuccess(`Project limit updated successfully!`);
-        setUserIdToEdit('');
-      } else {
-        setError('Failed to update user limit.');
-      }
-    } catch (error) {
-      console.error('Error updating user limit:', error);
-      setError('An error occurred while updating the user limit.');
-    }
-  };
-  
-  const cancelEditUserLimit = () => {
-    setUserIdToEdit('');
   };
 
   if (authLoading || isLoading) {
@@ -236,7 +166,7 @@ export default function AdminProjectLimits() {
               <span className="text-[#111827]">Project Limits</span>
             </div>
             <h1 className="text-3xl font-bold text-[#111827]">Project Limits Admin</h1>
-            <p className="text-[#6b7280] mt-2">Manage user project limits and view upgrade requests</p>
+            <p className="text-[#6b7280] mt-2">Manage user project limits</p>
           </div>
 
           {error && (
@@ -269,51 +199,15 @@ export default function AdminProjectLimits() {
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Default limit section */}
-            <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6">
-              <h2 className="text-xl font-bold text-[#111827] mb-4">Default Project Limit</h2>
-              <p className="text-[#6b7280] mb-4">This limit applies to all new users who don't have a custom limit.</p>
-              
-              <div className="flex items-center space-x-4 mb-4">
-                <div>
-                  <label htmlFor="defaultLimit" className="block text-sm font-medium text-[#111827] mb-2">
-                    Max Projects
-                  </label>
-                  <input
-                    type="number"
-                    id="defaultLimit"
-                    min="1"
-                    value={newDefaultLimit}
-                    onChange={(e) => setNewDefaultLimit(parseInt(e.target.value) || 1)}
-                    className="w-24 px-4 py-2 rounded-lg border border-[#e5e7eb] bg-white text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0F533A]/20 focus:border-[#0F533A] transition-colors"
-                  />
-                </div>
-                
-                <div className="pt-8">
-                  <button
-                    onClick={handleUpdateDefaultLimit}
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0F533A]/90 transition-colors"
-                  >
-                    Update Default
-                  </button>
-                </div>
-              </div>
-              
-              <div className="text-sm text-[#6b7280]">
-                Current default: <span className="font-semibold text-[#111827]">{defaultLimit} project(s)</span>
-              </div>
-            </div>
-            
-            {/* User limit section */}
-            <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6">
-              <h2 className="text-xl font-bold text-[#111827] mb-4">Set User-Specific Limit</h2>
-              <p className="text-[#6b7280] mb-4">Override the default limit for a specific user.</p>
+          {/* User Specific Limit Section */}
+          <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6 mb-8">
+            <h2 className="text-xl font-bold text-[#111827] mb-4">Set User-Specific Project Limit</h2>
+            <p className="text-[#6b7280] mb-4">Set a custom project limit for a specific user.</p>
               
               <form onSubmit={handleUpdateUserLimit} className="space-y-4">
                 <div>
                   <label htmlFor="userId" className="block text-sm font-medium text-[#111827] mb-2">
-                    User ID
+                  User ID (UUID format)
                   </label>
                   <input
                     type="text"
@@ -321,9 +215,12 @@ export default function AdminProjectLimits() {
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
                     className="w-full px-4 py-2 rounded-lg border border-[#e5e7eb] bg-white text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0F533A]/20 focus:border-[#0F533A] transition-colors"
-                    placeholder="Enter user ID"
+                  placeholder="Enter user ID (UUID format)"
                     required
                   />
+                <p className="mt-1 text-xs text-[#6b7280]">
+                  Find the user ID in the database or from the user's profile
+                </p>
                 </div>
                 
                 <div>
@@ -338,90 +235,33 @@ export default function AdminProjectLimits() {
                     onChange={(e) => setUserLimit(parseInt(e.target.value) || 1)}
                     className="w-full px-4 py-2 rounded-lg border border-[#e5e7eb] bg-white text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0F533A]/20 focus:border-[#0F533A] transition-colors"
                   />
+                <p className="mt-1 text-xs text-[#6b7280]">
+                  This will override the default limit from the user's plan
+                </p>
                 </div>
                 
                 <div>
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center bg-[#0F533A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0F533A]/90 transition-colors"
+                  disabled={isSubmitting}
+                  className={`inline-flex items-center justify-center ${
+                    isSubmitting ? 'bg-[#0F533A]/70' : 'bg-[#0F533A] hover:bg-[#0F533A]/90'
+                  } text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors`}
                   >
-                    Set User Limit
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          {/* Existing user limits */}
-          <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6 mb-8">
-            <h2 className="text-xl font-bold text-[#111827] mb-4">Current User Limits</h2>
-            
-            {projectLimits.length === 0 ? (
-              <p className="text-[#6b7280]">No custom user limits set.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-[#e5e7eb]">
-                  <thead>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">User ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Max Projects</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Last Updated</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-[#e5e7eb]">
-                    {projectLimits.map((limit) => (
-                      <tr key={limit.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">
-                          {limit.userId}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">
-                          {userIdToEdit === limit.userId ? (
-                            <input
-                              type="number"
-                              min="1"
-                              value={userLimit}
-                              onChange={(e) => setUserLimit(parseInt(e.target.value) || 1)}
-                              className="w-20 px-2 py-1 rounded border border-[#e5e7eb] bg-white text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0F533A]/20 focus:border-[#0F533A]"
-                            />
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
                           ) : (
-                            limit.maxProjects
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
-                          {new Date(limit.updatedAt).toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {userIdToEdit === limit.userId ? (
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => saveUserLimitEdit(limit.userId)}
-                                className="text-[#0F533A] hover:text-[#0F533A]/80"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={cancelEditUserLimit}
-                                className="text-[#6b7280] hover:text-[#111827]"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => startEditUserLimit(limit)}
-                              className="text-[#0F533A] hover:text-[#0F533A]/80"
-                            >
-                              Edit
+                    'Set User Limit'
+                  )}
                             </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
-            )}
+            </form>
           </div>
 
           {/* Upgrade requests section */}
