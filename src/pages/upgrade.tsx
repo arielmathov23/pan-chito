@@ -453,7 +453,7 @@ export default function Upgrade() {
               <div className="p-6 flex-grow flex flex-col">
                 <div className="flex flex-col mb-4">
                   <h2 className="text-xl font-bold text-gray-900">Enterprise</h2>
-                  <p className="text-gray-500 mt-1">Let's talk! Get a custom 021 solutio.</p>
+                  <p className="text-gray-500 mt-1">Let's talk! Get a tailored 021 solution that fits your team.</p>
                 </div>
                 <p className="text-gray-600 mb-6 flex-grow">
                   Pro plan plus collaboration tools, product consultancy services, and development.
