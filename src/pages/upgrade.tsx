@@ -21,6 +21,7 @@ export default function Upgrade() {
   const [showContactForm, setShowContactForm] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('');
   const [isLoadingPlan, setIsLoadingPlan] = useState('');
+  const [countdown, setCountdown] = useState({ days: 7, hours: 23, minutes: 59, seconds: 59 });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -38,6 +39,33 @@ export default function Upgrade() {
       });
     }
   }, [user, authLoading, router.asPath]);
+
+  // Add countdown timer effect
+  useEffect(() => {
+    // Set the end date to 7 days from now
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 7);
+    
+    const timer = setInterval(() => {
+      const now = new Date();
+      const difference = endDate.getTime() - now.getTime();
+      
+      if (difference <= 0) {
+        clearInterval(timer);
+        setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+      
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+      
+      setCountdown({ days, hours, minutes, seconds });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, []);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -102,6 +130,12 @@ export default function Upgrade() {
     });
     
     handleUpgradeClick(planName);
+  };
+
+  const formatEndDate = () => {
+    // Set specific end date - Tuesday, March 25, 2024 at 00:00 EST
+    const endDateText = "Tuesday, Mar 25 • 00:00 EST";
+    return endDateText;
   };
 
   if (authLoading) {
@@ -181,7 +215,7 @@ export default function Upgrade() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
           {/* Header Section */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Choose Your Plan
             </h1>
@@ -190,20 +224,46 @@ export default function Upgrade() {
             </p>
           </div>
 
-          {error && (
-            <div className="mb-8 bg-red-50 border-l-4 border-red-400 p-4 rounded-md max-w-2xl mx-auto">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+          {/* Limited Time Promo Banner - Enhanced Modern Minimalist Design */}
+          <div className="bg-gradient-to-br from-[#FEF7E8] via-white to-[#FDF2F8] rounded-xl p-6 mb-10 shadow-sm relative overflow-hidden border border-amber-100">
+            {/* Subtle decorative elements */}
+            <div className="absolute top-[-120px] right-[-80px] w-64 h-64 bg-amber-400/10 rounded-full mix-blend-multiply"></div>
+            <div className="absolute bottom-[-100px] left-[-60px] w-56 h-56 bg-pink-300/10 rounded-full mix-blend-multiply"></div>
+            <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-amber-600 text-white py-1 px-3 text-xs font-bold rounded-bl-lg">
+              LIMITED TIME
+            </div>
+            
+            <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-10">
+              <div className="w-full text-center md:text-left pt-3 md:pt-0">
+                <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start mb-3">
+                  <h3 className="text-xl font-bold text-gray-800">Single Project Launch Offer:</h3>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold shadow-sm">
+                    70% OFF!
+                  </span>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
+                
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
+                  <span className="bg-white backdrop-blur-sm border border-amber-200 text-amber-700 font-mono text-sm px-3 py-1 rounded-md font-bold shadow-sm">LAUNCH70</span>
+                  <span className="text-gray-600 text-sm self-center">Use code at checkout</span>
                 </div>
+                
+                <p className="text-gray-700 font-medium">
+                  Single Project for <span className="relative inline-block mx-1 group">
+                    <span className="line-through text-gray-400 font-medium">$24.00</span>
+                    <span className="absolute h-[2px] w-full bg-amber-400 left-0 top-1/2 transform -rotate-6"></span>
+                  </span>
+                  <span className="text-amber-600 font-bold text-lg">$7.20</span>
+                </p>
+              </div>
+              
+              <div className="flex-shrink-0 md:border-l border-amber-100 md:pl-6 mt-1 md:mt-0 w-full md:w-auto text-center md:text-left border-t md:border-t-0 pt-3 md:pt-0">
+                <p className="text-gray-500 text-sm font-medium mb-1">Offer ends:</p>
+                <p className="text-gray-800 font-bold bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-md border border-gray-100 shadow-sm inline-block">
+                  {formatEndDate()}
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Pricing Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
@@ -234,7 +294,7 @@ export default function Upgrade() {
                     <svg className="w-5 h-5 text-[#16a34a] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm text-gray-600">1 project</span>
+                    <span className="text-sm text-gray-600">1 limited project</span>
                   </li>
                   <li className="flex items-start">
                   <svg className="w-5 h-5 text-[#f59e0b] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -258,29 +318,39 @@ export default function Upgrade() {
               </div>
             </div>
 
-            {/* One Project Plan */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+            {/* One Project Plan - Fixed pill alignment */}
+            <div className="bg-white rounded-2xl border-2 border-amber-500 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative">
+              <div className="absolute top-0 right-0 bg-amber-500 text-white py-1 px-3 text-xs font-bold shadow-md rounded-bl-lg">
+                70% OFF
+              </div>
               <div className="p-6 flex-grow flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-900">Single Project</h2>
                 </div>
                 <div className="mb-4">
-                  <span className="text-4xl font-bold text-gray-900">$24</span>
-                  <span className="text-gray-500 ml-1">one-time</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-amber-600">$7.20</span>
+                    <span className="line-through text-lg text-gray-500 font-medium">$24.00</span>
+                  </div>
+                  <div className="mt-1.5 inline-block">
+                    <span className="inline-block px-2 py-1 rounded bg-amber-50 text-amber-800 text-sm whitespace-nowrap">
+                      Apply <span className="font-mono font-bold ml-1">LAUNCH70</span> <span className="ml-1">at checkout</span>
+                    </span>
+                  </div>
                 </div>
                 <p className="text-gray-600 mb-6 flex-grow">
-                  Define and build a single product<span className="bg-[#F0FDF4] px-1.5 py-0.5 rounded text-[#0F533A] font-medium">without a subscription.</span>
+                  Define all the details and build a single product without a subscription
                 </p>
                 <div className="mt-auto">
                   <button
                     onClick={handleSingleProjectClick}
                     disabled={isLoadingPlan !== ''}
-                    className="w-full py-3.5 px-4 bg-[#0F533A] hover:bg-[#0F533A]/90 text-white font-medium rounded-lg transition-colors h-[50px] flex items-center justify-center"
+                    className="w-full py-3.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors h-[50px] flex items-center justify-center"
                   >
                     {isLoadingPlan === 'single' ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      'Choose Plan'
+                      'Claim Discount'
                     )}
                   </button>
                 </div>
@@ -310,7 +380,7 @@ export default function Upgrade() {
                   <svg className="w-5 h-5 text-[#f59e0b] mt-0.5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    <span className="text-sm text-gray-600">Locked after 30 days</span>
+                    <span className="text-sm text-gray-600">Locked after 90 days</span>
                   </li>
                 </ul>
               </div>
@@ -326,7 +396,7 @@ export default function Upgrade() {
                   <h2 className="text-xl font-bold text-gray-900">Pro Plan</h2>
                 </div>
                 <div className="mb-4">
-                  <span className="text-4xl font-bold text-gray-900">$19</span>
+                  <span className="text-4xl font-bold text-gray-900">$9</span>
                   <span className="text-gray-500 ml-1">/month</span>
                 </div>
                 <p className="text-gray-600 mb-6 flex-grow">
@@ -378,19 +448,15 @@ export default function Upgrade() {
               </div>
             </div>
 
-            {/* Enterprise Plan */}
+            {/* Enterprise Plan - Improved text sizing and layout */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
               <div className="p-6 flex-grow flex flex-col">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col mb-4">
                   <h2 className="text-xl font-bold text-gray-900">Enterprise</h2>
-                </div>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold text-gray-900">$99</span>
-                  <span className="text-gray-500 ml-1">/month</span>
-                  <div className="text-xs text-gray-500 mt-1">starting at</div>
+                  <p className="text-gray-500 mt-1">Let's talk! Get a custom 021 solutio.</p>
                 </div>
                 <p className="text-gray-600 mb-6 flex-grow">
-                  Pro plan plus collaboration tools, expert guidance and consultancy services.
+                  Pro plan plus collaboration tools, product consultancy services, and development.
                 </p>
                 <button
                   onClick={() => handleEnterpriseClick('Enterprise')}
@@ -466,7 +532,7 @@ export default function Upgrade() {
                   <tr>
                     <td className="py-4 px-6 text-sm font-medium text-gray-900">Result Iterations</td>
                     <td className="py-4 px-6 text-center text-sm text-gray-500">Limited</td>
-                    <td className="py-4 px-6 text-center text-sm text-gray-500">30 days</td>
+                    <td className="py-4 px-6 text-center text-sm text-gray-500">90 days</td>
                     <td className="py-4 px-6 text-center text-sm font-medium text-[#0F533A] bg-[#0F533A]/5">Unlimited</td>
                     <td className="py-4 px-6 text-center text-sm text-gray-500">Unlimited</td>
                   </tr>
@@ -523,17 +589,22 @@ export default function Upgrade() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">What's included in the consultancy services?</h3>
                 <p className="text-gray-600">Our Enterprise plan includes personalized workshops, product strategy sessions, and dedicated support from our product experts to help you maximize your success.</p>
               </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">How does the 70% launch discount work?</h3>
+                <p className="text-gray-600">Our special LAUNCH70 promo code gives you 70% off the Single Project plan, reducing the price from $24 to just $7.20. This discount is valid for the next 7 days only.</p>
+              </div>
             </div>
           </div>
 
-          {/* CTA */}
+          {/* Only keep one CTA at the bottom */}
           <div className="bg-gradient-to-r from-[#0F533A] to-[#16a34a] rounded-2xl p-8 text-center text-white">
             <h2 className="text-2xl font-bold mb-4">Ready to transform your product development?</h2>
-            <p className="text-white/80 mb-6 max-w-2xl mx-auto">Join forward-thinking teams who are revolutionizing how products are built. Start your journey from zero to one today.</p>
+            <p className="text-white/80 mb-6 max-w-2xl mx-auto">
+              Limited time offer: Get 70% off Single Project plan with code <span className="font-mono bg-white/20 px-2 py-1 rounded text-white">LAUNCH70</span> • Ends in {countdown.days}d {countdown.hours}h
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => {
-                  // Scroll to the top of the page smoothly
                   window.scrollTo({
                     top: 0,
                     behavior: 'smooth'
