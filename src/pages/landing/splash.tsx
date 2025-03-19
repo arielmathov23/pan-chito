@@ -1,0 +1,1438 @@
+import React, { useEffect, useState, useRef } from 'react';
+import Head from 'next/head';
+import AnimatedBackground from '../../components/AnimatedBackground';
+import Logo from '../../components/Logo';
+import { trackEvent } from '../../lib/mixpanelClient';
+
+// Features for the prioritization phase - reduced to 4 key features for clarity
+const FEATURES = [
+  { id: 1, text: "User authentication and profiles", priority: "must", initialPriority: "could" },
+  { id: 2, text: "Workout tracking with exercise database", priority: "must", initialPriority: "must" },
+  { id: 3, text: "Progress visualization with charts", priority: "should", initialPriority: "wont" },
+  { id: 4, text: "Integration with fitness wearables", priority: "could", initialPriority: "should" }
+];
+
+// Journey steps
+const JOURNEY_STEPS = [
+  { id: 1, title: "Sign Up", description: "Create your profile with fitness goals", icon: "👤" },
+  { id: 2, title: "Plan", description: "Select or build your workout routine", icon: "📝" },
+  { id: 3, title: "Track", description: "Log your exercise sets, weights and reps", icon: "💪" },
+  { id: 4, title: "Analyze", description: "View progress charts and achievements", icon: "📊" },
+  { id: 5, title: "Optimize", description: "Get AI recommendations for improvement", icon: "🚀" }
+];
+
+// Export tools for integration with management and coding platforms
+const EXPORT_TOOLS = [
+  { name: "Trello", category: "management", icon: "/trello.png" },
+  { name: "ClickUp", category: "management", icon: "/clickup.png" },
+  { name: "Jira", category: "management", icon: "/jira.png" },
+  { name: "Cursor", category: "coding", icon: "/cursor.jpg" },
+  { name: "Replit", category: "coding", icon: "/replit.png" },
+  { name: "Lovable", category: "coding", icon: "/lovable.jpeg" }
+];
+
+const SplashPage = () => {
+  const [animationPhase, setAnimationPhase] = useState(0);
+  const [typedText, setTypedText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
+  const [buttonHighlighted, setButtonHighlighted] = useState(false);
+  const [prioritizedFeatures, setPrioritizedFeatures] = useState(FEATURES);
+  const [activeJourneyStep, setActiveJourneyStep] = useState(0);
+  const [introMessageIndex, setIntroMessageIndex] = useState(0);
+  const [activeCategory, setActiveCategory] = useState("management");
+  const [showFinalText, setShowFinalText] = useState(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const introMessages = [
+    "Get your product defined well before starting development",
+    "Avoid misalignments and iterations"
+  ];
+
+  // Animation phases:
+  // 0: Just background (1.5s - shortened)
+  // 1: Main claim sequence (now includes multiple messages)
+  // 2: Input and auto-typing (4.5s) - shortened
+  // 4: Feature prioritization (4s) - shortened
+  // 5: PRD Sample (3.5s) - shortened
+  // 6: Journey steps (5s) - shortened
+  // 6.5: Export tools section (4s) - NEW
+  // 7: Final logo and CTA with animation (indefinite)
+
+  useEffect(() => {
+    // Track page view
+    trackEvent('Splash Page Viewed', {
+      'Page': 'splash'
+    });
+
+    // Animation sequence timing with shorter intro
+    const phaseTimers = [
+      setTimeout(() => {
+        setAnimationPhase(1);
+        setIntroMessageIndex(0);
+      }, 1500),
+    ];
+    
+    // Failsafe to prevent getting stuck
+    const failsafeTimer = setTimeout(() => {
+      if (animationPhase <= 1) {
+        setAnimationPhase(2);
+      }
+    }, 15000); // If we're still in phase 0 or 1 after 15 seconds, move on
+
+    return () => {
+      phaseTimers.forEach(timer => clearTimeout(timer));
+      clearTimeout(failsafeTimer);
+    };
+  }, []);
+
+  // Handle intro message transitions with FAST phase
+  useEffect(() => {
+    if (animationPhase === 1) {
+      // Hide any previous phase elements
+      document.querySelectorAll('[key^="phase-"]').forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-1') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+        }
+      });
+      
+      // If we're starting at the first message
+      if (introMessageIndex === 0) {
+        // Show first message for 2.5 seconds
+        const firstTimer = setTimeout(() => {
+          // Switch to FAST animation
+          setAnimationPhase(1.5);
+          
+          // After FAST animation (2 seconds), go back to message view with second message
+          const fastTimer = setTimeout(() => {
+            setAnimationPhase(1);
+            setIntroMessageIndex(1);
+            
+            // After showing second message (3 seconds), go to typing phase
+            const secondTimer = setTimeout(() => {
+              setAnimationPhase(2);
+            }, 3000);
+            
+            return () => clearTimeout(secondTimer);
+          }, 2000);
+          
+          return () => clearTimeout(fastTimer);
+        }, 2500);
+        
+        return () => clearTimeout(firstTimer);
+      } 
+      // If we're already at the second message (coming from FAST)
+      else if (introMessageIndex === 1) {
+        // Wait 3 seconds then go to next phase
+        const nextPhaseTimer = setTimeout(() => {
+          setAnimationPhase(2);
+        }, 3000);
+        
+        return () => clearTimeout(nextPhaseTimer);
+      }
+    }
+  }, [animationPhase, introMessageIndex]);
+
+  // Add this effect to handle the FAST animation phase
+  useEffect(() => {
+    if (animationPhase === 1.5) {
+      // Hide any previous phase elements except FAST animation
+      document.querySelectorAll('[key^="phase-"]').forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-1.5') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+        }
+      });
+      
+      // After showing FAST for 2 seconds, move back to message phase with second message
+      const fastAnimationTimer = setTimeout(() => {
+        setAnimationPhase(1);
+        setIntroMessageIndex(1);
+      }, 2000);
+      
+      return () => clearTimeout(fastAnimationTimer);
+    }
+  }, [animationPhase]);
+
+  // Handle auto-typing and button click when in Phase 2
+  useEffect(() => {
+    if (animationPhase === 2) {
+      // Hide any previous phase elements
+      document.querySelectorAll('[key^="phase-"]').forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-2') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+        }
+      });
+      
+      // Make sure phase-2 is visible
+      const phase2Element = document.querySelector('[key="phase-2"]');
+      if (phase2Element) {
+        (phase2Element as HTMLElement).style.display = 'flex';
+        (phase2Element as HTMLElement).style.visibility = 'visible';
+        (phase2Element as HTMLElement).style.opacity = '1';
+        (phase2Element as HTMLElement).style.zIndex = '10';
+      }
+      
+      // Auto-type the input text - shorter and more precise
+      const ideaText = "Gym workout tracker app";
+      let currentIndex = 0;
+      
+      const typingInterval = setInterval(() => {
+        if (currentIndex < ideaText.length) {
+          setTypedText(ideaText.substring(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          clearInterval(typingInterval);
+          
+          // After typing completes, highlight the button
+          setShowCursor(false);
+          setTimeout(() => {
+            setButtonHighlighted(true);
+            
+            // After highlighting, simulate button click and move to next phase
+            setTimeout(() => {
+              if (buttonRef.current) {
+                // Add active/pressed styles
+                buttonRef.current.classList.add('transform', 'scale-95');
+                
+                // After button press effect, move to feature prioritization
+                setTimeout(() => {
+                  // Clear any existing DOM elements first
+                  const currentPhaseElement = document.querySelector('[key="phase-2"]');
+                  if (currentPhaseElement) {
+                    (currentPhaseElement as HTMLElement).style.opacity = '0';
+                    (currentPhaseElement as HTMLElement).style.display = 'none';
+                    (currentPhaseElement as HTMLElement).style.visibility = 'hidden';
+                  }
+                  
+                  // Small additional delay to ensure clean transition
+                  setTimeout(() => {
+                    // Go to feature prioritization (phase 4)
+                    setAnimationPhase(4);
+                    // Reset button styles for next time
+                    if (buttonRef.current) {
+                      buttonRef.current.classList.remove('transform', 'scale-95');
+                    }
+                  }, 150);
+                }, 300);
+              }
+            }, 600);
+          }, 300);
+        }
+      }, 75); // Faster typing speed
+      
+      return () => clearInterval(typingInterval);
+    }
+  }, [animationPhase]);
+
+  // Feature prioritization effect - improved with trello-like animation but shorter
+  useEffect(() => {
+    if (animationPhase === 4) {
+      // Hide any previous phase elements
+      document.querySelectorAll('[key^="phase-"]').forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-4') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+        }
+      });
+      
+      // Make sure phase-4 is visible
+      const phase4Element = document.querySelector('[key="phase-4"]');
+      if (phase4Element) {
+        (phase4Element as HTMLElement).style.display = 'block';
+        (phase4Element as HTMLElement).style.visibility = 'visible';
+        (phase4Element as HTMLElement).style.opacity = '1';
+        (phase4Element as HTMLElement).style.zIndex = '10';
+      }
+      
+      // Initialize with initial priorities
+      setPrioritizedFeatures(FEATURES.map(feature => ({
+        ...feature,
+        priority: feature.initialPriority
+      })));
+      
+      // Calculate column positions for precise movements
+      const getColumnOffset = (fromPriority, toPriority) => {
+        const priorityOrder = { must: 0, should: 1, could: 2, wont: 3 };
+        const columnWidth = 260; // Approximate width of a column + gap
+        return (priorityOrder[toPriority] - priorityOrder[fromPriority]) * columnWidth;
+      };
+      
+      // First movement animation - auth feature moving from could to should
+      const firstMove = setTimeout(() => {
+        const authFeatureElement = document.getElementById('feature-1');
+        if (authFeatureElement) {
+          // Exact position from could -> should (one column left)
+          authFeatureElement.style.transform = `translateX(${getColumnOffset('could', 'should')}px)`;
+          authFeatureElement.classList.add('drag-animation');
+          authFeatureElement.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+          
+          setTimeout(() => {
+            setPrioritizedFeatures(prev => {
+              const newFeatures = [...prev];
+              const authFeature = newFeatures.find(f => f.id === 1);
+              if (authFeature) authFeature.priority = "should";
+              return newFeatures;
+            });
+            
+            if (authFeatureElement) {
+              authFeatureElement.style.transform = '';
+              authFeatureElement.style.boxShadow = '';
+              authFeatureElement.classList.remove('drag-animation');
+            }
+          }, 500);
+        }
+      }, 800);
+      
+      // Second movement animation - wearables from should to wont (moving right)
+      const secondMove = setTimeout(() => {
+        const wearablesFeatureElement = document.getElementById('feature-4');
+        if (wearablesFeatureElement) {
+          // Exact position from should -> wont (two columns right)
+          wearablesFeatureElement.style.transform = `translateX(${getColumnOffset('should', 'wont')}px)`;
+          wearablesFeatureElement.classList.add('drag-animation');
+          wearablesFeatureElement.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+          
+          setTimeout(() => {
+            setPrioritizedFeatures(prev => {
+              const newFeatures = [...prev];
+              const wearablesFeature = newFeatures.find(f => f.id === 4);
+              if (wearablesFeature) wearablesFeature.priority = "wont";
+              return newFeatures;
+            });
+            
+            if (wearablesFeatureElement) {
+              wearablesFeatureElement.style.transform = '';
+              wearablesFeatureElement.style.boxShadow = '';
+              wearablesFeatureElement.classList.remove('drag-animation');
+            }
+          }, 500);
+        }
+      }, 1700);
+      
+      // Third movement animation - charts from wont to should
+      const thirdMove = setTimeout(() => {
+        const chartsFeatureElement = document.getElementById('feature-3');
+        if (chartsFeatureElement) {
+          // Exact position from wont -> should (two columns left)
+          chartsFeatureElement.style.transform = `translateX(${getColumnOffset('wont', 'should')}px)`;
+          chartsFeatureElement.classList.add('drag-animation');
+          chartsFeatureElement.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+          
+          setTimeout(() => {
+            setPrioritizedFeatures(prev => {
+              const newFeatures = [...prev];
+              const chartsFeature = newFeatures.find(f => f.id === 3);
+              if (chartsFeature) chartsFeature.priority = "should";
+              return newFeatures;
+            });
+            
+            if (chartsFeatureElement) {
+              chartsFeatureElement.style.transform = '';
+              chartsFeatureElement.style.boxShadow = '';
+              chartsFeatureElement.classList.remove('drag-animation');
+            }
+          }, 500);
+        }
+      }, 2600);
+      
+      // Move to PRD sample after features are prioritized - SHORTENED
+      const prdPhaseTimer = setTimeout(() => {
+        // Hide the feature prioritization UI
+        const featurePrioritizationElement = document.querySelector('[key="phase-4"]');
+        if (featurePrioritizationElement) {
+          (featurePrioritizationElement as HTMLElement).style.opacity = '0';
+          (featurePrioritizationElement as HTMLElement).style.display = 'none';
+          (featurePrioritizationElement as HTMLElement).style.visibility = 'hidden';
+        }
+        
+        setAnimationPhase(5);
+      }, 4000);
+      
+      return () => {
+        clearTimeout(firstMove);
+        clearTimeout(secondMove);
+        clearTimeout(thirdMove);
+        clearTimeout(prdPhaseTimer);
+      };
+    }
+  }, [animationPhase]);
+
+  // PRD sample effect with improved animation - slightly slower
+  useEffect(() => {
+    if (animationPhase === 5) {
+      // Ensure any project creation elements are hidden properly
+      const projectCreationElements = document.querySelectorAll('[key="phase-2"], [key^="phase-"]');
+      projectCreationElements.forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-5') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+          (element as HTMLElement).style.opacity = '0';
+          (element as HTMLElement).style.pointerEvents = 'none';
+          (element as HTMLElement).style.zIndex = '-1';
+          (element as HTMLElement).style.position = 'absolute';
+          (element as HTMLElement).style.clip = 'rect(0, 0, 0, 0)';
+          (element as HTMLElement).setAttribute('aria-hidden', 'true');
+        }
+      });
+      
+      // Make sure phase-5 is visible
+      const prdElement = document.querySelector('[key="phase-5"]');
+      if (prdElement) {
+        (prdElement as HTMLElement).style.display = 'block';
+        (prdElement as HTMLElement).style.visibility = 'visible';
+        (prdElement as HTMLElement).style.opacity = '1';
+        (prdElement as HTMLElement).style.zIndex = '10';
+        (prdElement as HTMLElement).style.position = 'relative';
+        (prdElement as HTMLElement).style.clip = 'auto';
+        (prdElement as HTMLElement).removeAttribute('aria-hidden');
+      }
+      
+      // Add the sections immediately but with opacity 0
+      const sections = ['overview', 'user-stories', 'tech-requirements'];
+      sections.forEach(section => {
+        const sectionElement = document.getElementById(`prd-${section}`);
+        if (sectionElement) {
+          sectionElement.style.opacity = '0';
+        }
+      });
+      
+      // Reveal title first
+      const titleElement = document.getElementById('prd-title');
+      if (titleElement) {
+        titleElement.textContent = 'Product Requirements Document';
+      }
+      
+      // Sequential reveals with balanced timing - not too fast, not too slow
+      const revealSection = (index) => {
+        if (index < sections.length) {
+          const sectionElement = document.getElementById(`prd-${sections[index]}`);
+          if (sectionElement) {
+            sectionElement.style.opacity = '1';
+            sectionElement.classList.add('slide-in-right');
+          }
+          setTimeout(() => revealSection(index + 1), 800); // Slowed down to 800ms
+        } else {
+          // Show completion indicator
+          const completionElement = document.getElementById('prd-completion');
+          if (completionElement) {
+            completionElement.classList.remove('opacity-0');
+          }
+          
+          // Move to journey steps after a bit more time
+          setTimeout(() => {
+            setAnimationPhase(6);
+          }, 1000); // Increased to 1000ms
+        }
+      };
+      
+      // Start revealing sections after a moderate delay
+      setTimeout(() => revealSection(0), 500); // Increased to 500ms
+      
+      return () => {
+        // No need to clear timers as they're managed in the recursive function
+      };
+    }
+  }, [animationPhase]);
+
+  // Journey steps animation - faster progression
+  useEffect(() => {
+    if (animationPhase === 6) {
+      // Hide any previous phase elements
+      document.querySelectorAll('[key^="phase-"]').forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-6') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+        }
+      });
+
+      // Immediately show all steps
+      setActiveJourneyStep(-1);
+      
+      // Then quickly progress through them one by one
+      const journeyTimer = setTimeout(() => {
+        for (let i = 0; i < JOURNEY_STEPS.length; i++) {
+          setTimeout(() => {
+            setActiveJourneyStep(i);
+          }, i * 500); // Even faster progression - 500ms per step
+        }
+        
+        // Move to export tools section after journey steps complete
+        setTimeout(() => {
+          setAnimationPhase(6.5);
+        }, JOURNEY_STEPS.length * 500 + 300);
+      }, 300);
+      
+      return () => {
+        clearTimeout(journeyTimer);
+      };
+    }
+  }, [animationPhase]);
+
+  // Update export tools timing
+  useEffect(() => {
+    if (animationPhase === 6.5) {
+      // Hide any previous phase elements
+      document.querySelectorAll('[key^="phase-"]').forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-6.5') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+        }
+      });
+      
+      // Start with management category
+      setActiveCategory("management");
+      
+      // Switch to coding category after 2 seconds
+      const switchCategoryTimer = setTimeout(() => {
+        setActiveCategory("coding");
+      }, 2000);
+      
+      // Move to final logo after export tools section (2 seconds more)
+      const finalPhaseTimer = setTimeout(() => {
+        setAnimationPhase(7);
+      }, 6000); // Increased from 4000 to 6000
+      
+      return () => {
+        clearTimeout(switchCategoryTimer);
+        clearTimeout(finalPhaseTimer);
+      };
+    }
+  }, [animationPhase]);
+
+  // Final logo animation with improved sequence
+  useEffect(() => {
+    if (animationPhase === 7) {
+      // Hide any previous phase elements
+      document.querySelectorAll('[key^="phase-"]').forEach(element => {
+        if ((element as HTMLElement).getAttribute('key') !== 'phase-7') {
+          (element as HTMLElement).style.display = 'none';
+          (element as HTMLElement).style.visibility = 'hidden';
+        }
+      });
+      
+      // Show the text "FROM ZERO TO ONE IN MINUTES" centered initially
+      setShowFinalText(true);
+      
+      // After 3 seconds, start the transition animation to move text up and show logo
+      const fadeTextTimer = setTimeout(() => {
+        // Smoothly transition text to top and reveal logo, brand name and CTA
+        setShowFinalText(false);
+        
+        // Make sure to track the final CTA visibility
+        const trackCTATimer = setTimeout(() => {
+          trackEvent('Splash Final CTA Viewed', {
+            'Page': 'splash',
+            'Component': 'final_cta'
+          });
+        }, 1000); // Track after animation completes
+        
+        return () => clearTimeout(trackCTATimer);
+      }, 3000);
+      
+      return () => {
+        clearTimeout(fadeTextTimer);
+      };
+    }
+  }, [animationPhase]);
+
+  // Allow clicking anywhere to advance if animation gets stuck
+  useEffect(() => {
+    const advanceOnClick = () => {
+      if (animationPhase <= 1) {
+        if (introMessageIndex === 0) {
+          setAnimationPhase(1.5);
+          setTimeout(() => {
+            setAnimationPhase(1);
+            setIntroMessageIndex(1);
+          }, 2000);
+        } else if (introMessageIndex === 1) {
+          setAnimationPhase(2);
+        }
+      }
+    };
+    
+    document.addEventListener('click', advanceOnClick);
+    
+    return () => {
+      document.removeEventListener('click', advanceOnClick);
+    };
+  }, [animationPhase, introMessageIndex]);
+
+  // Add a failsafe to ensure we move to the next phase if anything gets stuck
+  useEffect(() => {
+    // Global failsafe for each phase
+    const phaseTimeout = {
+      0: 2000,    // Background phase shouldn't take more than 2s
+      1: 8000,    // Main claim sequence shouldn't take more than 8s total
+      2: 5000,    // Input and typing shouldn't take more than 5s
+      4: 5000,    // Feature prioritization shouldn't take more than 5s
+      5: 6000,    // PRD Sample shouldn't take more than 6s
+      6: 4000,    // Journey steps shouldn't take more than 4s
+      6.5: 7000,  // Export tools shouldn't take more than 7s
+      // Phase 7 (final) doesn't need a failsafe as it's the end
+    };
+    
+    if (phaseTimeout[animationPhase]) {
+      const failsafeTimer = setTimeout(() => {
+        if (animationPhase === 1 && introMessageIndex === 0) {
+          // If stuck on first message, go to FAST
+          setAnimationPhase(1.5);
+        } else if (animationPhase === 1.5) {
+          // If stuck on FAST, go to second message
+          setAnimationPhase(1);
+          setIntroMessageIndex(1);
+        } else if (animationPhase === 1 && introMessageIndex === 1) {
+          // If stuck on second message, go to typing
+          setAnimationPhase(2);
+        } else if (animationPhase < 2) {
+          // For any other case before typing, just go to typing
+          setAnimationPhase(2);
+        } else if (animationPhase === 2) {
+          // If stuck on typing phase, move to feature prioritization
+          setAnimationPhase(4);
+        } else if (animationPhase === 4) {
+          // If stuck on feature prioritization, move to PRD
+          setAnimationPhase(5);
+        } else if (animationPhase === 5) {
+          // If stuck on PRD phase, move to journey steps
+          setAnimationPhase(6);
+        } else if (animationPhase === 6) {
+          // If stuck on journey steps, move to export tools
+          setAnimationPhase(6.5);
+        } else if (animationPhase === 6.5) {
+          // If stuck on export tools, move to final
+          setAnimationPhase(7);
+        }
+      }, phaseTimeout[animationPhase]);
+      
+      return () => clearTimeout(failsafeTimer);
+    }
+  }, [animationPhase, introMessageIndex]);
+
+  return (
+    <>
+      <Head>
+        <title>021 - From Zero to One | AI-Powered Product Development</title>
+        <meta name="description" content="Transform your product development process with AI-powered workflows. From concept to implementation, all in one platform." />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <AnimatedBackground>
+        {/* White overlay with subtle radial gradient that fades in after 1.5 seconds */}
+        <div 
+          className={`fixed inset-0 transition-all duration-1500 ease-in-out ${
+            animationPhase > 0 ? 'opacity-80' : 'opacity-0'
+          }`}
+          style={{
+            background: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.82) 70%, rgba(255, 255, 255, 0.78) 100%)'
+          }}
+        />
+
+        <div className="min-h-screen flex flex-col items-center justify-center p-6">
+          {/* PHASE 1.5: FAST animation phase with improved tech effect and no background */}
+          {animationPhase === 1.5 && (
+            <div key="phase-1.5" className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center z-20">
+              <div className="glitch-container relative z-10">
+                <h1 className="text-9xl sm:text-[12rem] font-black tracking-tight uppercase tech-glitch" data-text="FAST">
+                  <span className="text-[#0F533A]">FAST</span>
+                </h1>
+              </div>
+            </div>
+          )}
+
+          {/* PHASE 1: Main Claim Sequence with improved transitions */}
+          {animationPhase === 1 && (
+            <div key="phase-1" className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center z-10">
+              <div 
+                id="intro-message-container"
+                className={`max-w-2xl px-4 text-center transition-all duration-500 ${
+                  introMessageIndex === 1 ? 'animate-pulse-once' : ''
+                }`}
+              >
+                <h1 className="text-4xl sm:text-5xl font-bold">
+                  <span 
+                    className={`font-semibold bg-gradient-to-r from-[#0F533A] to-[#16a34a] bg-clip-text text-transparent ${
+                      introMessageIndex === 1 ? 'cyberpunk-glitch' : ''
+                    }`} 
+                    data-text={introMessages[introMessageIndex]}
+                  >
+                    {introMessages[introMessageIndex]}
+                  </span>
+                </h1>
+              </div>
+            </div>
+          )}
+
+          {/* PHASE 2: Improved minimalist project creation UI */}
+          {animationPhase === 2 && (
+            <div key="phase-2" className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center z-10">
+              <div className="max-w-md w-full px-4 slide-in-bottom">
+                <div className="bg-white p-10 rounded-xl shadow-lg">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-10 text-center">
+                    What do you want to build?
+                  </h2>
+                  
+                  <div className="relative mb-12">
+                    <div className="input-container">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={typedText}
+                        className="w-full px-4 py-3 bg-transparent text-center text-xl text-gray-700 font-medium border-b-2 border-gray-200 focus:border-[#0F533A] focus:outline-none transition-all duration-300"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                  
+                  <button 
+                    ref={buttonRef}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-[#0F533A] to-[#16a34a] text-white text-lg font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]"
+                  >
+                    Create Project
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PHASE 4: Feature prioritization - Trello-like UI */}
+          {animationPhase === 4 && (
+            <div key="phase-4" className="relative z-10 text-center max-w-4xl w-full slide-in-bottom">
+              <div className="bg-white p-6 rounded-xl shadow-lg">
+                <div className="flex items-center justify-center space-x-2 mb-4">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full bg-[#0F533A] text-white text-sm font-bold">1</div>
+                  <h2 className="text-2xl font-semibold text-gray-800">Feature Prioritization</h2>
+                </div>
+                
+                <p className="text-gray-600 mb-4">Drag features between categories to prioritize them</p>
+                
+                <div className="grid grid-cols-4 gap-4 mb-2">
+                  <div className="text-center">
+                    <div className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-sm font-bold inline-block">MUST</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-md text-sm font-bold inline-block">SHOULD</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-md text-sm font-bold inline-block">COULD</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm font-bold inline-block">WON'T</div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-4">
+                  {/* MUST Column */}
+                  <div className="category-column bg-red-50 rounded-lg p-3">
+                    {prioritizedFeatures
+                      .filter(feature => feature.priority === "must")
+                      .map(feature => (
+                        <div 
+                          id={`feature-${feature.id}`}
+                          key={feature.id}
+                          className="p-3 mb-3 bg-white rounded-lg shadow border-l-4 border-red-400 feature-item"
+                        >
+                          <p className="text-sm font-medium text-left">{feature.text}</p>
+                          <div className="flex justify-end mt-1">
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-semibold">MUST</span>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  
+                  {/* SHOULD Column */}
+                  <div className="category-column bg-orange-50 rounded-lg p-3">
+                    {prioritizedFeatures
+                      .filter(feature => feature.priority === "should")
+                      .map(feature => (
+                        <div 
+                          id={`feature-${feature.id}`}
+                          key={feature.id}
+                          className="p-3 mb-3 bg-white rounded-lg shadow border-l-4 border-orange-400 feature-item"
+                        >
+                          <p className="text-sm font-medium text-left">{feature.text}</p>
+                          <div className="flex justify-end mt-1">
+                            <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-semibold">SHOULD</span>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  
+                  {/* COULD Column */}
+                  <div className="category-column bg-yellow-50 rounded-lg p-3">
+                    {prioritizedFeatures
+                      .filter(feature => feature.priority === "could")
+                      .map(feature => (
+                        <div 
+                          id={`feature-${feature.id}`}
+                          key={feature.id}
+                          className="p-3 mb-3 bg-white rounded-lg shadow border-l-4 border-yellow-400 feature-item"
+                        >
+                          <p className="text-sm font-medium text-left">{feature.text}</p>
+                          <div className="flex justify-end mt-1">
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">COULD</span>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  
+                  {/* WON'T Column */}
+                  <div className="category-column bg-gray-50 rounded-lg p-3">
+                    {prioritizedFeatures
+                      .filter(feature => feature.priority === "wont")
+                      .map(feature => (
+                        <div 
+                          id={`feature-${feature.id}`}
+                          key={feature.id}
+                          className="p-3 mb-3 bg-white rounded-lg shadow border-l-4 border-gray-400 feature-item"
+                        >
+                          <p className="text-sm font-medium text-left">{feature.text}</p>
+                          <div className="flex justify-end mt-1">
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-semibold">WON'T</span>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PHASE 5: PRD Sample - more dynamic */}
+          {animationPhase === 5 && (
+            <div key="phase-5" className="relative z-10 text-center max-w-3xl w-full slide-in-bottom">
+              <div className="bg-white p-8 rounded-xl shadow-lg text-left">
+                <div className="flex items-center space-x-2 mb-6">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full bg-[#0F533A] text-white text-sm font-bold">2</div>
+                  <h2 id="prd-title" className="text-2xl font-semibold text-gray-800 overflow-hidden">
+                    Product Requirements Document
+                  </h2>
+                </div>
+                
+                <div className="mb-6 pb-4 border-b border-gray-200 slide-down">
+                  <h3 className="text-lg font-semibold text-[#0F533A] mb-2">Gym Tracking App</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Status</p>
+                      <p className="font-medium text-gray-800">Draft</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Author</p>
+                      <p className="font-medium text-gray-800">021 AI</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Created</p>
+                      <p className="font-medium text-gray-800">Just now</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div id="prd-overview" className="p-4 bg-gray-50 rounded-lg opacity-0 transition-all duration-300">
+                    <div className="flex items-center mb-2">
+                      <div className="w-5 h-5 rounded-full bg-[#0F533A] text-white text-xs flex items-center justify-center mr-2">1</div>
+                      <h4 className="font-semibold text-gray-800">Overview</h4>
+                    </div>
+                    <p className="text-sm text-gray-600">A mobile application that allows users to track their gym workouts, set goals, and monitor their progress.</p>
+                  </div>
+                  
+                  <div id="prd-user-stories" className="p-4 bg-gray-50 rounded-lg opacity-0 transition-all duration-300">
+                    <div className="flex items-center mb-2">
+                      <div className="w-5 h-5 rounded-full bg-[#0F533A] text-white text-xs flex items-center justify-center mr-2">2</div>
+                      <h4 className="font-semibold text-gray-800">User Stories</h4>
+                    </div>
+                    <ul className="text-sm text-gray-600 list-disc pl-5 space-y-2">
+                      <li className="transform transition-all duration-300 hover:translate-x-1 hover:text-[#0F533A]">
+                        As a user, I want to create an account so that I can access my workout data.
+                      </li>
+                      <li className="transform transition-all duration-300 hover:translate-x-1 hover:text-[#0F533A]">
+                        As a user, I want to log my exercises so that I can track my progress.
+                      </li>
+                      <li className="transform transition-all duration-300 hover:translate-x-1 hover:text-[#0F533A]">
+                        As a user, I want to view charts of my performance so that I can see my improvements.
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div id="prd-tech-requirements" className="p-4 bg-gray-50 rounded-lg opacity-0 transition-all duration-300">
+                    <div className="flex items-center mb-2">
+                      <div className="w-5 h-5 rounded-full bg-[#0F533A] text-white text-xs flex items-center justify-center mr-2">3</div>
+                      <h4 className="font-semibold text-gray-800">Technical Requirements</h4>
+                    </div>
+                    <ul className="text-sm text-gray-600 space-y-2">
+                      <li className="flex items-center">
+                        <span className="inline-block w-5 h-5 bg-red-100 text-red-700 rounded mr-2 flex-shrink-0 text-xs font-bold flex items-center justify-center">M</span>
+                        User authentication system with secure password storage
+                      </li>
+                      <li className="flex items-center">
+                        <span className="inline-block w-5 h-5 bg-red-100 text-red-700 rounded mr-2 flex-shrink-0 text-xs font-bold flex items-center justify-center">M</span>
+                        Database of exercises with categorization
+                      </li>
+                      <li className="flex items-center">
+                        <span className="inline-block w-5 h-5 bg-orange-100 text-orange-700 rounded mr-2 flex-shrink-0 text-xs font-bold flex items-center justify-center">S</span>
+                        Data visualization for progress tracking
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div id="prd-completion" className="mt-6 flex justify-end items-center opacity-0 transition-opacity duration-500">
+                  <div className="flex items-center text-[#0F533A] bg-green-50 px-3 py-1.5 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm font-medium">PRD Complete</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PHASE 6: Journey Steps - simplified version */}
+          {animationPhase === 6 && (
+            <div key="phase-6" className="relative z-10 text-center max-w-3xl w-full slide-in-bottom">
+              <div className="bg-white p-8 rounded-xl shadow-lg">
+                <div className="flex items-center space-x-2 mb-6">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full bg-[#0F533A] text-white text-sm font-bold">3</div>
+                  <h2 className="text-2xl font-semibold text-gray-800">Gym Tracker User Journey</h2>
+                </div>
+                
+                <div className="relative">
+                  {/* Progress bar */}
+                  <div className="absolute top-6 left-10 right-10 h-1 bg-gray-200 z-0">
+                    <div 
+                      className="h-full bg-[#0F533A] transition-all duration-500" 
+                      style={{ width: `${(activeJourneyStep + 1) * (100 / JOURNEY_STEPS.length)}%` }}
+                    ></div>
+                  </div>
+                  
+                  {/* Steps */}
+                  <div className="flex justify-between relative z-10">
+                    {JOURNEY_STEPS.map((step, index) => (
+                      <div 
+                        key={step.id} 
+                        className={`flex flex-col items-center transition-all duration-500 ${
+                          index <= activeJourneyStep ? 'opacity-100' : 'opacity-40'
+                        }`}
+                      >
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-3 transition-all duration-500 ${
+                          index <= activeJourneyStep 
+                            ? 'bg-[#0F533A] text-white shadow-lg scale-110' 
+                            : 'bg-gray-200 text-gray-500'
+                        }`}>
+                          {step.icon}
+                        </div>
+                        <h3 className={`font-semibold text-base mb-1 transition-colors duration-500 ${
+                          index <= activeJourneyStep ? 'text-[#0F533A]' : 'text-gray-500'
+                        }`}>{step.title}</h3>
+                        <p className={`text-sm text-center max-w-[120px] transition-colors duration-500 ${
+                          index <= activeJourneyStep ? 'text-gray-700' : 'text-gray-400'
+                        }`}>{step.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Empty space for animation timing */}
+                <div className="h-16"></div>
+              </div>
+            </div>
+          )}
+
+          {/* PHASE 6.5: Redesigned Export & Collaborate section */}
+          {animationPhase === 6.5 && (
+            <div key="phase-6.5" className="relative z-10 text-center max-w-3xl w-full slide-in-bottom">
+              <div className="bg-white p-8 rounded-xl shadow-lg">
+                <div className="flex items-center space-x-2 mb-8">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full bg-[#0F533A] text-white text-sm font-bold">4</div>
+                  <h2 className="text-2xl font-semibold text-gray-800">Export & Collaborate</h2>
+                </div>
+                
+                <div className="mb-8">
+                  <div className="flex justify-center space-x-4">
+                    <button 
+                      className={`px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${
+                        activeCategory === "management" 
+                          ? "bg-gradient-to-r from-[#0F533A] to-[#16a34a] text-white shadow-md" 
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                      onClick={() => setActiveCategory("management")}
+                    >
+                      Project Management
+                    </button>
+                    <button 
+                      className={`px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${
+                        activeCategory === "coding" 
+                          ? "bg-gradient-to-r from-[#0F533A] to-[#16a34a] text-white shadow-md" 
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                      onClick={() => setActiveCategory("coding")}
+                    >
+                      Development Tools
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center mb-4">
+                  <div className="grid grid-cols-3 gap-x-8 gap-y-6">
+                    {EXPORT_TOOLS
+                      .filter(tool => tool.category === activeCategory)
+                      .map((tool, index) => (
+                        <div key={tool.name} className="flex flex-col items-center justify-center tool-fade-in" style={{animationDelay: `${index * 150}ms`}}>
+                          <div className="w-20 h-20 rounded-lg mb-3 p-1 flex items-center justify-center shadow-sm hover:shadow-md transition duration-300 transform hover:scale-110 cursor-pointer bg-white border border-gray-200 overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-[#0F533A]/10 to-[#16a34a]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            {tool.icon ? (
+                              <img src={tool.icon} alt={tool.name} className="max-w-full max-h-full object-contain relative z-10" />
+                            ) : (
+                              <div className={`w-full h-full rounded flex items-center justify-center relative z-10 ${
+                                tool.category === "management" ? "bg-blue-500" : "bg-purple-500"
+                              }`}>
+                                <span className="text-white font-bold text-xl">{tool.name.substring(0, 2)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium">{tool.name}</p>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+                
+                <p className="text-lg font-medium text-gray-700 mt-6 px-4 py-2 rounded-lg bg-gray-50 mx-auto inline-block">
+                  Connect with your favorite tools
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* PHASE 7: Animated final logo and CTA with improved transition - center to top sequence */}
+          {animationPhase === 7 && (
+            <div key="phase-7" className="reveal-animation relative z-10 text-center max-w-lg transition-all duration-1000 flex flex-col items-center justify-center h-full">
+              <div className="relative fade-in w-full">
+                {/* Gradient text - starts centered and moves to top */}
+                <h2 className="text-5xl sm:text-6xl font-bold mb-8 transition-all duration-1000 bg-gradient-to-r from-[#0F533A] to-[#16a34a] bg-clip-text text-transparent" 
+                    style={{ 
+                      opacity: 1,
+                      transform: showFinalText ? 'translateY(0)' : 'translateY(-20px) scale(0.9)',
+                      position: 'relative',
+                      marginTop: showFinalText ? '20vh' : '0',
+                    }}>
+                  From Zero to One in Minutes
+                </h2>
+                
+                {/* Logo and content that fades in after text moves up */}
+                <div className="transition-all duration-1000 mt-8" 
+                     style={{ 
+                       opacity: showFinalText ? 0 : 1, 
+                       transform: showFinalText ? 'translateY(30px)' : 'translateY(0)',
+                       pointerEvents: showFinalText ? 'none' : 'auto' 
+                     }}>
+                  <div className="mb-4">
+                    <Logo width={120} height={120} className="mx-auto steady-logo-no-animation" />
+                  </div>
+                  
+                  <h1 className="text-5xl sm:text-6xl font-bold mb-10 mt-4">
+                    <span className="animated-gradient-text">021</span>
+                  </h1>
+                  
+                  <button className="cta-button mt-6 px-10 py-4 bg-gradient-to-r from-[#0F533A] to-[#16a34a] text-white text-xl font-bold rounded-full shadow-lg">
+                    Start today
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </AnimatedBackground>
+
+      {/* Add drag animation style */}
+      <style jsx global>{`
+        .drag-animation {
+          transition: transform 0.6s ease-in-out;
+          z-index: 50;
+        }
+        
+        .category-column {
+          min-height: 200px;
+          transition: background-color 0.3s ease;
+        }
+        
+        .feature-item {
+          cursor: grab;
+        }
+        
+        .drop-highlight {
+          background-color: rgba(15, 83, 58, 0.05);
+        }
+
+        @keyframes typewriter {
+          from { width: 0; }
+          to { width: 100%; }
+        }
+        
+        @keyframes cursorBlink {
+          0%, 100% { border-right-color: transparent; }
+          50% { border-right-color: #0F533A; }
+        }
+        
+        .typing-animation {
+          display: inline-block;
+          overflow: hidden;
+          white-space: nowrap;
+          animation: 
+            typewriter 1.5s steps(40, end) forwards,
+            cursorBlink 0.75s step-end infinite;
+          border-right: 2px solid #0F533A;
+        }
+        
+        /* Slide in bottom animation - enhanced to be more distinct */
+        .slide-in-bottom {
+          animation: slideInBottom 0.6s ease-out forwards;
+          transform-origin: center bottom;
+        }
+        
+        @keyframes slideInBottom {
+          0% { 
+            transform: translateY(50px);
+            opacity: 0;
+          }
+          100% { 
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        
+        /* Slide in right animation - enhanced to be more distinct */
+        .slide-in-right {
+          animation: slideInRight 0.6s ease-out forwards;
+          transform-origin: left center;
+        }
+        
+        @keyframes slideInRight {
+          0% { 
+            transform: translateX(50px);
+            opacity: 0;
+          }
+          100% { 
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .highlight-pulse {
+          animation: highlightPulse 1s ease-in-out;
+        }
+        
+        @keyframes highlightPulse {
+          0% { background-color: rgba(16, 185, 129, 0.05); }
+          50% { background-color: rgba(16, 185, 129, 0.2); }
+          100% { background-color: rgba(16, 185, 129, 0.05); }
+        }
+        
+        .slide-down {
+          animation: slideDown 0.5s ease-out forwards;
+        }
+        
+        @keyframes slideDown {
+          from { 
+            transform: translateY(-20px);
+            opacity: 0;
+          }
+          to { 
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        
+        .tool-fade-in {
+          animation: toolFadeIn 0.5s ease-out forwards;
+          opacity: 0;
+        }
+        
+        @keyframes toolFadeIn {
+          from { 
+            transform: translateY(10px);
+            opacity: 0;
+          }
+          to { 
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        
+        .fade-in {
+          animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        /* Add a pulse animation for when second message appears */
+        @keyframes pulseOnce {
+          0% { transform: scale(0.95); opacity: 0; }
+          70% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .animate-pulse-once {
+          animation: pulseOnce 0.6s ease-out forwards;
+        }
+        
+        /* FAST animation container with scale effect */
+        .glitch-container {
+          position: relative;
+          animation: scaleIn 0.5s ease-in-out forwards, scaleOut 0.5s ease-in-out 1.5s forwards;
+        }
+        
+        @keyframes scaleIn {
+          0% { transform: scale(0.1); opacity: 0; }
+          50% { transform: scale(1.2); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes scaleOut {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(3); opacity: 0; }
+        }
+        
+        /* FAST animation improved with no background */
+        .tech-glitch {
+          position: relative;
+          color: #0F533A;
+          text-shadow: 
+            0.05em 0 0 rgba(255, 0, 0, 0.75),
+            -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
+            0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+          animation: tech-glitch 100ms infinite;
+        }
+        
+        .tech-glitch::before,
+        .tech-glitch::after {
+          content: 'FAST';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+        }
+        
+        .tech-glitch::before {
+          left: -2px;
+          text-shadow: 2px 0 #ff0000;
+          animation: tech-glitch-1 300ms infinite;
+          clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+        }
+        
+        .tech-glitch::after {
+          left: 2px;
+          text-shadow: -2px 0 #00ff00;
+          animation: tech-glitch-2 200ms infinite;
+          clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+        }
+        
+        @keyframes tech-glitch {
+          0% { transform: translate(0); }
+          25% { transform: translate(-1px, 1px); }
+          50% { transform: translate(-1px, -1px); }
+          75% { transform: translate(1px, 1px); }
+          100% { transform: translate(0); }
+        }
+        
+        @keyframes tech-glitch-1 {
+          0% { clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%); }
+          20% { clip-path: polygon(60% 0, 100% 0, 100% 33%, 0 33%); }
+          40% { clip-path: polygon(20% 0, 100% 0, 100% 33%, 0 33%); }
+          60% { clip-path: polygon(80% 0, 100% 0, 100% 33%, 0 33%); }
+          80% { clip-path: polygon(10% 0, 100% 0, 100% 33%, 0 33%); }
+          100% { clip-path: polygon(30% 0, 100% 0, 100% 33%, 0 33%); }
+        }
+        
+        @keyframes tech-glitch-2 {
+          0% { clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%); }
+          25% { clip-path: polygon(30% 67%, 100% 67%, 100% 100%, 0 100%); }
+          50% { clip-path: polygon(50% 67%, 100% 67%, 100% 100%, 0 100%); }
+          75% { clip-path: polygon(20% 67%, 100% 67%, 100% 100%, 0 100%); }
+          100% { clip-path: polygon(10% 67%, 100% 67%, 100% 100%, 0 100%); }
+        }
+        
+        /* Minimalist glitch effect for "Avoid misalignments" - Enhanced version */
+        .cyberpunk-glitch {
+          position: relative;
+          display: inline-block;
+          animation: stronger-flicker 1.5s ease-in-out infinite;
+          text-shadow: 0 0 2px rgba(15, 83, 58, 0.5);
+        }
+        
+        .cyberpunk-glitch::before,
+        .cyberpunk-glitch::after {
+          content: attr(data-text);
+          position: absolute;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background-image: linear-gradient(to right, #0F533A, #16a34a);
+          background-clip: text;
+          -webkit-background-clip: text;
+          color: transparent;
+        }
+        
+        .cyberpunk-glitch::before {
+          left: -2px;
+          opacity: 0.8;
+          animation: stronger-shift-1 1s infinite ease-in-out;
+          clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+        }
+        
+        .cyberpunk-glitch::after {
+          left: 2px;
+          opacity: 0.8;
+          animation: stronger-shift-2 1.5s infinite ease-in-out;
+          clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+        }
+        
+        @keyframes stronger-flicker {
+          0%, 100% { opacity: 1; }
+          30% { opacity: 0.9; }
+          32% { opacity: 0.4; }
+          34% { opacity: 0.9; }
+          70% { opacity: 0.7; }
+          72% { opacity: 0.95; }
+        }
+        
+        @keyframes stronger-shift-1 {
+          0%, 100% { transform: translateX(0); }
+          34% { transform: translateX(-3px); }
+          36% { transform: translateX(3px); }
+          38% { transform: translateX(-3px); }
+          40% { transform: translateX(0); }
+        }
+        
+        @keyframes stronger-shift-2 {
+          0%, 100% { transform: translateX(0); }
+          54% { transform: translateX(3px); }
+          56% { transform: translateX(-3px); }
+          58% { transform: translateX(3px); }
+          60% { transform: translateX(0); }
+        }
+        
+        /* Logo container animation */
+        .logo-container {
+          /* Removed animation for steady appearance */
+          filter: drop-shadow(0 4px 8px rgba(15, 83, 58, 0.2));
+        }
+        
+        /* Not used for steady logo */
+        @keyframes logoFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        /* New class for completely steady logo */
+        .steady-logo-no-animation {
+          filter: drop-shadow(0 6px 12px rgba(15, 83, 58, 0.3));
+          transform: translateY(0);
+        }
+        
+        /* CTA button animation */
+        .cta-button {
+          position: relative;
+          overflow: hidden;
+          transition: all 0.4s ease;
+          animation: buttonPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes buttonPulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 5px 15px rgba(15, 83, 58, 0.3); }
+          50% { transform: scale(1.05); box-shadow: 0 8px 20px rgba(15, 83, 58, 0.4); }
+        }
+        
+        .cta-button:hover {
+          transform: translateY(-3px) scale(1.05);
+          box-shadow: 0 12px 24px rgba(15, 83, 58, 0.3);
+        }
+        
+        .cta-button::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent);
+          transform: translateX(-100%);
+        }
+        
+        .cta-button:hover::after {
+          animation: buttonShine 1.5s infinite;
+        }
+        
+        @keyframes buttonShine {
+          100% { transform: translateX(100%); }
+        }
+        
+        /* Steady logo without pulsing animation */
+        .steady-logo {
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        
+        /* Improved cursor for project creation */
+        .input-container {
+          position: relative;
+          display: flex;
+          justify-content: center;
+        }
+        
+        /* Dynamic cursor position calculation */
+        .input-container input {
+          position: relative;
+          z-index: 1;
+        }
+        
+        .input-container:after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: linear-gradient(to right, transparent, #0F533A 50%, transparent);
+          transform: scaleX(0);
+          transition: transform 0.3s ease;
+          transform-origin: center;
+        }
+        
+        .input-container:hover:after,
+        .input-container:focus-within:after {
+          transform: scaleX(1);
+        }
+        
+        /* Improved animated gradient text for final screen */
+        .animated-gradient-text {
+          background: linear-gradient(to right, #0F533A, #16a34a, #0F533A);
+          background-size: 200% auto;
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: gradientFlow 3s ease infinite;
+        }
+        
+        @keyframes gradientFlow {
+          0% { background-position: 0% center; }
+          50% { background-position: 100% center; }
+          100% { background-position: 0% center; }
+        }
+      `}</style>
+    </>
+  );
+};
+
+export default SplashPage; 
