@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>021 Guide to Lovable</title>
+  <link rel="stylesheet" href="styles/popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <img src="icons/icon48.png" alt="021 to Lovable Logo" class="logo">
+        <h1>021 Guide to Lovable</h1>
+      </div>
+    </header>
+    
+    <div class="content">
+      <div id="status-message"></div>
+      
+      <div id="no-content" class="info-message">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="info-icon">
+          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 16V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 8H12.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p>No implementation guide content copied yet.</p>
+        <p>Visit a from021.io implementation guide page to copy content.</p>
+      </div>
+      
+      <div id="has-content" class="hidden">
+        <div class="section">
+          <h2>Stored Content</h2>
+          <div class="content-stats">
+            <div class="stat-item">
+              <span class="label">Implementation Guide:</span>
+              <span id="guide-status" class="status">Not copied</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Implementation Steps:</span>
+              <span id="steps-status" class="status">Not copied</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">AI Prompt:</span>
+              <span id="prompt-status" class="status">Not copied</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="section">
+          <h2>Paste to Lovable</h2>
+          <div class="buttons">
+            <button id="paste-guide" class="btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 19V9C17 8.44772 16.5523 8 16 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Guide
+            </button>
+            <button id="paste-steps" class="btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 4H4V11H11V4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 4H13V11H20V4Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 13H13V20H20V13Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 13H4V20H11V13Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Steps
+            </button>
+            <button id="paste-prompt" class="btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 14C8 14 9.5 16 12 16C14.5 16 16 14 16 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 9H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 9H15.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Prompt
+            </button>
+            <button id="copy-all" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 8.5V13.5C20 17.5 18.5 19 14.5 19H9.5C5.5 19 4 17.5 4 13.5V8.5C4 4.5 5.5 3 9.5 3H14.5C18.5 3 20 4.5 20 8.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 14V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 12H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Copy All Content
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      <p>On Lovable, click the extension icon then paste</p>
+    </footer>
+  </div>
+  <script src="scripts/popup.js"></script>
+</body>
+</html> 

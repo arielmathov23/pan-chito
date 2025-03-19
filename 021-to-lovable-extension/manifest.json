@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "021 Guide to Lovable",
+  "version": "1.0",
+  "description": "Copy implementation guide content from 021.io and paste it into Lovable chat",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "clipboardWrite",
+    "scripting",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://from021.io/*",
+    "https://lovable.dev/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://from021.io/*"],
+      "js": ["scripts/from021-content.js"],
+      "css": ["styles/from021-styles.css"]
+    },
+    {
+      "matches": ["https://lovable.dev/*"],
+      "js": ["scripts/lovable-content.js"],
+      "css": ["styles/lovable-styles.css"]
+    }
+  ],
+  "background": {
+    "service_worker": "scripts/background.js"
+  }
+} 
