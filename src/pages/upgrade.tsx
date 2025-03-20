@@ -214,16 +214,6 @@ export default function Upgrade() {
       <Navbar />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
-          {/* Back Button */}
-          <button 
-            onClick={() => router.back()} 
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Back
-          </button>
           
           {/* Header Section */}
           <div className="text-center mb-8">
@@ -611,7 +601,7 @@ export default function Upgrade() {
           <div className="bg-gradient-to-r from-[#0F533A] to-[#16a34a] rounded-2xl p-8 text-center text-white">
             <h2 className="text-2xl font-bold mb-4">Ready to transform your product development?</h2>
             <p className="text-white/80 mb-6 max-w-2xl mx-auto">
-              Limited time offer: Get 70% off Single Project plan with code <span className="font-mono bg-white/20 px-2 py-1 rounded text-white">LAUNCH70</span> • Ends in {countdown.days}d {countdown.hours}h
+              Limited time offer: Get 70% off Single Project plan with code <span className="font-mono bg-white/20 px-2 py-1 rounded text-white">LAUNCH70</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -625,12 +615,12 @@ export default function Upgrade() {
               >
                 Choose a Plan
               </button>
-              <Link
-                href="/projects"
+              <button
+                onClick={() => router.back()}
                 className="px-8 py-3.5 bg-transparent border border-white text-white font-medium rounded-lg hover:bg-white/10 transition-colors order-last h-[50px] flex items-center justify-center min-w-[160px]"
               >
-                Back to Projects
-              </Link>
+                Go back
+              </button>
             </div>
           </div>
         </div>
