@@ -249,16 +249,15 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
       
       Product Context:
       - Name: ${brief.product_name}
-      - Problem: ${briefData.problemStatement}
       - Users: ${briefData.targetUsers}
       - Solution: ${briefData.proposedSolution}
-      - Objectives: ${briefData.productObjectives}
       
       Features to document (${featuresForPRD.length} of ${priorityFeatures.length} total priority features):
       ${featuresForPRD.map((f, i) => `${i+1}. ${f.name}: ${f.description} (${f.priority.toUpperCase()})`).join('\n')}
       
-      If a feature should have more than 1 user story, separate the feature in different sections, one for each user story. 
-      Follow this exact template for each feature separated by user stories.
+      It is extremly important that you consider all the user stories for a single feature to make this the best PRD in the world.
+      If a feature must be described in more than 1 user story, separate the answer for a single feature in different sections (described below), one for each user story for a same feature. 
+      Follow this exact template for each user story related to a feature separated by user stories. 
       
       {
         "sections": [
@@ -266,20 +265,20 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
             "featureName": "Feature Name",
             "featurePriority": "must or should",
             "overview": {
-              "purpose": "Concise purpose statement",
-              "successMetrics": ["Metric 1", "Metric 2"]
+              "purpose": "Job to be done, what this feature solve and how",
+              "successMetrics": ["North Star Metric"]
             },
-            "userStories": ["User story description with details for a top User experience"],
+            "userStories": ["User story description with details for a high quality User experience"],
             "acceptanceCriteria": {
               "guidelines": "Brief guidelines",
               "criteria": ["Criterion 1", "Criterion 2"]
             },
             "useCases": [
               {
-                "id": "UC-1",
+                "id": "UC-id",
                 "title": "Use case title",
                 "description": "Brief description",
-                "actors": ["Actor 1", "Actor 2"],
+                "actors": ["describe user 1", "describe user 2"],
                 "preconditions": ["Precondition 1"],
                 "postconditions": ["Postcondition 1"],
                 "mainScenario": ["Step 1", "Step 2"],
