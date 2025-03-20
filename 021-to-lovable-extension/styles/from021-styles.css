@@ -3,8 +3,10 @@
   --primary-dark: #7c3aed;
   --primary-light: #a78bfa;
   --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.1);
   --error: #ef4444;
   --background: #f9fafb;
+  --subtle-green: rgba(16, 185, 129, 0.05);
   --card: #ffffff;
   --border: #e5e7eb;
   --text-primary: #111827;
@@ -16,48 +18,58 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background-color: var(--card);
+  background-color: rgba(255, 255, 255, 0.98);
+  background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.98), rgba(236, 253, 245, 0.95));
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  padding: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  padding: 20px;
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(230, 232, 236, 0.8);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  max-width: 280px;
+  max-width: 320px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   backdrop-filter: blur(10px);
   transform: translateY(0);
 }
 
 .from021-copy-container.minimized {
-  transform: translateY(calc(100% - 48px));
+  transform: translateY(calc(100% - 60px));
   width: auto;
   height: auto;
-  padding: 12px;
+  padding: 16px;
 }
 
 .from021-copy-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .from021-copy-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
   color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: -0.01em;
   display: flex;
   align-items: center;
-  letter-spacing: -0.01em;
+  gap: 8px;
+}
+
+.from021-copy-title span {
+  white-space: nowrap;
 }
 
 .from021-copy-logo {
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
 }
 
 .from021-copy-close, .from021-copy-minimize {
@@ -68,8 +80,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 4px;
+  border-radius: 4px;
   transition: all 0.2s ease;
 }
 
@@ -81,7 +93,7 @@
 .from021-copy-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   transition: opacity 0.3s ease;
 }
 
@@ -93,50 +105,52 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 10px 14px;
+  padding: 12px 16px;
   background-color: var(--background);
   color: var(--text-secondary);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 500;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
   letter-spacing: -0.01em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   width: 100%;
 }
 
 .from021-copy-button:hover {
-  background-color: #f1f5f9;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  background-color: var(--subtle-green);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
 }
 
 .from021-copy-button:active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .from021-copy-button-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin-right: 10px;
+  flex-shrink: 0;
 }
 
 .from021-tooltip {
   position: fixed;
-  padding: 10px 16px;
+  padding: 8px 14px;
   background-color: rgba(30, 41, 59, 0.9);
   color: white;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 12px;
   z-index: 10000;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
   transform: translateY(10px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   font-weight: 500;
   letter-spacing: -0.01em;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -152,22 +166,219 @@
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: white;
   border: none;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 14px 18px;
 }
 
 .from021-copy-all-button:hover {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(124, 58, 237, 0.35);
 }
 
 .from021-copy-button.success {
-  background-color: var(--success);
-  color: white;
+  background-color: var(--success-light);
+  color: var(--success);
   pointer-events: none;
-  border: none;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-weight: 600;
 }
 
 .from021-copy-button.error {
-  background-color: var(--error);
-  color: white;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--error);
   pointer-events: none;
-  border: none;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  font-weight: 600;
+}
+
+/* Subtle clear memory button */
+.from021-clear-button {
+  background-color: transparent !important;
+  color: var(--text-tertiary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  margin-top: 8px !important;
+  opacity: 0.7;
+  text-align: center;
+  justify-content: center;
+}
+
+.from021-clear-button:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: var(--error) !important;
+  box-shadow: none !important;
+  opacity: 1;
+}
+
+.from021-clear-button svg {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+/* Logos container in header */
+.from021-logos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.from021-logo-divider {
+  color: var(--text-tertiary);
+  font-size: 14px;
+  margin: 0 3px;
+}
+
+/* Common frosted glass effect for indicator and container */
+.from021-indicator, .from021-copy-container {
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-dark: rgba(30, 30, 35, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-border-dark: rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* Grey indicator styling (customized) */
+.from021-indicator {
+  --indicator-bg: rgba(100, 105, 120, 0.85);
+  --indicator-bg-hover: rgba(90, 95, 110, 0.9);
+  background-color: var(--indicator-bg) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25) !important;
+}
+
+.from021-indicator:hover {
+  background-color: var(--indicator-bg-hover) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Copied indicator - use check marks only when copied */
+.from021-copy-button.copied {
+  background-color: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.from021-copy-button.copied::after {
+  content: "✓";
+  font-size: 16px;
+  color: var(--success);
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+.from021-copy-button.copied span {
+  display: none; /* Hide the span since we're using ::after */
+}
+
+/* Add light/dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --subtle-green: rgba(16, 185, 129, 0.1);
+    --success: #10b981;
+  }
+
+  .from021-copy-container {
+    background-color: rgba(32, 32, 38, 0.95);
+    background-image: linear-gradient(to bottom right, rgba(32, 32, 38, 0.95), rgba(10, 40, 30, 0.9));
+    border-color: rgba(60, 60, 70, 0.5);
+    color: white;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  }
+  
+  .from021-copy-title {
+    color: rgba(255, 255, 255, 0.95);
+  }
+  
+  .from021-copy-button {
+    background-color: rgba(50, 50, 60, 0.7);
+    color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(80, 80, 90, 0.3);
+  }
+  
+  .from021-copy-button:hover {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .from021-copy-button.success {
+    background-color: rgba(16, 185, 129, 0.25);
+    color: rgba(16, 185, 129, 1);
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+
+  .from021-copy-button.copied {
+    background-color: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .from021-copy-button.copied::after {
+    color: rgba(16, 185, 129, 1);
+  }
+  
+  .from021-copy-button.error {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: rgba(239, 68, 68, 0.9);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+  
+  .from021-clear-button {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  .from021-clear-button:hover {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+}
+
+/* Refined container styling */
+.from021-copy-container {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.from021-copy-container:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Logo styling */
+.from021-copy-logo {
+  object-fit: cover;
+}
+
+/* Buttons */
+.from021-copy-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Animation for the copy all button */
+@keyframes pulseButton {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+.from021-copy-all-button {
+  animation: pulseButton 3s infinite ease-in-out;
+  border-radius: 8px;
+}
+
+/* Button hover states */
+.from021-copy-button:hover .from021-copy-button-icon {
+  color: var(--primary);
 } 

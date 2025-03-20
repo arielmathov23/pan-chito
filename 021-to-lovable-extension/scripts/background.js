@@ -9,6 +9,17 @@ chrome.action.onClicked.addListener(async (tab) => {
     } catch (error) {
       console.error('Error toggling paste UI:', error);
     }
+  } else if (tab.url.includes('from021.io') || tab.url.includes('localhost')) {
+    // On 021 site, check if the page is an implementation page
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'checkPageType' });
+      if (response && response.isImplementationPage) {
+        // If it's an implementation page, show the modal
+        await chrome.tabs.sendMessage(tab.id, { action: 'showModal' });
+      }
+    } catch (error) {
+      console.error('Error checking page type:', error);
+    }
   }
 });
 

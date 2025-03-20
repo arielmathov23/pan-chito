@@ -7,6 +7,9 @@
     return;
   }
   
+  // Track if the modal was manually closed to prevent auto-reopening
+  let modalManuallyClosed = false;
+  
   let copiedContent = {
     guide: null,
     steps: null,
@@ -23,10 +26,12 @@
     const container = document.createElement('div');
     container.className = 'from021-paste-container';
     
-    // For dark background of Lovable
+    // For dark background of Lovable with subtle green gradient
     container.style.backgroundColor = "rgba(32, 32, 36, 0.95)";
+    container.style.backgroundImage = "linear-gradient(to bottom right, rgba(32, 32, 36, 0.95), rgba(10, 40, 30, 0.92))";
     container.style.color = "#FFFFFF";
     container.style.borderColor = "rgba(75, 75, 90, 0.5)";
+    container.style.boxShadow = "0 6px 18px rgba(0, 0, 0, 0.25)";
     
     // Create header with title and close button
     const header = document.createElement('div');
@@ -34,8 +39,14 @@
     
     const title = document.createElement('div');
     title.className = 'from021-paste-title';
+    // Add logos to the header
     title.innerHTML = `
-      <span>021 to Lovable</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <img src="${chrome.runtime.getURL('icons/icon48.png')}" alt="021" style="width: 16px; height: 16px; border-radius: 4px;">
+        <span style="font-size: 12px; opacity: 0.8; color: white;">→</span>
+        <img src="${chrome.runtime.getURL('icons/lovable.jpeg')}" alt="Lovable" style="width: 16px; height: 16px; border-radius: 4px;">
+        <span>Copy to Lovable</span>
+      </div>
     `;
     
     const controlsDiv = document.createElement('div');
@@ -60,12 +71,20 @@
             <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         `;
+        
+        // Add minimized styles
+        container.style.height = 'auto';
+        content.style.display = 'none';
       } else {
         minimizeButton.innerHTML = `
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         `;
+        
+        // Restore normal styles
+        container.style.height = '';
+        content.style.display = 'block';
       }
     });
     
@@ -80,6 +99,7 @@
     `;
     closeButton.title = 'Close';
     closeButton.addEventListener('click', () => {
+      modalManuallyClosed = true; // Set flag to prevent auto-reopening
       container.remove();
     });
     
@@ -93,30 +113,41 @@
     const content = document.createElement('div');
     content.className = 'from021-paste-content';
     
-    // Status message with icon
-    const statusDiv = document.createElement('div');
-    statusDiv.className = 'from021-paste-status';
-    
-    if (!(copiedContent.guide || copiedContent.steps || copiedContent.prompt)) {
-      statusDiv.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 8px;">
-          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 16V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 8H12.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div>No implementation guide content copied yet.</div>
-        <div>Visit a from021.io implementation guide page to copy content.</div>
+    // Center the check icon above the instructions instead of using a status div
+    if (copiedContent.guide || copiedContent.steps || copiedContent.prompt) {
+      const checkIconDiv = document.createElement('div');
+      checkIconDiv.style.textAlign = 'center';
+      checkIconDiv.style.marginBottom = '12px';
+      checkIconDiv.innerHTML = `
+      
+        <div style="font-size: 14px; color: rgba(255, 255, 255, 0.95); margin-bottom: 4px; font-weight: 500;">Ready to paste content from 021!</div>
+        <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">Click a button below to paste directly into the chat:</div>
       `;
+      content.appendChild(checkIconDiv);
     } else {
-      statusDiv.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 8px; color: var(--success);">
-          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M16 10L12 14L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div>Ready to paste content from 021!</div>
-        <div>Click a button below to paste directly into the chat:</div>
+      const emptyStateDiv = document.createElement('div');
+      emptyStateDiv.style.textAlign = 'center';
+      emptyStateDiv.style.marginBottom = '12px';
+      emptyStateDiv.innerHTML = `
+        <div style="font-size: 14px; color: rgba(255, 255, 255, 0.95); margin-bottom: 4px; font-weight: 500;">No content available</div>
+        <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">Visit a from021.io implementation guide page to copy content.</div>
       `;
+      content.appendChild(emptyStateDiv);
     }
+    
+    // Add CSS for minimized state
+    const style = document.createElement('style');
+    style.textContent = `
+      .from021-paste-container.minimized {
+        height: auto !important;
+        min-height: 0 !important;
+      }
+      
+      .from021-paste-container.minimized .from021-paste-content {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
     
     // Add paste all button
     const pasteAllButton = document.createElement('button');
@@ -186,78 +217,81 @@
     `;
     pastePromptButton.addEventListener('click', () => handlePasteContent('prompt'));
     
-    // Add clear memory button
+    // Style for regular buttons
+    const buttonStyles = (button) => {
+      button.style.backgroundColor = "rgba(45, 55, 50, 0.7)"; // Subtle green-tinged background
+      button.style.color = "rgba(255, 255, 255, 0.9)";
+      button.style.border = "1px solid rgba(80, 90, 85, 0.4)";
+      button.style.fontWeight = "500";
+      button.style.transition = "all 0.2s ease";
+    };
+
+    // Add hover styles
+    const addButtonHoverEffects = (button) => {
+      button.addEventListener('mouseenter', () => {
+        button.style.backgroundColor = "rgba(16, 185, 129, 0.15)";
+        button.style.transform = "translateY(-1px)";
+        button.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.15)";
+      });
+      
+      button.addEventListener('mouseleave', () => {
+        button.style.backgroundColor = "rgba(45, 55, 50, 0.7)";
+        button.style.transform = "translateY(0)";
+        button.style.boxShadow = "none";
+      });
+    };
+    
+    // Add clear memory button (more subtle)
     const clearMemoryButton = document.createElement('button');
-    clearMemoryButton.className = 'from021-paste-button';
+    clearMemoryButton.className = 'from021-paste-button from021-clear-button';
     clearMemoryButton.id = 'from021-clear-button';
+    clearMemoryButton.style.backgroundColor = "transparent";
+    clearMemoryButton.style.color = "rgba(255, 255, 255, 0.5)";
+    clearMemoryButton.style.border = "none";
+    clearMemoryButton.style.padding = "6px 10px";
+    clearMemoryButton.style.fontSize = "12px";
+    clearMemoryButton.style.marginTop = "8px";
+    clearMemoryButton.style.display = "flex";
+    clearMemoryButton.style.justifyContent = "center";
+    clearMemoryButton.style.alignItems = "center";
     clearMemoryButton.innerHTML = `
-      <svg class="from021-paste-button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 6H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M19 6V20C19 21 18 21 18 21H6C6 21 5 21 5 20V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M8 6V4C8 3 9 2 10 2H14C15 2 16 3 16 4V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
+        <path d="M3 6.75H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18.75 6.75L18 19.5C18 20.0967 17.5692 20.5833 17.0025 20.625L6.9975 20.625C6.43079 20.5833 6 20.0967 6 19.5L5.25 6.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.75 6.75L10.1333 3.99709C10.1765 3.73711 10.3991 3.53906 10.6615 3.53125L13.3385 3.53125C13.6009 3.53906 13.8235 3.73711 13.8667 3.99709L14.25 6.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       Clear Memory
     `;
-    clearMemoryButton.style.backgroundColor = "rgba(239, 68, 68, 0.9)";
-    clearMemoryButton.style.color = "#FFFFFF";
-    clearMemoryButton.style.marginTop = "16px";
-    clearMemoryButton.style.border = "1px solid rgba(255, 255, 255, 0.2)";
-    clearMemoryButton.style.borderRadius = "8px";
-    clearMemoryButton.style.padding = "8px 12px";
-    clearMemoryButton.style.fontSize = "14px";
-    clearMemoryButton.style.fontWeight = "500";
-    clearMemoryButton.style.boxShadow = "0 2px 5px rgba(239, 68, 68, 0.3)";
-    clearMemoryButton.style.transition = "all 0.2s ease";
+    clearMemoryButton.addEventListener('mouseenter', () => {
+      clearMemoryButton.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+      clearMemoryButton.style.color = "rgba(239, 68, 68, 0.9)";
+    });
+    clearMemoryButton.addEventListener('mouseleave', () => {
+      clearMemoryButton.style.backgroundColor = "transparent";
+      clearMemoryButton.style.color = "rgba(255, 255, 255, 0.5)";
+    });
     clearMemoryButton.addEventListener('click', clearStoredContent);
     
-    // Add hover style for the clear button
-    const clearButtonStyle = document.createElement('style');
-    clearButtonStyle.textContent = `
-      #from021-clear-button:hover {
-        background-color: rgba(220, 38, 38, 0.95) !important;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4) !important;
-      }
-    `;
-    document.head.appendChild(clearButtonStyle);
+    // Add buttons to a container
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'from021-paste-buttons';
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.flexDirection = 'column';
+    buttonContainer.style.gap = '6px';
     
-    content.appendChild(statusDiv);
+    // Apply styles to paste buttons
+    [pasteGuideButton, pasteStepsButton, pastePromptButton].forEach(button => {
+      buttonStyles(button);
+      addButtonHoverEffects(button);
+    });
     
-    // Only add content previews if we have content
-    if (copiedContent.guide || copiedContent.steps || copiedContent.prompt) {
-      // Add content type labels with truncated previews
-      const contentPreviewDiv = document.createElement('div');
-      contentPreviewDiv.style.margin = '10px 0';
-      contentPreviewDiv.style.padding = '10px';
-      contentPreviewDiv.style.backgroundColor = 'rgba(50, 50, 60, 0.6)'; // Dark background for dark mode
-      contentPreviewDiv.style.borderRadius = '8px';
-      contentPreviewDiv.style.fontSize = '12px';
-      contentPreviewDiv.style.color = 'rgba(255, 255, 255, 0.8)'; // Light text for dark background
-      
-      contentPreviewDiv.innerHTML = `
-        <div style="margin-bottom: 6px; font-weight: 500;">Available content:</div>
-        ${copiedContent.guide ? `<div style="display: flex; align-items: center; margin-bottom: 4px;">
-          <span style="width: 8px; height: 8px; background-color: #A78BFA; border-radius: 50%; margin-right: 6px;"></span>
-          <span>Guide: ${copiedContent.guide.substring(0, 30)}...</span>
-        </div>` : ''}
-        ${copiedContent.steps ? `<div style="display: flex; align-items: center; margin-bottom: 4px;">
-          <span style="width: 8px; height: 8px; background-color: #34D399; border-radius: 50%; margin-right: 6px;"></span>
-          <span>Steps: ${copiedContent.steps.substring(0, 30)}...</span>
-        </div>` : ''}
-        ${copiedContent.prompt ? `<div style="display: flex; align-items: center;">
-          <span style="width: 8px; height: 8px; background-color: #F9A8D4; border-radius: 50%; margin-right: 6px;"></span>
-          <span>Prompt: ${copiedContent.prompt.substring(0, 30)}...</span>
-        </div>` : ''}
-      `;
-      
-      content.appendChild(contentPreviewDiv);
-    }
+    buttonContainer.appendChild(pasteAllButton);
+    buttonContainer.appendChild(pasteGuideButton);
+    buttonContainer.appendChild(pasteStepsButton);
+    buttonContainer.appendChild(pastePromptButton);
+    buttonContainer.appendChild(clearMemoryButton);
     
-    content.appendChild(pasteAllButton);
-    content.appendChild(pasteGuideButton);
-    content.appendChild(pasteStepsButton);
-    content.appendChild(pastePromptButton);
-    content.appendChild(clearMemoryButton);
+    content.appendChild(buttonContainer);
     
     container.appendChild(header);
     container.appendChild(content);
@@ -267,35 +301,7 @@
     // Create tooltip element (hidden by default)
     const tooltip = document.createElement('div');
     tooltip.className = 'from021-tooltip';
-    tooltip.style.backgroundColor = "rgba(50, 50, 60, 0.9)"; // Dark background for tooltips
-    tooltip.style.color = "#FFFFFF";
-    tooltip.style.border = "1px solid rgba(75, 75, 90, 0.5)";
     document.body.appendChild(tooltip);
-    
-    // Add styles for dark theme
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .from021-paste-container {
-        --primary: #7C3AED;
-        --success: #34D399;
-        --error: #EF4444;
-        --text-primary: #FFFFFF;
-        --text-secondary: rgba(255, 255, 255, 0.8);
-        --text-tertiary: rgba(255, 255, 255, 0.6);
-        --bg-secondary: rgba(60, 60, 70, 0.6);
-      }
-      
-      .from021-paste-button:hover {
-        background-color: rgba(124, 58, 237, 0.8) !important;
-        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.6) !important;
-      }
-      
-      .from021-clear-button:hover {
-        background-color: rgba(239, 68, 68, 0.8) !important;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.6) !important;
-      }
-    `;
-    document.head.appendChild(styleElement);
   }
   
   // Function to show tooltip
@@ -634,8 +640,14 @@
     const button = document.getElementById('from021-paste-all-button');
     if (!button || button.disabled) return;
     
-    // Prepare content for pasting
+    // Prepare content for pasting in the new order: prompt, guide, steps
     const allContent = [];
+    
+    if (copiedContent.prompt) {
+      allContent.push("# AI Prompt\n\n");
+      allContent.push(copiedContent.prompt);
+      allContent.push("\n\n");
+    }
     
     if (copiedContent.guide) {
       allContent.push("# Implementation Guide\n\n");
@@ -646,12 +658,6 @@
     if (copiedContent.steps) {
       allContent.push("# Implementation Steps\n\n");
       allContent.push(copiedContent.steps);
-      allContent.push("\n\n");
-    }
-    
-    if (copiedContent.prompt) {
-      allContent.push("# AI Prompt\n\n");
-      allContent.push(copiedContent.prompt);
     }
     
     if (allContent.length === 0) {
@@ -702,11 +708,11 @@
     }
   }
   
-  // Function to clear all stored content
+  // Function to clear all stored content with custom modal
   function clearStoredContent() {
-    // Show confirmation dialog
-    if (confirm("Are you sure you want to clear all copied content from memory?")) {
-      // Clear storage
+    // Show custom confirmation modal instead of browser's confirm
+    showConfirmationModal(() => {
+      // Clear storage on confirmation
       chrome.storage.local.remove(['guide', 'steps', 'prompt'], () => {
         // Clear local content
         copiedContent = {
@@ -719,16 +725,116 @@
         showTooltip('✅ Memory cleared successfully');
         
         // Update UI
-        updatePasteUI();
-        
-        // Close and reopen the container to refresh it
         const container = document.querySelector('.from021-paste-container');
         if (container) {
           container.remove();
           createPasteContainer();
         }
       });
+    });
+  }
+
+  // Function to show custom confirmation modal
+  function showConfirmationModal(onConfirm) {
+    // Check if a modal already exists
+    if (document.querySelector('.from021-modal-overlay')) {
+      return;
     }
+    
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'from021-modal-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.backdropFilter = 'blur(4px)';
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'from021-modal';
+    modal.style.backgroundColor = 'rgba(30, 35, 33, 0.97)'; // Darker with subtle green
+    modal.style.backgroundImage = 'linear-gradient(to bottom right, rgba(32, 32, 36, 0.97), rgba(12, 35, 28, 0.94))';
+    modal.style.borderRadius = '12px';
+    modal.style.padding = '20px';
+    modal.style.maxWidth = '300px';
+    modal.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.12)';
+    modal.style.border = '1px solid rgba(75, 75, 90, 0.5)';
+    
+    // Modal title
+    const title = document.createElement('h3');
+    title.textContent = 'Clear Memory';
+    title.style.margin = '0 0 10px 0';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '600';
+    title.style.color = 'white';
+    
+    // Modal message
+    const message = document.createElement('p');
+    message.textContent = 'Are you sure you want to clear all copied content from memory?';
+    message.style.margin = '0 0 20px 0';
+    message.style.fontSize = '14px';
+    message.style.color = 'rgba(255, 255, 255, 0.8)';
+    message.style.lineHeight = '1.5';
+    
+    // Buttons container
+    const buttons = document.createElement('div');
+    buttons.style.display = 'flex';
+    buttons.style.justifyContent = 'flex-end';
+    buttons.style.gap = '10px';
+    
+    // Cancel button
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.style.padding = '8px 12px';
+    cancelButton.style.border = '1px solid rgba(75, 75, 90, 0.5)';
+    cancelButton.style.borderRadius = '6px';
+    cancelButton.style.backgroundColor = 'rgba(50, 50, 60, 0.9)';
+    cancelButton.style.color = 'rgba(255, 255, 255, 0.8)';
+    cancelButton.style.cursor = 'pointer';
+    cancelButton.style.fontSize = '14px';
+    
+    // Confirm button
+    const confirmButton = document.createElement('button');
+    confirmButton.textContent = 'Confirm';
+    confirmButton.style.padding = '8px 12px';
+    confirmButton.style.border = 'none';
+    confirmButton.style.borderRadius = '6px';
+    confirmButton.style.backgroundColor = '#ef4444';
+    confirmButton.style.color = 'white';
+    confirmButton.style.cursor = 'pointer';
+    confirmButton.style.fontSize = '14px';
+    
+    // Add event listeners
+    cancelButton.addEventListener('click', () => {
+      overlay.remove();
+    });
+    
+    confirmButton.addEventListener('click', () => {
+      onConfirm();
+      overlay.remove();
+    });
+    
+    // Add buttons to container
+    buttons.appendChild(cancelButton);
+    buttons.appendChild(confirmButton);
+    
+    // Add elements to modal
+    modal.appendChild(title);
+    modal.appendChild(message);
+    modal.appendChild(buttons);
+    
+    // Add modal to overlay
+    overlay.appendChild(modal);
+    
+    // Add overlay to body
+    document.body.appendChild(overlay);
   }
   
   // Update the UI based on available content
@@ -736,46 +842,18 @@
     const container = document.querySelector('.from021-paste-container');
     if (!container) return;
     
-    const statusDiv = container.querySelector('.from021-paste-status');
     const pasteAllButton = document.getElementById('from021-paste-all-button');
     const pasteGuideButton = document.getElementById('from021-paste-guide-button');
     const pasteStepsButton = document.getElementById('from021-paste-steps-button');
     const pastePromptButton = document.getElementById('from021-paste-prompt-button');
     
-    // Update status text
-    if (statusDiv) {
-      if (!(copiedContent.guide || copiedContent.steps || copiedContent.prompt)) {
-        statusDiv.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 8px;">
-            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 16V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 8H12.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div>No implementation guide content copied yet.</div>
-          <div>Visit a from021.io implementation guide page to copy content.</div>
-        `;
-      } else {
-        statusDiv.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 8px; color: var(--success);">
-            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 10L12 14L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div>Ready to paste content from 021!</div>
-          <div>Click a button below to paste directly into the chat:</div>
-        `;
-      }
-    }
+    // Create the container again to refresh UI with new content
+    container.remove();
+    createPasteContainer();
     
     // Update button states
     if (pasteAllButton) {
       pasteAllButton.disabled = !(copiedContent.guide || copiedContent.steps || copiedContent.prompt);
-      // Ensure styling is consistent
-      pasteAllButton.style.backgroundColor = "#7C3AED"; // Brighter purple for dark background
-      pasteAllButton.style.color = "#FFFFFF";
-      pasteAllButton.style.fontWeight = "700";
-      pasteAllButton.style.border = "1px solid rgba(255, 255, 255, 0.4)";
-      pasteAllButton.style.fontSize = "14px";
-      pasteAllButton.style.boxShadow = "0 2px 8px rgba(124, 58, 237, 0.5)";
     }
     
     if (pasteGuideButton) {
@@ -791,63 +869,57 @@
     }
   }
   
-  // Function to load saved content from storage
-  function loadSavedContent() {
+  // Initialize
+  window.addEventListener('load', () => {
+    initializeLovablePage();
+    
+    // Watch for DOM changes to detect dynamically loaded chat
+    const observer = new MutationObserver((mutations) => {
+      // Check if we've found a chat input after DOM changes
+      if (!document.querySelector('.from021-paste-container') && isLovableChatPage()) {
+        // If we detect the chat input and we don't have the UI shown, initialize again
+        initializeLovablePage();
+      }
+    });
+    
+    // observe the entire document for large-scale changes
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+  
+  // Initialize Lovable page
+  function initializeLovablePage() {
+    console.log("Initializing Lovable page...");
+    
+    // Load saved content
     chrome.storage.local.get(['guide', 'steps', 'prompt'], (result) => {
       console.log("Retrieved content from storage:", result);
       
-      // Update our content object
-      copiedContent = {
-        guide: result.guide || null,
-        steps: result.steps || null,
-        prompt: result.prompt || null
-      };
+      // Check if we have any content
+      const hasContent = !!(result.guide || result.steps || result.prompt);
       
-      // Update UI
-      updatePasteUI();
+      if (hasContent) {
+        // Update our content object
+        copiedContent = {
+          guide: result.guide || null,
+          steps: result.steps || null,
+          prompt: result.prompt || null
+        };
+        
+        // Check if we're on a chat page
+        const isChatPage = isLovableChatPage();
+        console.log("Is chat page:", isChatPage);
+        
+        // If we're on a chat page and have content, automatically show the paste UI
+        // Only show if it wasn't manually closed
+        if (isChatPage && !modalManuallyClosed) {
+          // Wait a short bit for the page to fully render
+          setTimeout(() => {
+            showPasteUI();
+          }, 1000);
+        }
+      }
     });
   }
-  
-  // Function to show paste UI
-  function showPasteUI() {
-    // Remove existing UI if it exists
-    const existingContainer = document.querySelector('.from021-paste-container');
-    if (existingContainer) {
-      existingContainer.remove();
-    }
-    
-    // Create new paste UI
-    createPasteContainer();
-    
-    // Reload content in case it's changed
-    loadSavedContent();
-  }
-  
-  // Handle storage changes (e.g., when content is copied on from021.io)
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local') {
-      let contentChanged = false;
-      
-      if (changes.guide) {
-        copiedContent.guide = changes.guide.newValue || null;
-        contentChanged = true;
-      }
-      
-      if (changes.steps) {
-        copiedContent.steps = changes.steps.newValue || null;
-        contentChanged = true;
-      }
-      
-      if (changes.prompt) {
-        copiedContent.prompt = changes.prompt.newValue || null;
-        contentChanged = true;
-      }
-      
-      if (contentChanged) {
-        updatePasteUI();
-      }
-    }
-  });
   
   // Check if we're on a Lovable chat page
   function isLovableChatPage() {
@@ -888,118 +960,47 @@
     return false;
   }
 
-  // Initialize on page load and on DOM changes
-  function initializeLovablePage() {
-    console.log("Initializing Lovable page integration");
-    
-    // Check if we've detected content from 021
-    chrome.storage.local.get(['guide', 'steps', 'prompt'], (result) => {
-      const hasContent = !!(result.guide || result.steps || result.prompt);
-      console.log("Has 021 content:", hasContent);
-      
-      if (hasContent) {
-        // Update our content object
-        copiedContent = {
-          guide: result.guide || null,
-          steps: result.steps || null,
-          prompt: result.prompt || null
-        };
-        
-        // Check if we're on a chat page
-        const isChatPage = isLovableChatPage();
-        console.log("Is chat page:", isChatPage);
-        
-        // Add visible indicator
-        addLovableIndicator();
-        
-        // If we're on a chat page and have content, automatically show the paste UI
-        if (isChatPage) {
-          // Wait a short bit for the page to fully render
-          setTimeout(() => {
-            showPasteUI();
-          }, 1000);
-        }
-      }
-    });
-  }
-  
-  // Add visible indicator of script running
-  function addLovableIndicator() {
-    // Remove existing indicator if present
-    const existingIndicator = document.querySelector('.from021-lovable-indicator');
-    if (existingIndicator) {
-      existingIndicator.remove();
+  // Function to show paste UI
+  function showPasteUI() {
+    // Don't show if manually closed
+    if (modalManuallyClosed) {
+      return;
     }
     
-    const indicator = document.createElement('div');
-    indicator.className = 'from021-lovable-indicator';
-    indicator.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 8H5C4.44772 8 4 8.44772 4 9V19C4 19.5523 4.44772 20 5 20H16C16.5523 20 17 19.5523 17 19V9C17 8.44772 16.5523 8 16 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M8 8V5C8 4.44772 8.44772 4 9 4H19C19.5523 4 20 4.44772 20 5V16C20 16.5523 19.5523 17 19 17H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        021 Paste Ready
-      </div>
-    `;
-    indicator.style.position = "fixed";
-    indicator.style.top = "10px";
-    indicator.style.right = "10px";
-    indicator.style.padding = "8px 12px";
-    indicator.style.background = "rgba(139, 92, 246, 0.9)";
-    indicator.style.color = "white";
-    indicator.style.zIndex = "9999";
-    indicator.style.borderRadius = "8px";
-    indicator.style.fontSize = "12px";
-    indicator.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    indicator.style.fontWeight = "500";
-    indicator.style.backdropFilter = "blur(4px)";
-    indicator.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)";
-    indicator.style.transition = "opacity 0.3s ease";
-    indicator.style.cursor = "pointer";
+    // Remove existing UI if it exists
+    const existingContainer = document.querySelector('.from021-paste-container');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
     
-    // Add hover effect
-    indicator.addEventListener('mouseenter', () => {
-      indicator.style.background = "rgba(124, 58, 237, 0.9)";
-    });
-    
-    indicator.addEventListener('mouseleave', () => {
-      indicator.style.background = "rgba(139, 92, 246, 0.9)";
-    });
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      indicator.style.opacity = "0.7";
-    }, 5000);
-    
-    // Show again on hover
-    indicator.addEventListener('mouseenter', () => {
-      indicator.style.opacity = "1";
-    });
-    
-    // Click to create/show paste container
-    indicator.addEventListener('click', () => {
-      showPasteUI();
-    });
-    
-    document.body.appendChild(indicator);
+    // Create new paste UI
+    createPasteContainer();
   }
-
-  // Initialize
-  window.addEventListener('load', () => {
-    initializeLovablePage();
-    
-    // Watch for DOM changes to detect dynamically loaded chat
-    const observer = new MutationObserver((mutations) => {
-      // Check if we've found a chat input after DOM changes
-      if (!document.querySelector('.from021-paste-container') && isLovableChatPage()) {
-        // If we detect the chat input and we don't have the UI shown, initialize again
-        initializeLovablePage();
+  
+  // Handle storage changes (e.g., when content is copied on from021.io)
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local') {
+      let contentChanged = false;
+      
+      if (changes.guide) {
+        copiedContent.guide = changes.guide.newValue || null;
+        contentChanged = true;
       }
-    });
-    
-    // Start observing the document with the configured parameters
-    observer.observe(document.body, { childList: true, subtree: true });
+      
+      if (changes.steps) {
+        copiedContent.steps = changes.steps.newValue || null;
+        contentChanged = true;
+      }
+      
+      if (changes.prompt) {
+        copiedContent.prompt = changes.prompt.newValue || null;
+        contentChanged = true;
+      }
+      
+      if (contentChanged) {
+        updatePasteUI();
+      }
+    }
   });
   
   // Listen for messages from the extension
@@ -1010,17 +1011,23 @@
     } else if (message.action === 'checkPageType') {
       sendResponse({ isLovablePage: true });
     } else if (message.action === 'refreshContent') {
-      loadSavedContent();
+      initializeLovablePage();
       sendResponse({ success: true });
     } else if (message.action === 'showPasteUI') {
+      // Reset the manually closed flag when explicitly showing the UI
+      modalManuallyClosed = false;
       showPasteUI();
       sendResponse({ success: true });
     } else if (message.action === 'togglePasteUI') {
       // If container exists, remove it, otherwise create it
       const container = document.querySelector('.from021-paste-container');
-        if (container) {
-          container.remove();
+      if (container) {
+        container.remove();
+        // Only set the manually closed flag if removing the container
+        modalManuallyClosed = true;
       } else {
+        // Reset the manually closed flag when showing the UI
+        modalManuallyClosed = false;
         showPasteUI();
       }
       sendResponse({ success: true });

@@ -10,22 +10,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   const stepsStatus = document.getElementById('steps-status');
   const promptStatus = document.getElementById('prompt-status');
   
-  const pasteGuideBtn = document.getElementById('paste-guide');
-  const pasteStepsBtn = document.getElementById('paste-steps');
-  const pastePromptBtn = document.getElementById('paste-prompt');
-  const copyAllBtn = document.getElementById('copy-all');
-  
   // Check stored content
   await updateContentStatus();
   
-  // Add event listeners
-  pasteGuideBtn.addEventListener('click', () => sendPasteMessage('guide'));
-  pasteStepsBtn.addEventListener('click', () => sendPasteMessage('steps'));
-  pastePromptBtn.addEventListener('click', () => sendPasteMessage('prompt'));
-  copyAllBtn.addEventListener('click', requestCopyAllContent);
-  
   // Listen for storage changes
   chrome.storage.onChanged.addListener((changes) => {
+    // If we detect changes, show a status message
+    let changeMessages = [];
+    
+    if (changes.guide) {
+      const action = changes.guide.newValue ? 'copied' : 'cleared';
+      changeMessages.push(`Guide ${action}`);
+    }
+    
+    if (changes.steps) {
+      const action = changes.steps.newValue ? 'copied' : 'cleared';
+      changeMessages.push(`Steps ${action}`);
+    }
+    
+    if (changes.prompt) {
+      const action = changes.prompt.newValue ? 'copied' : 'cleared';
+      changeMessages.push(`Prompt ${action}`);
+    }
+    
+    if (changeMessages.length > 0) {
+      const type = changes.guide?.newValue || changes.steps?.newValue || changes.prompt?.newValue 
+        ? 'success' : 'error';
+      showStatusMessage(changeMessages.join(', '), type);
+    }
+    
+    // Update the UI
     updateContentStatus();
   });
   
@@ -38,23 +52,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       const hasSteps = !!storage.steps;
       const hasPrompt = !!storage.prompt;
       
-      // Update status text and class
-      updateStatusElement(guideStatus, hasGuide);
-      updateStatusElement(stepsStatus, hasSteps);
-      updateStatusElement(promptStatus, hasPrompt);
+      // Add subtle animation to status updates
+      animateStatusUpdate(guideStatus, hasGuide);
+      animateStatusUpdate(stepsStatus, hasSteps);
+      animateStatusUpdate(promptStatus, hasPrompt);
       
-      // Update button states
-      pasteGuideBtn.disabled = !hasGuide;
-      pasteStepsBtn.disabled = !hasSteps;
-      pastePromptBtn.disabled = !hasPrompt;
-      
-      // Show/hide content divs
+      // Show/hide content divs with animation
       if (hasGuide || hasSteps || hasPrompt) {
-        noContentDiv.classList.add('hidden');
-        hasContentDiv.classList.remove('hidden');
+        if (noContentDiv.classList.contains('hidden') === false) {
+          fadeOut(noContentDiv, () => {
+            noContentDiv.classList.add('hidden');
+            fadeIn(hasContentDiv);
+            hasContentDiv.classList.remove('hidden');
+          });
+        }
       } else {
-        noContentDiv.classList.remove('hidden');
-        hasContentDiv.classList.add('hidden');
+        if (hasContentDiv.classList.contains('hidden') === false) {
+          fadeOut(hasContentDiv, () => {
+            hasContentDiv.classList.add('hidden');
+            fadeIn(noContentDiv);
+            noContentDiv.classList.remove('hidden');
+          });
+        }
       }
     } catch (error) {
       console.error('Error checking stored content:', error);
@@ -62,10 +81,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   
+  // Function to animate status updates
+  function animateStatusUpdate(element, hasContent) {
+    const wasReady = element.classList.contains('ready');
+    const textContent = element.textContent;
+    
+    // Only animate if the state is changing
+    if ((wasReady && !hasContent) || (!wasReady && hasContent)) {
+      fadeOut(element, () => {
+        updateStatusElement(element, hasContent);
+        fadeIn(element);
+      });
+    } else {
+      updateStatusElement(element, hasContent);
+    }
+  }
+  
   // Function to update status elements
   function updateStatusElement(element, hasContent) {
     if (hasContent) {
-      element.textContent = 'Ready to paste';
+      element.textContent = 'Copied';
       element.classList.add('ready');
     } else {
       element.textContent = 'Not copied';
@@ -73,101 +108,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   
-  // Function to first check if content script is ready, then send message
-  async function ensureContentScriptLoaded(tabId) {
-    return new Promise((resolve, reject) => {
-      // First try a simple ping to see if content script is ready
-      chrome.tabs.sendMessage(tabId, { action: 'ping' }, response => {
-        if (chrome.runtime.lastError) {
-          // The content script isn't ready yet or there was an error
-          // We'll need to inject it
-          chrome.scripting.executeScript({
-            target: { tabId: tabId },
-            files: ['scripts/lovable-content.js']
-          })
-          .then(() => {
-            // Now add the CSS
-            return chrome.scripting.insertCSS({
-              target: { tabId: tabId },
-              files: ['styles/lovable-styles.css']
-            });
-          })
-          .then(() => resolve())
-          .catch(error => reject(error));
-        } else {
-          // Content script is ready
-          resolve();
-        }
-      });
-    });
+  // Helper function to fade out an element
+  function fadeOut(element, callback) {
+    element.style.transition = 'opacity 0.3s ease';
+    element.style.opacity = '0';
+    
+    setTimeout(() => {
+      if (callback) callback();
+    }, 300);
   }
   
-  // Function to send paste message to content script
-  async function sendPasteMessage(contentType) {
-    try {
-      // Get current active tab
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const currentTab = tabs[0];
-      
-      // Check if we're on Lovable
-      if (!currentTab.url.includes('lovable.dev')) {
-        showStatusMessage('Please navigate to lovable.dev to paste content', 'error');
-        return;
-      }
-      
-      // Make sure content script is loaded
-      await ensureContentScriptLoaded(currentTab.id);
-      
-      // Send message to show paste UI
-      await chrome.tabs.sendMessage(currentTab.id, { action: 'showPasteUI' });
-      
-      // Close popup
-      window.close();
-    } catch (error) {
-      console.error('Error sending paste message:', error);
-      showStatusMessage('Error connecting to page. Try refreshing.', 'error');
-    }
-  }
-  
-  // Function to request all content to be copied (from current page if on from021.io)
-  async function requestCopyAllContent() {
-    try {
-      // Get current active tab
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const currentTab = tabs[0];
-      
-      if (currentTab.url.includes('from021.io')) {
-        // If on from021.io, check if we're on implementation page
-        try {
-          const response = await chrome.tabs.sendMessage(currentTab.id, { action: 'checkPageType' });
-          
-          if (response && response.isImplementationPage) {
-            // If on implementation page, request content extraction
-            try {
-              const extractResult = await chrome.tabs.sendMessage(currentTab.id, { action: 'extractAndStoreContent' });
-              
-              if (extractResult && extractResult.success) {
-                showStatusMessage('Content copied successfully!', 'success');
-                updateContentStatus();
-              } else {
-                showStatusMessage(extractResult.error || 'Failed to extract content', 'error');
-              }
-            } catch (err) {
-              showStatusMessage('Error communicating with page, try refreshing', 'error');
-            }
-          } else {
-            showStatusMessage('Navigate to an implementation guide page to copy content', 'error');
-          }
-        } catch (err) {
-          showStatusMessage('Content script not loaded. Try refreshing the page.', 'error');
-        }
-      } else {
-        showStatusMessage('Navigate to from021.io to copy content', 'error');
-      }
-    } catch (error) {
-      console.error('Error requesting content copy:', error);
-      showStatusMessage('Error communicating with page', 'error');
-    }
+  // Helper function to fade in an element
+  function fadeIn(element) {
+    element.style.transition = 'opacity 0.3s ease';
+    element.style.opacity = '0';
+    
+    // Force a reflow to ensure the transition works
+    element.offsetHeight;
+    
+    element.style.opacity = '1';
   }
   
   // Function to show status message
@@ -177,8 +136,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Clear message after 3 seconds
     setTimeout(() => {
-      statusMessage.textContent = '';
-      statusMessage.className = '';
+      statusMessage.style.opacity = '0';
+      setTimeout(() => {
+        statusMessage.textContent = '';
+        statusMessage.className = '';
+        statusMessage.style.opacity = '';
+      }, 300);
     }, 3000);
   }
 }); 

@@ -25,11 +25,15 @@
   ],
   "host_permissions": [
     "https://from021.io/*",
-    "https://lovable.dev/*"
+    "https://lovable.dev/*",
+    "http://localhost:*/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://from021.io/*"],
+      "matches": [
+        "https://from021.io/*", 
+        "http://localhost:*/*"
+      ],
       "js": ["scripts/from021-content.js"],
       "css": ["styles/from021-styles.css"]
     },
@@ -37,6 +41,12 @@
       "matches": ["https://lovable.dev/*"],
       "js": ["scripts/lovable-content.js"],
       "css": ["styles/lovable-styles.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["https://from021.io/*", "https://lovable.dev/*", "http://localhost:*/*"]
     }
   ],
   "background": {
