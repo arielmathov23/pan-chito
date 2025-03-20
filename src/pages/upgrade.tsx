@@ -214,6 +214,17 @@ export default function Upgrade() {
       <Navbar />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
+          {/* Back Button */}
+          <button 
+            onClick={() => router.back()} 
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Back
+          </button>
+          
           {/* Header Section */}
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
