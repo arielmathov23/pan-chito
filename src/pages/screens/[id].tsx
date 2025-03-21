@@ -5,7 +5,13 @@ import Navbar from '../../components/Navbar';
 import { Project, projectStore } from '../../utils/projectStore';
 import { Brief, briefStore } from '../../utils/briefStore';
 import { PRD, prdStore } from '../../utils/prdStore';
-import { ScreenSet, screenStore, Screen as ScreenType } from '../../utils/screenStore';
+import { 
+  ScreenSet, 
+  screenStore, 
+  Screen as ScreenType,
+  normalizeScreenSet,
+  normalizeScreen 
+} from '../../utils/screenStore';
 import { generateScreens } from '../../utils/screenGenerator';
 import MockNotification from '../../components/MockNotification';
 import { isMockData } from '../../utils/mockDetector';
@@ -19,6 +25,10 @@ import { projectService } from '../../services/projectService';
 import CheckIcon from '../../components/CheckIcon';
 import { trackEvent } from '../../lib/mixpanelClient';
 import UserJourneyFlowDiagram from '../../components/UserJourneyFlowDiagram';
+import ScreenWireframe from '../../components/ScreenWireframe';
+import { SvgWireframe } from '../../components/SvgWireframe';
+import { wireframeService } from '../../services/wireframeService';
+import { projectLimitService } from '../../services/projectLimitService';
 
 export default function ScreensPage() {
   const router = useRouter();
@@ -44,6 +54,28 @@ export default function ScreensPage() {
   const [generationStatus, setGenerationStatus] = useState<string>('');
   const [screens, setScreens] = useState<ScreenType[]>([]);
   const [progressPercentage, setProgressPercentage] = useState(0);
+  const [generatingSvg, setGeneratingSvg] = useState(false);
+  const [svgProgress, setSvgProgress] = useState(0);
+  const [svgGenerationError, setSvgGenerationError] = useState<string | null>(null);
+  const [currentWireframeTab, setCurrentWireframeTab] = useState<'basic' | 'svg'>('basic');
+  const [svgWireframes, setSvgWireframes] = useState<Map<string, any>>(new Map());
+  const [hasSvgWireframesAccess, setHasSvgWireframesAccess] = useState<boolean | null>(null);
+
+  // Check if user has access to SVG wireframes
+  useEffect(() => {
+    async function checkSvgWireframesAccess() {
+      try {
+        const hasAccess = await projectLimitService.canGenerateSvgWireframes();
+        setHasSvgWireframesAccess(hasAccess);
+        console.log('SVG wireframes access:', hasAccess ? 'Enabled' : 'Disabled');
+      } catch (error) {
+        console.error('Error checking SVG wireframes access:', error);
+        setHasSvgWireframesAccess(false);
+      }
+    }
+
+    checkSvgWireframesAccess();
+  }, []);
 
   // Update screens array when screenSet changes and reset currentScreenIndex
   useEffect(() => {
@@ -250,6 +282,57 @@ export default function ScreensPage() {
     }
   }, [id]);
 
+  // Update useEffect to avoid infinite loop
+  useEffect(() => {
+    async function loadData() {
+      try {
+        if (id) {
+          // Fetch screenset if ID is available
+          const fetchedScreenSet = await screenService.getScreenSetByPrdId(id as string);
+          
+          // Only normalize and update if there's actually a change
+          if (fetchedScreenSet) {
+            const normalizedScreenSet = normalizeScreenSet(fetchedScreenSet);
+            setScreenSet(normalizedScreenSet);
+            setScreens(normalizedScreenSet?.screens || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading screen set:', error);
+        setError('Failed to load screens. Please refresh the page.');
+      }
+    }
+    
+    // Only load data if we don't have screenSet yet or if id changes
+    if (!screenSet || (id && screenSet?.appFlow?.prdId !== id)) {
+      loadData();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    // Load SVG wireframes for all screens
+    async function loadSvgWireframes() {
+      if (screenSet && screenSet.screens && screenSet.screens.length > 0) {
+        const wireframesMap = new Map();
+        
+        for (const screen of screenSet.screens) {
+          try {
+            const svg = await wireframeService.getSvgWireframe(screen.id);
+            if (svg) {
+              wireframesMap.set(screen.id, svg);
+            }
+          } catch (error) {
+            console.error(`Error loading SVG wireframe for screen ${screen.id}:`, error);
+          }
+        }
+        
+        setSvgWireframes(wireframesMap);
+      }
+    }
+    
+    loadSvgWireframes();
+  }, [screenSet]);
+
   const handleGenerateScreens = async () => {
     if (!brief || !prd) return;
     
@@ -292,11 +375,13 @@ export default function ScreensPage() {
         setGenerationStatus('Saving screens...');
         await screenService.saveScreenSet(prd.id, screens, appFlow);
         
-        // Update local state
-        setScreenSet({
+        // Update local state with normalized screens
+        const normalizedScreenSet = normalizeScreenSet({
           screens,
           appFlow
         });
+        setScreenSet(normalizedScreenSet);
+        setScreens(normalizedScreenSet?.screens || []);
         
         // Complete
         setProgressPercentage(100);
@@ -390,11 +475,13 @@ export default function ScreensPage() {
           setGenerationStatus('Saving basic screens...');
           await screenService.saveScreenSet(prd.id, screens, appFlow);
           
-          // Update local state
-          setScreenSet({
+          // Update local state with normalized screens
+          const normalizedScreenSet = normalizeScreenSet({
             screens,
             appFlow
           });
+          setScreenSet(normalizedScreenSet);
+          setScreens(normalizedScreenSet?.screens || []);
           
           setProgressPercentage(100);
           setGenerationStatus('Completed! Loading basic screens...');
@@ -494,7 +581,9 @@ export default function ScreensPage() {
         'Screen Count': screenSet.screens.length
       });
       
+      // Update state - clear screens and screenSet
       setScreenSet(null);
+      setScreens([]);
       setIsDeleteScreensModalOpen(false);
     } catch (error) {
       console.error('Error deleting screens:', error);
@@ -590,120 +679,470 @@ export default function ScreensPage() {
     }
   };
 
+  // Function to generate SVG wireframes
+  const handleGenerateSvgWireframes = async () => {
+    // Check if user has access to SVG wireframes
+    if (hasSvgWireframesAccess === false) {
+      // Track the upgrade event
+      trackEvent('Upgrade Required', {
+        feature: 'SVG Wireframes',
+        source: 'Screens Page',
+        prdId: id
+      });
+      
+      // Redirect to upgrade page
+      router.push('/upgrade');
+      return;
+    }
+    
+    if (!screenSet || !screenSet.screens) {
+      setSvgGenerationError("No screens available to generate wireframes");
+      return;
+    }
+
+    setGeneratingSvg(true);
+    setSvgGenerationError(null);
+    setSvgProgress(1);
+
+    const progressTimer = setInterval(() => {
+      setSvgProgress(prev => {
+        const increment = Math.random() * 3 + 2;
+        const newProgress = prev + increment;
+        return newProgress > 70 ? 70 : newProgress;
+      });
+    }, 1500);
+
+    try {
+      // Track event
+      trackEvent('Generate SVG Wireframes', {
+        prdId: id as string,
+        screenCount: screenSet.screens.length,
+      });
+
+      // IMPORTANT: First, make sure we're working with the latest screen data from the database
+      let latestScreens: ScreenType[] = [];
+      
+      if (!id) {
+        throw new Error("Invalid PRD ID. Please reload the page and try again.");
+      }
+
+      try {
+        setSvgProgress(5);
+        // Fetch the latest screen data from the database to ensure we have correct IDs
+        const freshScreenSet = await screenService.getScreenSetByPrdId(id.toString());
+        
+        if (!freshScreenSet || !freshScreenSet.screens || freshScreenSet.screens.length === 0) {
+          console.error("No screens found in database for PRD ID:", id);
+          throw new Error("No screens found in database. Please regenerate screens first.");
+        }
+
+        // Map the fresh screen data to maintain the same order as our current screenSet
+        latestScreens = screenSet.screens.map(currentScreen => {
+          // First try to find a direct ID match
+          let matchingScreen = freshScreenSet.screens.find(s => s.id === currentScreen.id);
+          
+          // If no direct match, try matching by name and description
+          if (!matchingScreen) {
+            console.log(`No exact ID match found for screen ID ${currentScreen.id}, trying name/description match`);
+            matchingScreen = freshScreenSet.screens.find(s => 
+              s.name === currentScreen.name && 
+              s.description === currentScreen.description
+            );
+          }
+          
+          // If still no match, try matching just by name
+          if (!matchingScreen) {
+            console.log(`No name/description match found for screen "${currentScreen.name}", trying name-only match`);
+            matchingScreen = freshScreenSet.screens.find(s => s.name === currentScreen.name);
+          }
+          
+          if (!matchingScreen) {
+            console.error(`No database match found for screen "${currentScreen.name}" (ID: ${currentScreen.id})`);
+            console.log(`Available screens in database:`, 
+              freshScreenSet.screens.map(s => ({ id: s.id, name: s.name }))
+            );
+            throw new Error(`Screen "${currentScreen.name}" not found in database. Please regenerate screens.`);
+          }
+          
+          // Log the mapping for debugging
+          if (matchingScreen.id !== currentScreen.id) {
+            console.log(`Mapped screen "${currentScreen.name}" from ID ${currentScreen.id} to database ID ${matchingScreen.id}`);
+          }
+          
+          return matchingScreen;
+        });
+
+        // Update the local screen set to match what's in the database
+        setScreenSet(freshScreenSet);
+      } catch (error) {
+        console.error("Error fetching latest screen data:", error);
+        throw new Error("Failed to verify screen data in database. Please try again.");
+      }
+      
+      // Generate wireframes using the Claude API
+      const prdContent = typeof prd?.content === 'string' ? prd.content : JSON.stringify(prd?.content || '');
+      const result = await wireframeService.generateSvgWireframes(latestScreens, prdContent);
+      
+      clearInterval(progressTimer);
+      
+      if (result.totalSuccessful === 0) {
+        throw new Error("Failed to generate any wireframes. Please try again.");
+      }
+
+      setSvgProgress(75);
+      
+      let savedCount = 0;
+      const screenErrors: Map<string, string> = new Map();
+      const batchSize = 3;
+      
+      for (let i = 0; i < result.successful.length; i += batchSize) {
+        const batch = result.successful.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (item) => {
+          try {
+            if (!item.svg || !item.svg.trim().startsWith('<svg') || !item.svg.trim().endsWith('</svg>')) {
+              throw new Error(`Invalid SVG content received for screen ${item.screenId}`);
+            }
+            
+            // Find the matching screen from our latest data
+            const matchingScreen = latestScreens.find(screen => screen.id === item.screenId);
+            if (!matchingScreen) {
+              throw new Error(`Screen with ID ${item.screenId} doesn't exist in database`);
+            }
+            
+            // Save to the new SVG wireframes table instead of updating the screen
+            await wireframeService.saveSvgWireframe(
+              item.screenId,
+              matchingScreen.name,
+              item.svg
+            );
+            
+            savedCount++;
+            
+            const saveProgressIncrement = 20 * (savedCount / result.totalSuccessful);
+            setSvgProgress(75 + saveProgressIncrement);
+            
+            return { success: true, screenId: item.screenId };
+          } catch (error: any) {
+            console.error(`Error saving SVG for screen ${item.screenId}:`, error);
+            screenErrors.set(item.screenId, error.message || 'Unknown error');
+            return { success: false, screenId: item.screenId, error };
+          }
+        });
+        
+        await Promise.all(batchPromises);
+      }
+      
+      // Refresh the screen set to get the updated SVG wireframes
+      if (id) {
+        try {
+          const updatedScreenSet = await screenService.getScreenSetByPrdId(id.toString());
+          setScreenSet(updatedScreenSet);
+        } catch (refreshError) {
+          console.error("Error refreshing screen set after SVG generation:", refreshError);
+        }
+      }
+      
+      setSvgProgress(100);
+      
+      const failedCount = screenErrors.size;
+      if (failedCount > 0) {
+        const errorMessage = `Generated ${savedCount} wireframes successfully, but ${failedCount} failed to save. Please try regenerating the failed screens.`;
+        setSvgGenerationError(errorMessage);
+      }
+      
+      // Reload SVG wireframes after generation
+      if (savedCount > 0) {
+        // Load the new SVG wireframes
+        const wireframesMap = new Map();
+        for (const screenId of result.successful.map(s => s.screenId)) {
+          try {
+            // Small delay to ensure database writes have completed
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const svg = await wireframeService.getSvgWireframe(screenId);
+            if (svg) {
+              wireframesMap.set(screenId, svg);
+            }
+          } catch (error) {
+            console.error(`Error loading generated SVG wireframe for screen ${screenId}:`, error);
+          }
+        }
+        
+        // Update the SVG wireframes state
+        setSvgWireframes(prev => {
+          const newMap = new Map(prev);
+          wireframesMap.forEach((value, key) => {
+            newMap.set(key, value);
+          });
+          return newMap;
+        });
+        
+        setCurrentWireframeTab('svg');
+      }
+    } catch (error: any) {
+      clearInterval(progressTimer);
+      console.error('Error generating SVG wireframes:', error);
+      setSvgGenerationError(error.message || 'Failed to generate wireframes');
+      setSvgProgress(0);
+    } finally {
+      setGeneratingSvg(false);
+    }
+  };
+
   const renderScreen = (screen: ScreenType) => {
-    // Group elements by type, with defensive checks
-    const elements = {
-      images: (screen.elements || []).filter(e => e && e.type === 'image'),
-      inputs: (screen.elements || []).filter(e => e && e.type === 'input'),
-      text: (screen.elements || []).filter(e => e && e.type === 'text'),
-      buttons: (screen.elements || []).filter(e => e && e.type === 'button')
-    };
+    // Check if SVG wireframe exists in the new table
+    const svgWireframe = svgWireframes.get(screen.id);
+    const hasSvgWireframe = !!svgWireframe || !!screen.svgWireframe;
 
     return (
-      <div key={screen.id} className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden h-full flex flex-col">
-        <div className="bg-gradient-to-r from-[#0F533A]/10 to-transparent px-6 py-4 border-b border-[#e5e7eb]">
-          <h3 className="text-lg font-medium text-[#111827]">{screen.name}</h3>
-          <p className="text-[#6b7280] mt-1 line-clamp-2">{screen.description}</p>
-          {screen.featureId && screen.featureId.trim() !== '' && (
-            <div className="mt-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Feature: {screen.featureId}
-              </span>
-            </div>
-          )}
+      <div key={screen.id} className="mb-8 border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">{screen.name}</h3>
+        </div>
+
+        {/* Screen description */}
+        <div className="mb-4">
+          <p className="text-gray-600 text-sm">{screen.description}</p>
         </div>
         
-        <div className="p-6 space-y-6 flex-grow overflow-y-auto">
-          {/* Images Section */}
-          {elements.images.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151] flex items-center">
-                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M9 10C10.1046 10 11 9.10457 11 8C11 6.89543 10.1046 6 9 6C7.89543 6 7 6.89543 7 8C7 9.10457 7.89543 10 9 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2.67 18.95L7.6 15.64C8.39 15.11 9.53 15.17 10.24 15.78L10.57 16.07C11.35 16.74 12.61 16.74 13.39 16.07L17.55 12.5C18.33 11.83 19.59 11.83 20.37 12.5L22 13.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        {/* Wireframe tabs */}
+        <div className="border-b border-gray-200 mb-4">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setCurrentWireframeTab('basic')}
+              className={`${
+                currentWireframeTab === 'basic'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+            >
+              Basic Wireframe
+            </button>
+            <button
+              onClick={() => hasSvgWireframe ? setCurrentWireframeTab('svg') : null}
+              disabled={!hasSvgWireframe}
+              className={`${
+                currentWireframeTab === 'svg'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : hasSvgWireframe 
+                    ? 'border-transparent text-gray-700 hover:text-gray-900 hover:border-gray-300' 
+                    : 'border-transparent text-gray-500 cursor-not-allowed'
+              } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+            >
+              PRO Wireframes
+            </button>
+          </nav>
+        </div>
+        
+        {/* Wireframe content */}
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          {currentWireframeTab === 'basic' ? (
+            // Display simplified, easy-to-read wireframe information
+            <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+              {/* Organized Content Display */}
+              <div className="p-3 sm:p-4 space-y-4">
+                {/* Show screen purpose/description */}
+                <div className="bg-blue-50 rounded-lg p-2.5 sm:p-3">
+                  <h5 className="text-xs sm:text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Images
-              </h4>
-              {elements.images.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
-                  <p className="text-[#4b5563] text-sm">{element.properties.description || 'No description provided'}</p>
+                    Screen Purpose
+                  </h5>
+                  <p className="text-xs sm:text-sm text-gray-600">{screen.description}</p>
+                </div>
+
+                {/* Content Blocks - only show if there are actual text elements */}
+                {screen.elements?.filter(el => el.type === 'text').length > 0 && (
+                  <div>
+                    <h5 className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5 flex items-center">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                      </svg>
+                      Content Blocks
+                    </h5>
+                    <div className="pl-2 border-l-2 border-gray-200 space-y-1">
+                      {/* Show headings first */}
+                      {screen.elements
+                        .filter(el => el.type === 'text' && el.properties?.isHeading)
+                        .map((text, idx) => (
+                          <div key={text.id || `heading-${idx}`} className="text-xs sm:text-sm">
+                            <p className="font-medium">{text.properties?.content || 'Heading'}</p>
                 </div>
               ))}
+                      
+                      {/* Show some non-heading text content if it exists */}
+                      {screen.elements?.filter(el => el.type === 'text' && !el.properties?.isHeading).length > 0 && (
+                        <div className="mt-1 space-y-0.5 sm:space-y-1">
+                          {screen.elements
+                            .filter(el => el.type === 'text' && !el.properties?.isHeading)
+                            .slice(0, 2)
+                            .map((text, idx) => (
+                              <div key={text.id || `text-${idx}`} className="text-2xs sm:text-xs text-gray-600 pl-1">
+                                {text.properties?.content || 'Text content'}
+                              </div>
+                            ))}
+                          {screen.elements.filter(el => el.type === 'text' && !el.properties?.isHeading).length > 2 && (
+                            <p className="text-2xs sm:text-xs text-gray-500 italic">+ {screen.elements.filter(el => el.type === 'text' && !el.properties?.isHeading).length - 2} more text blocks</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
             </div>
           )}
 
-          {/* Inputs Section */}
-          {elements.inputs.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151] flex items-center">
-                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M7.5 8.34961H16.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 15.6504H13.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                {/* Core Components - only show if there are relevant elements */}
+                {(screen.elements?.filter(el => el.type === 'input' || el.type === 'button' || el.type === 'image').length > 0) && (
+                  <div>
+                    <h5 className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5 flex items-center">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
-                Input Fields
-              </h4>
-              {elements.inputs.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
-                  <p className="text-[#4b5563] text-sm">{element.properties.description || 'No description provided'}</p>
+                      Core Components
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                      {/* Input Fields */}
+                      {screen.elements?.filter(el => el.type === 'input').length > 0 ? (
+                        <div className="bg-gray-50 rounded p-1.5 sm:p-2">
+                          <p className="text-2xs sm:text-xs font-medium mb-0.5 sm:mb-1 text-gray-600 flex items-center">
+                            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            Input Fields ({screen.elements.filter(el => el.type === 'input').length})
+                          </p>
+                          <ul className="text-2xs sm:text-xs text-gray-700 pl-2 sm:pl-3 list-disc">
+                            {screen.elements
+                              .filter(el => el.type === 'input')
+                              .slice(0, 3)
+                              .map((input, idx) => (
+                                <li key={input.id || `input-${idx}`}>
+                                  {input.properties?.label || input.properties?.placeholder || `Field ${idx + 1}`}
+                                  {input.properties?.isRequired && <span className="text-red-500 ml-0.5">*</span>}
+                                </li>
+                              ))}
+                            {screen.elements.filter(el => el.type === 'input').length > 3 && (
+                              <li className="text-gray-500">+ {screen.elements.filter(el => el.type === 'input').length - 3} more</li>
+                            )}
+                          </ul>
                 </div>
-              ))}
+                      ) : null}
+                      
+                      {/* Action Buttons - only show if there are buttons with meaningful content */}
+                      {screen.elements?.filter(el => el.type === 'button').length > 0 && (
+                        <div className="bg-gray-50 rounded p-1.5 sm:p-2">
+                          <p className="text-2xs sm:text-xs font-medium mb-0.5 sm:mb-1 text-gray-600 flex items-center">
+                            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            Action Buttons ({screen.elements.filter(el => el.type === 'button').length})
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {screen.elements
+                              .filter(el => el.type === 'button')
+                              .map((button, idx) => (
+                                <span 
+                                  key={button.id || `button-${idx}`} 
+                                  className={`inline-block text-2xs sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${
+                                    button.properties?.isPrimary 
+                                      ? 'bg-blue-100 text-blue-700' 
+                                      : 'bg-gray-100 text-gray-700'
+                                  }`}
+                                >
+                                  {button.properties?.content || button.properties?.text || 'Button'}
+                                </span>
+                              ))}
+                          </div>
             </div>
           )}
 
-          {/* Information Section */}
-          {elements.text.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151] flex items-center">
-                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M16 2V5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M3.5 9.08984H20.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M11.9955 13.7002H12.0045" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M8.29431 13.7002H8.30329" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M8.29431 16.7002H8.30329" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      {/* Media Elements */}
+                      {screen.elements?.filter(el => el.type === 'image').length > 0 ? (
+                        <div className="bg-gray-50 rounded p-1.5 sm:p-2">
+                          <p className="text-2xs sm:text-xs font-medium mb-0.5 sm:mb-1 text-gray-600 flex items-center">
+                            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-                Information
-              </h4>
-              {elements.text.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
-                  <p className="text-[#4b5563] text-sm">{element.properties.content}</p>
-                </div>
-              ))}
+                            Media Elements ({screen.elements.filter(el => el.type === 'image').length})
+                          </p>
+                          <ul className="text-2xs sm:text-xs text-gray-700 pl-2 sm:pl-3 list-disc">
+                            {screen.elements
+                              .filter(el => el.type === 'image')
+                              .map((image, idx) => (
+                                <li key={image.id || `image-${idx}`}>
+                                  {image.properties?.purpose || image.properties?.description || 'Image'}
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
             </div>
           )}
 
-          {/* Navigation Section */}
-          {elements.buttons.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-[#374151] flex items-center">
-                <svg className="w-4 h-4 mr-1.5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17.28 10.45L21 6.72998L17.28 3.01001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M3 6.72998H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M6.72 13.55L3 17.27L6.72 20.99" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M21 17.27H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                {/* Interactions - only show if buttons have actions or there are meaningful paths */}
+                {screen.elements?.filter(el => el.type === 'button' && 
+                  el.properties?.action && 
+                  el.properties.action !== 'Navigate to previous screen').length > 0 ? (
+                  <div>
+                    <h5 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <svg className="w-4 h-4 mr-1.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                 </svg>
-                Navigation
-              </h4>
-              {elements.buttons.map(element => (
-                <div key={element.id} className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e5e7eb] hover:border-[#0F533A]/30 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#4b5563] text-sm font-medium">{element.properties.content}</span>
-                    {element.properties.action && (
-                      <span className="text-[#0F533A] text-sm flex items-center">
-                        <span className="mr-1">to</span>
-                        <svg className="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none">
-                          <path d="M14.4301 5.92993L20.5001 11.9999L14.4301 18.0699" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M3.5 12H20.33" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        {element.properties.action}
-                      </span>
-                    )}
+                      Interactions
+                    </h5>
+                    <div className="bg-yellow-50 rounded p-3 text-sm text-gray-700">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-gray-600">Primary User Paths:</p>
+                        <ul className="text-xs pl-3 list-disc space-y-1">
+                          {screen.elements
+                            .filter(el => el.type === 'button' && 
+                              el.properties?.action && 
+                              el.properties.action !== 'Navigate to previous screen')
+                            .map((button, idx) => (
+                              <li key={button.id || `action-${idx}`}>
+                                <span className="font-medium">{button.properties?.content || button.properties?.text || 'Action'}</span>
+                                <span className="text-gray-500"> → {button.properties?.action}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
+                ) : (
+                  // If there are only basic navigation buttons (like Back), show a simplified interaction section
+                  screen.elements?.filter(el => el.type === 'button' && el.properties?.action).length > 0 ? (
+                    <div className="bg-gray-50 rounded p-3 text-sm">
+                      <p className="text-xs text-gray-500">
+                        This screen primarily contains navigation controls 
+                        {screen.elements?.filter(el => el.type === 'text').length > 0 ? ' and displays content to the user.' : '.'}
+                      </p>
+                    </div>
+                  ) : screen.elements?.length > 0 ? (
+                    <div className="bg-gray-50 rounded p-3 text-sm">
+                      <p className="text-xs text-gray-500">
+                        This screen primarily displays information with no explicit interactive paths.
+                      </p>
+                    </div>
+                  ) : null
+                )}
+
+                {/* If screen has minimal information, show a message */}
+                {(!screen.elements || screen.elements.length === 0) && (
+                  <div className="bg-yellow-50 rounded p-4 text-amber-700">
+                    <p className="text-sm">This screen appears to have minimal elements defined. Generate detailed wireframes to see a more complete visualization.</p>
+                  </div>
+                )}
                 </div>
-              ))}
+            </div>
+          ) : (
+            <div className="relative flex justify-center">
+              <SvgWireframe 
+                screenId={screen.id}
+                screenName={screen.name}
+                svgContent={screen.svgWireframe}
+                svgContentFromDb={svgWireframe}
+                height={400}
+                className="border border-gray-200 rounded w-full max-w-md"
+              />
             </div>
           )}
         </div>
@@ -961,92 +1400,74 @@ export default function ScreensPage() {
                     <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
                     <h2 className="text-xl font-semibold text-[#111827]">App Screens</h2>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-[#6b7280]">
-                      {currentScreenIndex + 1} of {screenSet.screens.length}
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <button 
-                        onClick={() => setCurrentScreenIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentScreenIndex === 0}
-                        className={`p-1.5 rounded-full ${currentScreenIndex === 0 ? 'text-[#d1d5db] cursor-not-allowed' : 'text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6]'} transition-colors`}
-                        aria-label="Previous screen"
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                      <button 
-                        onClick={() => setCurrentScreenIndex(prev => Math.min(screenSet.screens.length - 1, prev + 1))}
-                        disabled={currentScreenIndex === screenSet.screens.length - 1}
-                        className={`p-1.5 rounded-full ${currentScreenIndex === screenSet.screens.length - 1 ? 'text-[#d1d5db] cursor-not-allowed' : 'text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6]'} transition-colors`}
-                        aria-label="Next screen"
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M9 19.92L15.52 13.4C16.29 12.63 16.29 11.37 15.52 10.6L9 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  {/* Screen Carousel */}
-                  <div className="overflow-hidden">
-                    <div 
-                      className="transition-transform duration-300 ease-in-out flex"
-                      style={{ transform: `translateX(-${currentScreenIndex * 100}%)` }}
-                    >
-                      {screenSet.screens.map((screen, index) => (
-                        <div 
-                          key={screen.id} 
-                          className="w-full flex-shrink-0 flex-grow-0"
-                          style={{ 
-                            minWidth: '100%',
-                            opacity: Math.abs(currentScreenIndex - index) > 1 ? 0.4 : 1,
-                          }}
-                        >
-                          <div className="h-[500px] max-h-[70vh] px-1">
-                            {renderScreen(screen)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                   
-                  {/* Navigation Buttons (for larger screens) */}
+                  {/* Generate Wireframes button with conditional rendering */}
                   <button 
-                    onClick={() => setCurrentScreenIndex(prev => Math.max(0, prev - 1))}
-                    disabled={currentScreenIndex === 0}
-                    className={`absolute top-1/2 left-0 transform -translate-y-1/2 -ml-4 p-2 rounded-full bg-white shadow-md border border-[#e5e7eb] ${currentScreenIndex === 0 ? 'opacity-0 cursor-default' : 'opacity-100 hover:border-[#0F533A]/30'} transition-all hidden md:block z-10`}
-                    aria-label="Previous screen"
+                    onClick={handleGenerateSvgWireframes}
+                    disabled={generatingSvg}
+                    className={`inline-flex items-center justify-center ${
+                      hasSvgWireframesAccess === false 
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-600' 
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-700'
+                    } text-white px-4 py-2 rounded-full text-sm font-medium hover:from-blue-700 hover:to-indigo-800 transition-all shadow-sm`}
                   >
-                    <svg className="w-5 h-5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  <button 
-                    onClick={() => setCurrentScreenIndex(prev => Math.min(screenSet.screens.length - 1, prev + 1))}
-                    disabled={currentScreenIndex === screenSet.screens.length - 1}
-                    className={`absolute top-1/2 right-0 transform -translate-y-1/2 -mr-4 p-2 rounded-full bg-white shadow-md border border-[#e5e7eb] ${currentScreenIndex === screenSet.screens.length - 1 ? 'opacity-0 cursor-default' : 'opacity-100 hover:border-[#0F533A]/30'} transition-all hidden md:block z-10`}
-                    aria-label="Next screen"
-                  >
-                    <svg className="w-5 h-5 text-[#0F533A]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 19.92L15.52 13.4C16.29 12.63 16.29 11.37 15.52 10.6L9 4.08" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    {generatingSvg ? (
+                      <>
+                        <span className="animate-spin mr-2">◌</span>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {hasSvgWireframesAccess === false ? (
+                          <>PRO Wireframes <span className="ml-1 text-xs bg-indigo-900 px-1.5 py-0.5 rounded-md">Upgrade</span></>
+                        ) : (
+                          <>Generate PRO Wireframes</>
+                        )}
+                      </>
+                    )}
                   </button>
                 </div>
                 
-                {/* Screen Indicators */}
-                <div className="flex justify-center mt-6 space-x-1.5">
-                  {screenSet.screens.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentScreenIndex(index)}
-                      className={`w-2 h-2 rounded-full transition-all ${currentScreenIndex === index ? 'bg-[#0F533A] w-6' : 'bg-[#d1d5db] hover:bg-[#9ca3af]'}`}
-                      aria-label={`Go to screen ${index + 1}`}
-                    />
-                  ))}
+                {/* Wireframe info message */}
+                <div className="mb-4 flex items-start">
+                  <svg className="w-5 h-5 mt-0.5 mr-2 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M12 8V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M11.995 16H12.005" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                  <p className="text-sm text-blue-700">
+                    These wireframes are low-fidelity representations of your app screens. They show the basic layout and element positioning.
+                  </p>
+                </div>
+                
+                {/* Global SVG wireframe generation progress bar */}
+                {generatingSvg && (
+                  <div className="mb-6 bg-blue-50 border border-blue-100 rounded-lg p-4">
+                    <div className="w-full bg-gray-200 rounded-full h-4 mb-1">
+                      <div 
+                        className="bg-blue-600 h-4 rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.min(Math.round(svgProgress), 100)}%` }}
+                      ></div>
+                          </div>
+                    <p className="text-xs text-gray-500 text-right">
+                      {Math.min(Math.round(svgProgress), 100)}% complete - {svgProgress < 75 ? 'Generating wireframes' : 'Saving results'}
+                    </p>
+                        </div>
+                )}
+                
+                {/* Error message */}
+                {svgGenerationError && (
+                  <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                    {svgGenerationError}
+                </div>
+                )}
+                
+                {/* Render screens */}
+                <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                  {screenSet.screens.map(screen => renderScreen(screen))}
                 </div>
               </div>
             </>

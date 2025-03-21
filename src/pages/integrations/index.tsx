@@ -232,7 +232,7 @@ export default function Integrations() {
               <span>version</span>
             </div>
             <div className="flex items-center">
-              <span className="mr-2">Built by Panchito studio</span>
+              <span className="mr-2">Built by 021 Product LAB</span>
               <a 
                 href="https://x.com/arielmathov" 
                 target="_blank" 

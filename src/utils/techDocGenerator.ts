@@ -145,7 +145,7 @@ Please provide your response as a JSON object with the following structure:
 Technical Requirements and Preferences:
 
 1. Tech Stack:
-   - Frontend: if it is a web app we prefer Next.js or React, with Tailwind CSS for styling.
+   - Frontend: if it is a web app we prefer Next.js or React, with Tailwind CSS for styling, and shadcn/ui for components.
    - Backend: Node.js with Express.js is preferred if possible with the solution overview
    - Database: Supabase (PostgreSQL)
    - Deployment: Vercel for hosting

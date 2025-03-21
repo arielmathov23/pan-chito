@@ -215,12 +215,115 @@ Guidelines:
   throw new Error("Unexpected error in app flow generation");
 }
 
-// Step 2: Generate screens based on the app flow
+// Step 2: Generate screens based on app flow
 async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFlow): Promise<Screen[]> {
-  console.log("Preparing screens prompt for OpenAI");
+  console.log("Preparing screen generation prompt for OpenAI");
   
-  // Retry loop
-  const MAX_RETRIES = 1; // Reduced from 2 to 1 to minimize excessive timeouts
+  // Create improved, more detailed prompt for screen generation with enhanced form field detection
+  const prompt = `
+You are an expert UX designer responsible for creating detailed screen specifications for a mobile application. 
+Based on the following product brief, PRD, and app flow, generate screen specifications in JSON format.
+
+PRODUCT: "${brief.productName}"
+
+PRD SUMMARY:
+${extractPRDSummary(prd.content)}
+
+APP FLOW:
+${appFlow.steps.map((step, index) => `${index + 1}. ${step.description} (Screen: ${step.screenReference})`).join('\n')}
+
+REQUIRED OUTPUT FORMAT:
+{
+  "screens": [
+    {
+      "name": "Screen Name",
+      "description": "Detailed description of screen purpose and functionality",
+      "featureId": "feature_id_from_prd",
+      "elements": [
+        {
+          "type": "text",
+          "properties": {
+            "content": "Actual text content to display",
+          }
+        },
+        {
+          "type": "input",
+          "properties": {
+            "label": "all field Label",
+            "placeholder": "Placeholder text",
+            "inputType": "text/password/email/number/textarea/select/checkbox/radio/date",
+            "isRequired": true/false,
+            "description": "Description of what this input collects"
+          }
+        },
+        {
+          "type": "button",
+          "properties": {
+            "content": "Button Label",
+            "action": "Description of what happens when clicked"
+          }
+        },
+        {
+          "type": "image",
+          "properties": {
+            "description": "Description of the image content",
+            "purpose": "icon/illustration/photo/avatar",
+          }
+        }
+      ]
+    }
+  ]
+}
+
+GUIDELINES FOR CREATING SCREENS:
+1. Each screen must correspond to one of the steps in the app flow.
+2. IMPORTANT: Analyze the screen's purpose carefully and include appropriate elements:
+   - For login screens: Include email/username and password fields with proper validation
+   - For forms: Include ALL fields mentioned in the description (not just one generic field)
+   - For list views: Include list items with appropriate details
+   - For detail views: Show complete information about the viewed item
+
+3. For input forms:
+   - CRITICALLY IMPORTANT: Include ALL required input fields based on the screen's description
+   - If the screen mentions multiple pieces of data to collect (weights, reps, duration, etc.), include a SEPARATE input field for EACH item
+   - Choose appropriate input types for each field (select for options, number for numeric values, etc.)
+   - Include proper validation requirements (mark important fields as required)
+   - Add descriptive labels and placeholder text
+   - Include a primary submit button with a specific action
+
+4. For selection interfaces:
+   - Use appropriate UI elements (dropdown/select for single selection, checkboxes for multiple)
+   - Include realistic options that match the application domain
+   - Make common selections easy to find
+   
+5. For list and browsing interfaces:
+   - Include search/filter fields if appropriate
+   - Show example list items with realistic content
+   - Include pagination or "load more" if dealing with large datasets
+
+6. For text content:
+   - Use headings and subheadings to create clear visual hierarchy
+   - Provide descriptive, helpful content text (not generic placeholders)
+   - Break up long content into readable sections
+
+7. For buttons:
+   - Use clear, action-oriented labels ("Save Workout" instead of "Submit")
+   - Make primary actions visually distinct (isPrimary: true)
+   - Use full-width buttons for main actions
+   - Place buttons in logical positions based on their importance
+
+8. Each screen should include at minimum:
+   - A clear heading/title
+   - Descriptive content that explains the screen's purpose
+   - All UI elements needed to complete the described actions
+   - At least 3-7 elements (more for complex screens)
+
+9. IMPORTANT: Each screen must be linked to one of the features from the PRD using the featureId field.
+
+CREATE DETAILED, REALISTIC SCREENS THAT COMPLETELY ADDRESS THE REQUIREMENTS AND INCLUDE ALL NECESSARY FIELDS AND ELEMENTS.`;
+
+  // Maximum number of retry attempts
+  const MAX_RETRIES = 1;
   let retryCount = 0;
   let lastError: Error | null = null;
 
@@ -232,14 +335,14 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
       // Improved timeout handling with AbortController
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log("Screens request timeout triggered after 9s");
+        console.log("Screens request timeout triggered after 10s");
         controller.abort();
-      }, 9000); // 9-second timeout (reduced from 240s to align with Vercel's limits)
+      }, 10000); // 10-second timeout for screens generation
       
       try {
         console.log("Making API request to OpenAI for screens");
           
-        // Call OpenAI API with optimized parameters
+        // Call OpenAI API
         const response = await fetch('/api/generate-screens', {
           method: 'POST',
           headers: {
@@ -249,54 +352,35 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
             brief: {
               id: brief.id,
               productName: brief.productName,
-              prdId: prd.id,
-              content: prd.content
+              problemStatement: brief.problemStatement,
+              content: brief.content || null  // Add content or null if not available
             },
-            prd: {
-              id: prd.id,
-              content: prd.content
-            },
-            appFlow: {
-              id: appFlow.id,
-              prdId: prd.id,
-              steps: appFlow.steps.slice(0, 4).map(step => ({
-                id: step.id,
-                description: step.description,
-                screenReference: step.screenReference
-              }))
-            }
+            prd: { id: prd.id, content: prd.content },
+            appFlow,
+            prompt
           }),
           signal: controller.signal
         });
 
         clearTimeout(timeoutId);
 
-        // Handle non-OK responses
+        // Handle API errors
         if (!response.ok) {
-          // Special handling for 504 Gateway Timeout
-          if (response.status === 504) {
-            console.log("Received 504 Gateway Timeout, using fallback screens");
-            throw new Error("Gateway Timeout - using fallback screens");
-          }
+          const errorData = await response.json().catch(() => ({}));
           
-          // Try to parse error response as JSON
-          let errorMessage = `API request failed with status ${response.status}`;
-          try {
-            const errorData = await response.json();
-            
-            // Check if API suggests using fallback
+          // Check if the API suggests using fallback
             if (errorData.fallback) {
               console.log("API suggests using fallback screens");
               throw new Error("API suggests fallback screens");
             }
             
-            errorMessage += `: ${errorData.error || 'Unknown error'}`;
-          } catch (parseError) {
-            // If JSON parsing fails, use a generic error
-            console.error('Failed to parse error response:', parseError);
-            errorMessage += ': Error parsing response';
+          // Special handling for 504 Gateway Timeout
+          if (response.status === 504) {
+            throw new Error("Screens request timed out (504 Gateway Timeout)");
           }
           
+          // Handle other API errors
+          const errorMessage = `API request failed with status ${response.status}: ${errorData.error || 'Unknown error'}`;
           console.error('Screen generation API error:', errorMessage);
           throw new Error(errorMessage);
         }
@@ -350,12 +434,16 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
               name: screenData.name || 'Unnamed Screen',
               description: screenData.description || '',
               featureId: featureId,
+              // Normalize each element to ensure compatibility
               elements: (screenData.elements || []).map((element: any) => {
-                return {
+                const baseElement = {
                   id: uuidv4(),
                   type: element.type || 'unknown',
                   properties: element.properties || {}
                 } as ScreenElement;
+                
+                // Apply normalization to ensure compatibility
+                return normalizeScreenElement(baseElement);
               }),
               createdAt: Date.now()
             } as Screen;
@@ -422,12 +510,12 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
           continue;
         }
         
-        // If we've exhausted retries or it's not a retryable error, throw
-        throw error;
+      // If we've exhausted retries or it's not a retryable error, exit the loop
+      break;
       }
     }
     
-    // If we've exhausted all retries, use the fallback approach
+  // If we've exhausted all retries or encountered a non-retryable error, use the fallback approach
     if (lastError) {
       console.log("All screens API attempts failed, using fallback approach");
       
@@ -446,17 +534,6 @@ async function generateScreensFromAppFlow(brief: Brief, prd: PRD, appFlow: AppFl
       }
       
       const screens = generateFallbackScreens(brief, prd, appFlow);
-      
-      // Link screens to app flow steps by name for fallback screens too
-      appFlow.steps.forEach(step => {
-        if (step.screenReference) {
-          const matchingScreen = screens.find(screen => screen.name === step.screenReference);
-          if (matchingScreen) {
-            step.screenId = matchingScreen.id;
-          }
-        }
-      });
-      
       return screens;
     }
   
@@ -899,4 +976,59 @@ export function extractFeaturesFromPRD(prdContent: any): Array<{id: string, name
       { id: 'dashboard', name: 'Dashboard' }
     ];
   }
+}
+
+// Helper function to extract feature IDs from PRD content
+function extractFeatureIdsFromPRD(prdContent: any): string[] {
+  try {
+    const features = extractFeaturesFromPRD(prdContent);
+    return features.map(feature => feature.id);
+  } catch (error) {
+    console.error("Error extracting feature IDs from PRD:", error);
+    return [];
+  }
+}
+
+// Later in the code, after the screen generation, add a normalization function
+// to ensure backward compatibility
+function normalizeScreenElement(element: ScreenElement): ScreenElement {
+  // Create a copy to avoid modifying the original
+  const normalized = { ...element };
+  
+  // Ensure properties object exists
+  normalized.properties = normalized.properties || {};
+  
+  // Apply type-specific default properties based on element type
+  switch (normalized.type) {
+    case 'text':
+      // For text elements, infer isHeading from content length if not specified
+      if (normalized.properties.isHeading === undefined) {
+        normalized.properties.isHeading = normalized.properties.content && 
+                                         normalized.properties.content.length < 20;
+      }
+      // Optional new properties with defaults
+      normalized.properties.alignment = normalized.properties.alignment || 'left';
+      break;
+      
+    case 'button':
+      // Optional new properties with defaults
+      normalized.properties.isFullWidth = normalized.properties.isFullWidth || false;
+      normalized.properties.isPrimary = normalized.properties.isPrimary || false;
+      break;
+      
+    case 'input':
+      // Optional new properties with defaults
+      normalized.properties.inputType = normalized.properties.inputType || 'text';
+      normalized.properties.isRequired = normalized.properties.isRequired || false;
+      break;
+      
+    case 'image':
+      // For image elements, ensure height has a reasonable default
+      normalized.properties.height = normalized.properties.height || 140;
+      // Optional new properties with defaults
+      normalized.properties.purpose = normalized.properties.purpose || 'illustration';
+      break;
+  }
+  
+  return normalized;
 } 

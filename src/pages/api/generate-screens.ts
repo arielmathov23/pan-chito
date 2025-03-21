@@ -20,11 +20,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Truncate brief content to reduce prompt size
     const briefContent = typeof brief.content === 'string' 
       ? brief.content.substring(0, 250) + (brief.content.length > 250 ? '...' : '')
-      : JSON.stringify(brief.content).substring(0, 250) + '...';
+      : brief.content 
+        ? JSON.stringify(brief.content).substring(0, 250) + '...'
+        : `${brief.productName || 'Product'} - ${brief.problemStatement || 'No additional details'}`;
 
     // Create a more concise prompt for OpenAI
     const prompt = `
-Youu are the best UX designer in the world. Generate screen specifications in JSON format for a product called "${brief.productName}".
+You are the best UX designer in the world. Generate screen specifications in JSON format for a product called "${brief.productName}".
 Focus on creating ONLY 4 MAIN screens based on this brief summary: ${briefContent}
 
 User Journey:

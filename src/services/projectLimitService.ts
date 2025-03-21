@@ -16,6 +16,7 @@ export interface Plan {
   description: string | null;
   defaultProjectLimit: number;
   defaultPrioritizedFeaturesLimit: number;
+  enablesSvgWireframes: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -407,6 +408,7 @@ export const projectLimitService = {
                 description: newLimit.plans.description,
                 defaultProjectLimit: newLimit.plans.default_project_limit,
                 defaultPrioritizedFeaturesLimit: newLimit.plans.default_prioritized_features_limit,
+                enablesSvgWireframes: !!newLimit.plans.enables_svg_wireframes,
                 createdAt: newLimit.plans.created_at,
                 updatedAt: newLimit.plans.updated_at
               } : null
@@ -439,6 +441,7 @@ export const projectLimitService = {
           description: data.plans.description,
           defaultProjectLimit: data.plans.default_project_limit,
           defaultPrioritizedFeaturesLimit: data.plans.default_prioritized_features_limit,
+          enablesSvgWireframes: !!data.plans.enables_svg_wireframes,
           createdAt: data.plans.created_at,
           updatedAt: data.plans.updated_at
         } : null
@@ -470,6 +473,7 @@ export const projectLimitService = {
         description: plan.description,
         defaultProjectLimit: plan.default_project_limit,
         defaultPrioritizedFeaturesLimit: plan.default_prioritized_features_limit,
+        enablesSvgWireframes: !!plan.enables_svg_wireframes,
         createdAt: plan.created_at,
         updatedAt: plan.updated_at
       }));
@@ -757,6 +761,46 @@ export const projectLimitService = {
       return true;
     } catch (error) {
       console.error(`Error in updateUpgradeRequestStatus to ${status}:`, error);
+      return false;
+    }
+  },
+
+  /**
+   * Check if the user can generate SVG wireframes based on their plan
+   */
+  async canGenerateSvgWireframes(): Promise<boolean> {
+    try {
+      // Get the current user
+      const user = supabase.auth.getUser();
+      const userId = (await user).data.user?.id;
+      
+      if (!userId) {
+        console.error('No authenticated user found');
+        return false;
+      }
+
+      // First try to use the RPC function if available
+      try {
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('check_svg_wireframes_access');
+        
+        if (!rpcError && rpcResult !== null) {
+          return !!rpcResult;
+        }
+      } catch (rpcError) {
+        console.warn('RPC function check_svg_wireframes_access failed, falling back to manual check');
+      }
+      
+      // Fallback: Get user's project limit with plan information
+      const { limit, plan } = await this.getUserProjectLimitAndPlan(userId);
+      
+      // If no plan found or plan doesn't enable SVG wireframes, return false
+      if (!plan || !plan.enablesSvgWireframes) {
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking SVG wireframes access:', error);
       return false;
     }
   }

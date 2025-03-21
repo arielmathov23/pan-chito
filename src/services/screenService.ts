@@ -12,6 +12,7 @@ export interface SupabaseScreen {
   created_at: string;
   updated_at: string;
   user_id: string;
+  svg_wireframe?: string;
 }
 
 export interface SupabaseAppFlow {
@@ -69,7 +70,8 @@ function mapScreenToSupabase(screen: Screen): Omit<SupabaseScreen, 'created_at' 
     prd_id: screen.prdId,
     name: screen.name,
     description: screen.description || '',
-    elements: elementsWithMetadata
+    elements: elementsWithMetadata,
+    svg_wireframe: screen.svgWireframe
   };
 }
 
@@ -110,7 +112,8 @@ function mapSupabaseToScreen(screen: SupabaseScreen): Screen {
     description: screen.description,
     featureId: featureId,
     elements: elements,
-    createdAt: new Date(screen.created_at).getTime()
+    createdAt: new Date(screen.created_at).getTime(),
+    svgWireframe: screen.svg_wireframe
   };
 }
 

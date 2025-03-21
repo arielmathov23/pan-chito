@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -45,6 +45,8 @@ export default function NewPRD() {
   const [usingMockData, setUsingMockData] = useState(false);
   const [generationStep, setGenerationStep] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState(0);
+  const [actualProgress, setActualProgress] = useState(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setUsingMockData(isMockData());
@@ -92,6 +94,59 @@ export default function NewPRD() {
     
     loadData();
   }, [projectId, router]);
+
+  // Add this useEffect to handle the smooth animation
+  useEffect(() => {
+    if (isGenerating) {
+      // Start the progress bar from 0%
+      setProgressPercentage(0);
+      
+      // Clear any existing interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      
+      // Set up an interval to slowly increment the visual progress
+      progressIntervalRef.current = setInterval(() => {
+        setProgressPercentage(prev => {
+          // If we have actual progress data, move toward that value
+          if (actualProgress > 0) {
+            // Move faster toward the actual value
+            return prev + Math.max(1, (actualProgress - prev) * 0.1);
+          }
+          
+          // Otherwise, slowly increment up to 90% (leaving room for actual completion)
+          const increment = Math.max(0.5, (90 - prev) * 0.01);
+          return Math.min(90, prev + increment);
+        });
+      }, 200);
+      
+      return () => {
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+      };
+    } else {
+      // Reset progress when generation stops
+      setProgressPercentage(0);
+      setActualProgress(0);
+    }
+  }, [isGenerating, actualProgress]);
+
+  // When you receive actual progress from your API, update the actualProgress state
+  const handleProgressUpdate = (progress: number) => {
+    setActualProgress(progress);
+    
+    // If actual progress reaches 100%, clear interval and set visual progress to 100%
+    if (progress >= 100) {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setProgressPercentage(100);
+    }
+  };
 
   const handleGeneratePRD = async () => {
     console.log("handleGeneratePRD called", {
@@ -451,7 +506,7 @@ export default function NewPRD() {
               <div className="mt-4 w-full max-w-md">
                 <div className="mb-2 flex justify-between items-center">
                   <span className="text-sm text-[#4b5563]">{generationStep}</span>
-                  <span className="text-sm font-medium text-[#0F533A]">{progressPercentage}%</span>
+                  <span className="text-sm font-medium text-[#0F533A]">{Math.round(progressPercentage)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div

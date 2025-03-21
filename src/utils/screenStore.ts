@@ -9,6 +9,7 @@ export interface Screen {
   featureId: string;  // Added field to link screen to a specific feature
   elements: ScreenElement[];
   createdAt: number;
+  svgWireframe?: string; // SVG wireframe content
 }
 
 // Define the ScreenElement interface
@@ -181,6 +182,89 @@ class ScreenStore {
     
     return appFlow;
   }
+
+  // Update a screen with SVG wireframe
+  updateScreenSvgWireframe(screenId: string, svgWireframe: string): Screen | null {
+    const index = this.screens.findIndex(screen => screen.id === screenId);
+    
+    if (index !== -1) {
+      this.screens[index] = {
+        ...this.screens[index],
+        svgWireframe
+      };
+      this.saveToLocalStorage();
+      return this.screens[index];
+    }
+    
+    return null;
+  }
 }
 
-export const screenStore = new ScreenStore(); 
+export const screenStore = new ScreenStore();
+
+// Utility function to normalize screen elements for backward compatibility
+export function normalizeScreenElement(element: ScreenElement): ScreenElement {
+  // Create a copy to avoid modifying the original
+  const normalized = { ...element };
+  
+  // Ensure properties object exists
+  normalized.properties = normalized.properties || {};
+  
+  // Apply type-specific default properties based on element type
+  switch (normalized.type) {
+    case 'text':
+      // For text elements, infer isHeading from content length if not specified
+      if (normalized.properties.isHeading === undefined) {
+        normalized.properties.isHeading = normalized.properties.content && 
+                                         normalized.properties.content.length < 20;
+      }
+      // Optional new properties with defaults
+      normalized.properties.alignment = normalized.properties.alignment || 'left';
+      break;
+      
+    case 'button':
+      // Optional new properties with defaults
+      normalized.properties.isFullWidth = normalized.properties.isFullWidth || false;
+      normalized.properties.isPrimary = normalized.properties.isPrimary || false;
+      break;
+      
+    case 'input':
+      // Optional new properties with defaults
+      normalized.properties.inputType = normalized.properties.inputType || 'text';
+      normalized.properties.isRequired = normalized.properties.isRequired || false;
+      break;
+      
+    case 'image':
+      // For image elements, ensure height has a reasonable default
+      normalized.properties.height = normalized.properties.height || 140;
+      // Optional new properties with defaults
+      normalized.properties.purpose = normalized.properties.purpose || 'illustration';
+      break;
+  }
+  
+  return normalized;
+}
+
+// Utility function to normalize an entire screen
+export function normalizeScreen(screen: Screen): Screen {
+  if (!screen) return screen;
+  
+  return {
+    ...screen,
+    elements: Array.isArray(screen.elements) 
+      ? screen.elements.map(element => normalizeScreenElement(element))
+      : []
+  };
+}
+
+// Utility function to normalize a complete screen set
+export function normalizeScreenSet(screenSet: ScreenSet | null): ScreenSet | null {
+  if (!screenSet) return null;
+  
+  return {
+    ...screenSet,
+    screens: Array.isArray(screenSet.screens) 
+      ? screenSet.screens.map(screen => normalizeScreen(screen))
+      : []
+  };
+} 
