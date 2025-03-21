@@ -7,6 +7,12 @@ interface Position {
   y: number;
 }
 
+interface TouchState {
+  touches: Position[];
+  initialDistance: number | null;
+  initialZoom: number | null;
+}
+
 interface NodePosition {
   id: string;
   position: Position;
@@ -37,12 +43,30 @@ const UserJourneyFlowDiagram: React.FC<UserJourneyFlowDiagramProps> = ({
   const [draggingBoard, setDraggingBoard] = useState<boolean>(false);
   const [startDragPos, setStartDragPos] = useState<Position | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [touchState, setTouchState] = useState<TouchState>({
+    touches: [],
+    initialDistance: null,
+    initialZoom: null
+  });
   const boardRef = useRef<HTMLDivElement>(null);
 
-  // Initialize node positions
-  useEffect(() => {
-    if (appFlow.steps.length === 0) return;
+  // Add a key dependency on appFlow.id to ensure component rerenders when flow changes
+  // And update the useEffect to reinitialize node positions when appFlow changes
 
+  useEffect(() => {
+    // Initialize node positions if not already set
+    if (appFlow && (!nodePositions || Object.keys(nodePositions).length === 0 || appFlow.steps.length !== Object.keys(nodePositions).length)) {
+      initializeNodePositions();
+    }
+  }, [appFlow, appFlow?.id, appFlow?.steps?.length]);
+  
+  // Also update the initialization function to handle empty appFlow
+  const initializeNodePositions = () => {
+    if (!appFlow || !appFlow.steps || appFlow.steps.length === 0) {
+      setNodePositions([]);
+      return;
+    }
+    
     // Create initial positions with proper spacing
     const horizontalSpacing = 400; // Increased from 300 for better separation
     const positions: NodePosition[] = [];
@@ -72,7 +96,7 @@ const UserJourneyFlowDiagram: React.FC<UserJourneyFlowDiagramProps> = ({
     });
 
     setNodePositions(positions);
-  }, [appFlow, screens]);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -391,17 +415,108 @@ const UserJourneyFlowDiagram: React.FC<UserJourneyFlowDiagramProps> = ({
     }
   };
 
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touches = Array.from(e.touches).map(touch => ({
+      x: touch.clientX,
+      y: touch.clientY
+    }));
+
+    setTouchState({
+      touches,
+      initialDistance: touches.length === 2 ? getTouchDistance(touches) : null,
+      initialZoom: touches.length === 2 ? zoomLevel : null
+    });
+
+    if (touches.length === 1) {
+      setStartDragPos(touches[0]);
+      setDraggingBoard(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const currentTouches = Array.from(e.touches).map(touch => ({
+      x: touch.clientX,
+      y: touch.clientY
+    }));
+
+    // Handle pinch zoom
+    if (currentTouches.length === 2 && touchState.initialDistance && touchState.initialZoom) {
+      const currentDistance = getTouchDistance(currentTouches);
+      const scale = currentDistance / touchState.initialDistance;
+      const newZoomLevel = Math.max(0.3, Math.min(2.5, touchState.initialZoom * scale));
+
+      // Get the center point between the two touches
+      const centerX = (currentTouches[0].x + currentTouches[1].x) / 2;
+      const centerY = (currentTouches[0].y + currentTouches[1].y) / 2;
+
+      if (boardRef.current) {
+        const rect = boardRef.current.getBoundingClientRect();
+        const virtualX = (centerX - rect.left - boardPosition.x) / zoomLevel;
+        const virtualY = (centerY - rect.top - boardPosition.y) / zoomLevel;
+
+        const newBoardX = centerX - rect.left - virtualX * newZoomLevel;
+        const newBoardY = centerY - rect.top - virtualY * newZoomLevel;
+
+        setZoomLevel(newZoomLevel);
+        setBoardPosition({
+          x: newBoardX,
+          y: newBoardY
+        });
+      }
+    }
+    // Handle single touch pan
+    else if (currentTouches.length === 1 && startDragPos && draggingBoard) {
+      const dx = currentTouches[0].x - startDragPos.x;
+      const dy = currentTouches[0].y - startDragPos.y;
+
+      setBoardPosition(prev => ({
+        x: prev.x + dx / zoomLevel,
+        y: prev.y + dy / zoomLevel
+      }));
+
+      setStartDragPos(currentTouches[0]);
+    }
+
+    setTouchState(prev => ({
+      ...prev,
+      touches: currentTouches
+    }));
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (e.touches.length === 0) {
+      setDraggingBoard(false);
+      setStartDragPos(null);
+      setTouchState({
+        touches: [],
+        initialDistance: null,
+        initialZoom: null
+      });
+    }
+  };
+
+  const getTouchDistance = (touches: Position[]) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[1].x - touches[0].x;
+    const dy = touches[1].y - touches[0].y;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8 mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center">
           <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
           <h2 className="text-xl font-semibold text-[#111827]">User Journey Flow Diagram</h2>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
           <button
             onClick={onAddStep}
-            className="inline-flex items-center justify-center bg-[#0F533A] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#0F533A]/90 transition-colors"
+            className="inline-flex items-center justify-center bg-[#0F533A] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#0F533A]/90 transition-colors touch-manipulation w-full sm:w-auto"
           >
             <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -409,40 +524,42 @@ const UserJourneyFlowDiagram: React.FC<UserJourneyFlowDiagramProps> = ({
             </svg>
             Add Step
           </button>
-          <div className="h-5 border-l border-gray-300 mx-1"></div>
-          <button
-            onClick={handleZoomOut}
-            className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] px-3 py-1 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors"
-            aria-label="Zoom out"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-          <div className="text-sm font-medium text-gray-700">
-            {Math.round(zoomLevel * 100)}%
+          <div className="hidden sm:block h-5 border-l border-gray-300 mx-1"></div>
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            <button
+              onClick={handleZoomOut}
+              className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors touch-manipulation"
+              aria-label="Zoom out"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+            <div className="text-sm font-medium text-gray-700 min-w-[48px] text-center">
+              {Math.round(zoomLevel * 100)}%
+            </div>
+            <button
+              onClick={handleZoomIn}
+              className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors touch-manipulation"
+              aria-label="Zoom in"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+            <button
+              onClick={resetView}
+              className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] px-3 py-1 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors touch-manipulation whitespace-nowrap"
+              aria-label="Reset view"
+            >
+              <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 3V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Reset
+            </button>
           </div>
-          <button
-            onClick={handleZoomIn}
-            className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] px-3 py-1 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors"
-            aria-label="Zoom in"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-          <button
-            onClick={resetView}
-            className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] px-3 py-1 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors"
-            aria-label="Reset view"
-          >
-            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M12 3V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Reset
-          </button>
         </div>
       </div>
       
@@ -454,16 +571,20 @@ const UserJourneyFlowDiagram: React.FC<UserJourneyFlowDiagramProps> = ({
           backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px), radial-gradient(circle, #e5e7eb 1px, transparent 1px)',
           backgroundSize: `${20 * zoomLevel}px ${20 * zoomLevel}px`,
           backgroundPosition: `0 0, ${10 * zoomLevel}px ${10 * zoomLevel}px`,
-          WebkitUserSelect: 'none', /* Safari */
-          MozUserSelect: 'none', /* Firefox */
-          msUserSelect: 'none', /* IE10+/Edge */
-          userSelect: 'none' /* Standard */
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none',
+          userSelect: 'none',
+          touchAction: 'none'
         }}
         onMouseDown={handleBoardMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div
           className="absolute"
