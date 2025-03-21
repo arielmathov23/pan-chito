@@ -59,7 +59,7 @@ Required Output Format:
     "steps": [
       {
         "description": "Detailed description of the user journey step",
-        "screenReference": "Name of the target screen"
+        "screenReference": "Name of the screen that the user will see"
       }
     ]
   }
@@ -67,7 +67,7 @@ Required Output Format:
 
 Guidelines:
 1. Focus on the core user journey from start to finish, maximum 4 steps
-2. Include all necessary steps a user would take to complete the main tasks
+2. Describe the steps a user would take to complete the main user flow tasks
 3. Ensure screen references are clear and descriptive
 4. Use consistent naming for screen references
 5. Cover the complete user flow from initial interaction to goal completion`;

@@ -508,6 +508,38 @@ const screenService = {
       
       return screen;
     }
+  },
+
+  // Update a screen set (both screens and app flow)
+  async updateScreenSet(prdId: string, screenSet: ScreenSet): Promise<ScreenSet> {
+    try {
+      console.log(`Updating screen set for PRD ID: ${prdId}`);
+      
+      // Update app flow
+      await this.updateAppFlow(screenSet.appFlow);
+      
+      // Update all screens
+      for (const screen of screenSet.screens) {
+        await this.updateScreen(screen);
+      }
+      
+      return screenSet;
+    } catch (error) {
+      console.error('Error in updateScreenSet:', error);
+      
+      // Fall back to local storage
+      const localScreenSets = getLocalScreenSets();
+      const existingIndex = localScreenSets.findIndex(set => set.appFlow.prdId === prdId);
+      
+      if (existingIndex >= 0) {
+        localScreenSets[existingIndex] = screenSet;
+      } else {
+        localScreenSets.push(screenSet);
+      }
+      
+      saveLocalScreenSets(localScreenSets);
+      return screenSet;
+    }
   }
 };
 

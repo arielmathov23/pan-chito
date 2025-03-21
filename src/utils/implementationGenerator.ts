@@ -561,14 +561,15 @@ ${inputData.screens ? formatAppFlow(inputData.screens.appFlow) : ''}
 You task is to create two files that include all the information needed to implement the project, without erasing any information from the PRD, Screens definitions and App Flow:
 
 1. Implementation Guide (.md file):
-   - A comprehensive overview of how to implement the project
+   - A comprehensive overview of how to implement the project, avoiding duplicated pages or routes.
    - Must incorporate technical stack details and UI guidelines, shadcn/ui is preferred.
    - Must include high-level architectural decisions, but do not define any code.
-   - Just prompts and descriptions for set up.
-   - Detail how to manage contrast, accessibility, and responsive desing.
+   - Include all the prompts and descriptions for set up and to install the necessary dependencies. 
    - Define code placement: All code in src/ (e.g., src/app/ for App Router, src/components/ for UI, src/lib/ for utilities like Supabase client).
    - Avoid Nested Directory Issues
    - Prompt to do not customize the import alias ('@/*' by default).
+   - Detail how to manage contrast, accessibility, and responsive desing.
+
 
 2. Implementation Steps (.md file):
    - Explain the structure: what are the main features, what is the main flow.

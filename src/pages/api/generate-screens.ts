@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Create a more concise prompt for OpenAI
     const prompt = `
-Generate screen specifications in JSON format for a product called "${brief.productName}".
+Youu are the best UX designer in the world. Generate screen specifications in JSON format for a product called "${brief.productName}".
 Focus on creating ONLY 4 MAIN screens based on this brief summary: ${briefContent}
 
 User Journey:

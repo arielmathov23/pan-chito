@@ -105,7 +105,7 @@ Target Users: ${brief.targetUsers}
 Problem Statement: ${brief.problemStatement}
 Product Objectives: ${brief.productObjectives}
 
-Always add profile features as could priority (login/signup, profile, settings).
+Always add structural features as 'could' priority: navbar, footer, home page, login/signup, profile, settings.
 
 Format your response as a valid JSON array of features. Each feature should be a JSON object with:
 - name: short feature name

@@ -18,6 +18,7 @@ import { prdService } from '../../services/prdService';
 import { projectService } from '../../services/projectService';
 import CheckIcon from '../../components/CheckIcon';
 import { trackEvent } from '../../lib/mixpanelClient';
+import UserJourneyFlowDiagram from '../../components/UserJourneyFlowDiagram';
 
 export default function ScreensPage() {
   const router = useRouter();
@@ -502,120 +503,90 @@ export default function ScreensPage() {
     }
   };
 
+  // Handle editing a step in the user journey
+  const handleEditStep = (step: FlowStep) => {
+    setEditingStep(step);
+    setStepDescription(step.description);
+    setSelectedScreenId(step.screenId);
+    setIsStepModalOpen(true);
+  };
+
+  // Handle adding a step to the user journey
   const handleAddStep = () => {
     setEditingStep(null);
     setStepDescription('');
     setSelectedScreenId(undefined);
-    setAfterStepId('start');
-    setIsModalOpen(true);
-  };
-
-  const handleEditStep = (step: FlowStep) => {
-    setEditingStep(step);
     setIsStepModalOpen(true);
   };
 
-  const handleDeleteStep = (stepId: string) => {
-    setStepToDelete(stepId);
-    setIsDeleteModalOpen(true);
-  };
+  // Handle saving a step in the user journey
+  const handleSaveStep = async () => {
+    if (!screenSet) return;
 
-  const confirmDeleteStep = async () => {
-    if (stepToDelete && screenSet && screenSet.appFlow) {
-      const updatedSteps = screenSet.appFlow.steps.filter(step => step.id !== stepToDelete);
-      const updatedAppFlow = { ...screenSet.appFlow, steps: updatedSteps };
+    // Create a copy of the current screen set
+    const updatedScreenSet = { ...screenSet };
+    const updatedFlow = { ...updatedScreenSet.appFlow };
+    let updatedSteps = [...updatedFlow.steps];
+
+    if (editingStep) {
+      // Edit existing step
+      updatedSteps = updatedSteps.map(step => 
+        step.id === editingStep.id 
+          ? { ...step, description: stepDescription, screenId: selectedScreenId } 
+          : step
+      );
+    } else {
+      // Add new step
+      const newStep: FlowStep = {
+        id: uuidv4(),
+        description: stepDescription,
+        screenId: selectedScreenId
+      };
       
+      // Append to the end of steps array
+      updatedSteps.push(newStep);
+    }
+
+    // Update the steps
+    updatedFlow.steps = updatedSteps;
+    updatedScreenSet.appFlow = updatedFlow;
+
+    // Update state
+    setScreenSet(updatedScreenSet);
+    setIsStepModalOpen(false);
+
+    // Save to database if not mock data
+    if (!usingMockData && id) {
       try {
-        // Update in Supabase
-        await screenService.updateAppFlow(updatedAppFlow);
-        
-        // Also update in local store for backward compatibility
-        screenStore.updateAppFlow(updatedAppFlow);
-        
-        setScreenSet({
-          ...screenSet,
-          appFlow: updatedAppFlow
-        });
+        await screenService.updateScreenSet(id as string, updatedScreenSet);
       } catch (error) {
-        console.error('Error deleting step:', error);
-        setError('Failed to delete step. Please try again.');
+        console.error('Failed to save step:', error);
       }
-      
-      setIsDeleteModalOpen(false);
-      setStepToDelete(null);
     }
   };
 
-  const handleSaveStep = async (stepData: { description: string; screenId?: string; afterStepId?: string }) => {
+  // Handle deleting a step from the user journey
+  const handleDeleteStep = async (stepId: string) => {
     if (!screenSet) return;
 
-    try {
-      let updatedSteps;
-      if (editingStep) {
-        // Update existing step
-        updatedSteps = screenSet.appFlow.steps.map(step =>
-          step.id === editingStep.id
-            ? { ...step, description: stepData.description, screenId: stepData.screenId }
-            : step
-        );
-        
-        // Track step edit
-        trackEvent('App Flow Step Edited', {
-          'PRD ID': prd?.id,
-          'Step ID': editingStep.id,
-          'Has Screen Link': !!stepData.screenId
-        });
-      } else {
-        // Add new step
-        const newStep = {
-          id: uuidv4(),
-          description: stepData.description,
-          screenId: stepData.screenId
-        };
-        
-        // If afterStepId is 'start', add to beginning
-        if (stepData.afterStepId === 'start') {
-          updatedSteps = [newStep, ...screenSet.appFlow.steps];
-        } else if (stepData.afterStepId === 'end') {
-          // If afterStepId is 'end', add to end
-          updatedSteps = [...screenSet.appFlow.steps, newStep];
-        } else {
-          // Otherwise, insert after the specified step
-          const afterIndex = screenSet.appFlow.steps.findIndex(step => step.id === stepData.afterStepId);
-          if (afterIndex !== -1) {
-            updatedSteps = [
-              ...screenSet.appFlow.steps.slice(0, afterIndex + 1),
-              newStep,
-              ...screenSet.appFlow.steps.slice(afterIndex + 1)
-            ];
-          } else {
-            // Fallback to adding at the end if step not found
-            updatedSteps = [...screenSet.appFlow.steps, newStep];
-          }
-        }
+    // Create a copy of the current screen set
+    const updatedScreenSet = { ...screenSet };
+    const updatedFlow = { ...updatedScreenSet.appFlow };
+    
+    // Remove the step
+    updatedFlow.steps = updatedFlow.steps.filter(step => step.id !== stepId);
+    updatedScreenSet.appFlow = updatedFlow;
+
+    // Update state
+    setScreenSet(updatedScreenSet);
+
+    // Save to database if not mock data
+    if (!usingMockData && id) {
+      try {
+        await screenService.updateScreenSet(id as string, updatedScreenSet);
+      } catch (error) {
+        console.error('Failed to delete step:', error);
       }
-
-      const updatedAppFlow = { ...screenSet.appFlow, steps: updatedSteps };
-      
-      // Update in Supabase
-      await screenService.updateAppFlow(updatedAppFlow);
-      
-      // Also update in local store for backward compatibility
-      screenStore.updateAppFlow(updatedAppFlow);
-      
-      // Update the screenSet state
-      setScreenSet({
-        ...screenSet,
-        appFlow: updatedAppFlow
-      });
-
-      // Close the modal
-      setIsModalOpen(false);
-      setIsStepModalOpen(false);
-      setEditingStep(null);
-    } catch (error) {
-      console.error('Error saving step:', error);
-      setError('Failed to save step. Please try again.');
     }
   };
 
@@ -973,83 +944,15 @@ export default function ScreensPage() {
             </div>
           ) : (
             <>
-              {/* App Flow Section */}
-              <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#0F533A] mr-2"></div>
-                    <h2 className="text-xl font-semibold text-[#111827]">User Journey</h2>
-                  </div>
-                  <button
-                    onClick={handleAddStep}
-                    className="inline-flex items-center justify-center bg-[#0F533A]/10 text-[#0F533A] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0F533A]/20 transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 8V16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      <path d="M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    Add Step
-                  </button>
-                </div>
-                
-                <div className="space-y-6">
-                  <div className="relative">
-                    <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-[#0F533A]/10"></div>
-                    <div className="space-y-6">
-                      {screenSet.appFlow.steps.map((step, index) => (
-                        <div key={step.id} className="relative flex items-start group">
-                          <div className="absolute -left-2 flex items-center justify-center w-20 h-full">
-                            <div className="w-4 h-4 rounded-full bg-[#0F533A] flex items-center justify-center text-white text-xs">
-                              {index + 1}
-                            </div>
-                          </div>
-                          <div className="ml-12 flex-grow">
-                            <div className="bg-white rounded-xl border border-[#e5e7eb] p-4 group-hover:border-[#0F533A]/30 transition-colors">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-grow">
-                                  <p className="text-[#111827] font-medium">{step.description}</p>
-                                  {step.screenId && (
-                                    <div className="mt-2 flex items-center">
-                                      <svg className="w-4 h-4 text-[#0F533A] mr-1.5" viewBox="0 0 24 24" fill="none">
-                                        <path d="M10 16L14 12L10 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      </svg>
-                                      <span className="text-sm text-[#0F533A]">
-                                        Goes to: {screenSet.screens.find(s => s.id === step.screenId)?.name}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={() => handleEditStep(step)}
-                                    className="p-1 hover:bg-[#f3f4f6] rounded text-[#6b7280] hover:text-[#111827] transition-colors"
-                                  >
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                      <path d="M11 4H4C2.89543 4 2 4.89543 2 6V20C2 21.1046 2.89543 22 4 22H18C19.1046 22 20 21.1046 20 20V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      <path d="M21.5 2.5L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      <path d="M15 2H22V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteStep(step.id)}
-                                    className="p-1 hover:bg-red-50 rounded text-[#6b7280] hover:text-red-600 transition-colors"
-                                  >
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                      <path d="M3 6H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      <path d="M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      <path d="M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Add Flow Diagram */}
+              {screenSet && (
+                <UserJourneyFlowDiagram 
+                  appFlow={screenSet.appFlow} 
+                  screens={screenSet.screens} 
+                  onAddStep={handleAddStep}
+                  onDeleteStep={handleDeleteStep}
+                />
+              )}
               
               {/* Screens Section */}
               <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 sm:p-8">
@@ -1214,11 +1117,7 @@ export default function ScreensPage() {
                 Cancel
               </button>
               <button
-                onClick={() => handleSaveStep({ 
-                  description: stepDescription, 
-                  screenId: selectedScreenId,
-                  afterStepId: afterStepId
-                })}
+                onClick={() => handleSaveStep()}
                 className="px-4 py-2 text-sm bg-[#0F533A] text-white rounded-md hover:bg-[#0a3f2c]"
               >
                 Save Step
@@ -1230,22 +1129,32 @@ export default function ScreensPage() {
         {/* Delete Confirmation Modal */}
         <Modal
           isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setStepToDelete(null);
+          }}
           title="Delete Step"
         >
           <div className="p-6">
-            <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to delete this step? This action cannot be undone.
-            </p>
+            <p className="mb-6 text-gray-700">Are you sure you want to delete this step?</p>
             <div className="flex justify-end space-x-3">
               <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setStepToDelete(null);
+                }}
+                className="px-4 py-2 text-sm bg-gray-100 text-gray-900 rounded-md hover:bg-gray-200"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmDeleteStep}
+                onClick={() => {
+                  if (stepToDelete) {
+                    handleDeleteStep(stepToDelete);
+                  }
+                  setIsDeleteModalOpen(false);
+                  setStepToDelete(null);
+                }}
                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
               >
                 Delete

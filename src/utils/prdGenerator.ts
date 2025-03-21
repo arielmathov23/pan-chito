@@ -36,6 +36,9 @@ export interface PRD {
 export interface PRDSection {
   featureName: string;
   featurePriority: string;
+  featureId?: string;
+  originalFeatureName?: string;
+  userStoryName?: string;
   overview: {
     purpose: string;
     successMetrics: string[];
@@ -255,22 +258,25 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
       Features to document (${featuresForPRD.length} of ${priorityFeatures.length} total priority features):
       ${featuresForPRD.map((f, i) => `${i+1}. ${f.name}: ${f.description} (${f.priority.toUpperCase()})`).join('\n')}
       
-      It is extremly important that you consider all the user stories for a single feature to make this the best PRD in the world.
-      If a feature must be described in more than 1 user story, separate the answer for a single feature in different sections (described below), one for each user story for a same feature. 
-      Follow this exact template for each user story related to a feature separated by user stories. 
+      It is extremely important that you break down each feature into ONE OR MORE user stories and create a SEPARATE SECTION for each user story.
+      
+      Follow this exact template for your response. Create one section in the sections array for EACH combination of a feature and a single user story:
       
       {
         "sections": [
           {
-            "featureName": "Feature Name",
+            "featureId": "unique-id-for-feature",
+            "featureName": "Feature Name - User Story Name",
+            "originalFeatureName": "Feature Name",
             "featurePriority": "must or should",
+            "userStoryName": "Short descriptive name for this user story",
             "overview": {
-              "purpose": "Job to be done, what this feature solve and how",
+              "purpose": "Job to be done, what this specific user story solves and how",
               "successMetrics": ["North Star Metric"]
             },
-            "userStories": ["User story description with details for a high quality User experience"],
+            "userStory": "Detailed description for this specific user story",
             "acceptanceCriteria": {
-              "guidelines": "Brief guidelines",
+              "guidelines": "Brief guidelines specific to this user story",
               "criteria": ["Criterion 1", "Criterion 2"]
             },
             "useCases": [
@@ -307,7 +313,16 @@ export async function generatePRD(brief: Brief, featureSet: FeatureSet): Promise
         ]
       }
       
-      The output must be valid JSON with a "sections" array containing one object per feature.
+      IMPORTANT INSTRUCTIONS:
+      1. For each feature, create MULTIPLE SECTIONS (one per user story) in the JSON output
+      2. The "featureId" field should be the same for all user stories of the same feature but each section should have a unique combination of feature and user story
+      3. The "featureName" field should combine the feature name and user story name like "Feature Name - User Story Name"
+      4. The "originalFeatureName" field should contain just the feature name for grouping
+      5. The "userStoryName" field should provide a short descriptive name for the specific user story
+      6. The "userStory" field should contain a SINGLE detailed user story (not an array)
+      7. All other requirements (acceptance criteria, use cases, etc.) should be specific to this particular user story
+      
+      The output must be valid JSON with a "sections" array containing one object per feature+user story combination.
       
       Note: If there are more than ${featuresForPRD.length} features, only generate PRDs for the first ${featuresForPRD.length} features listed above.
     `;
@@ -387,19 +402,33 @@ export function parsePRD(rawContent: string): GeneratedPRD {
 
 // Helper function to validate and fix a section structure
 function validateAndFixSection(section: any): PRDSection {
+  // Handle both old format (userStories array) and new format (userStory string)
+  let userStories = ["As a user, I want to use this feature"];
+  
+  if (Array.isArray(section.userStories)) {
+    // Old format - already an array
+    userStories = section.userStories;
+  } else if (section.userStory) {
+    // New format - single string, convert to array
+    userStories = [section.userStory];
+  }
+  
   // Create a valid section with defaults for missing properties
   return {
     featureName: section.featureName || "Unnamed Feature",
     featurePriority: section.featurePriority || "must",
+    // Store new fields for UI display but maintain backward compatibility
+    // These will be ignored by old code but used by new code
+    originalFeatureName: section.originalFeatureName || section.featureName || "Unnamed Feature",
+    featureId: section.featureId || `feature-${Math.random().toString(36).substring(2, 11)}`,
+    userStoryName: section.userStoryName || "Main User Story",
     overview: {
       purpose: section.overview?.purpose || "No purpose specified",
       successMetrics: Array.isArray(section.overview?.successMetrics) 
         ? section.overview.successMetrics 
         : ["Adoption rate", "User satisfaction"]
     },
-    userStories: Array.isArray(section.userStories) 
-      ? section.userStories 
-      : ["As a user, I want to use this feature"],
+    userStories: userStories,
     acceptanceCriteria: {
       guidelines: section.acceptanceCriteria?.guidelines || "The feature should be intuitive and responsive",
       criteria: Array.isArray(section.acceptanceCriteria?.criteria) 
