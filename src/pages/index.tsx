@@ -331,6 +331,22 @@ const Home = () => {
                 Go to app
               </Link>
             )}
+            <div className="divide-y divide-gray-100/50">
+              <Link 
+                href="/privacy-policy" 
+                className="px-6 py-3 text-gray-600 hover:bg-gray-50 text-left flex items-center transition-colors text-sm"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Privacy Policy
+              </Link>
+              <Link 
+                href="/terms-conditions" 
+                className="px-6 py-3 text-gray-600 hover:bg-gray-50 text-left flex items-center transition-colors text-sm"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Terms & Conditions
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -1170,7 +1186,7 @@ const Home = () => {
                   <span className="text-2xl font-medium">021</span>
                 </div>
                 <p className="text-white/80 mb-6 max-w-sm">
-                  from021 is built by 021 Product LAB, where innovation meets rapid execution. We launch MVPs for clients using AI in less than 1 month, and craft our own AI-powered products.
+                  from021 is built by <a href="https://panchito.xyz" target="_blank" rel="noopener noreferrer" className="text-white hover:text-white/90 underline">Panchito Lab</a>, where innovation meets rapid execution. We launch MVPs for clients using AI in less than 1 month, and craft our own AI-powered products.
                 </p>
                 
               </div>
@@ -1186,12 +1202,13 @@ const Home = () => {
                 <h4 className="font-medium text-white mb-4">Company</h4>
                 <ul className="space-y-3">
                   <li><a href="mailto:hello@from021.io" className="text-white/70 hover:text-white transition-colors">Contact us at hello@from021.io</a></li>
+                  <li><Link href="/privacy-policy" className="text-white/70 hover:text-white transition-colors">Privacy Policy</Link></li>
+                  <li><Link href="/terms-conditions" className="text-white/70 hover:text-white transition-colors">Terms & Conditions</Link></li>
                 </ul>
               </div>
             </div>
             <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center">
               <p className="text-white/70 mb-4 md:mb-0">© {currentYear} From Zero to One</p>
-          
             </div>
           </div>
         </footer>
